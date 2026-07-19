@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Surprise Morning Piece</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Karla:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --night:#171430;
+    --dusk:#2e2547;
+    --horizon:#b4526a;
+    --tungsten:#f0a35e;
+    --paper:#f5ecdd;
+    --dim:#9d93b8;
+    --line:rgba(245,236,221,.14);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Karla',sans-serif;
+    color:var(--paper);
+    background:#0a0912;
+    min-height:100vh;
+  }
+  /* The sunrise cue: sky warms up on load */
+  .sky{
+    position:fixed;inset:0;z-index:-1;
+    background:
+      radial-gradient(120% 60% at 50% 108%, rgba(240,163,94,.30) 0%, rgba(180,82,106,.18) 34%, transparent 62%),
+      linear-gradient(180deg, var(--night) 0%, var(--dusk) 78%, #3c2b4d 100%);
+    opacity:0;
+    animation:lightsUp 2.2s ease-out .2s forwards;
+  }
+  @keyframes lightsUp{to{opacity:1}}
+  .rise{opacity:0;transform:translateY(10px);animation:rise .9s ease-out forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+  .d1{animation-delay:.9s}.d2{animation-delay:1.2s}.d3{animation-delay:1.5s}.d4{animation-delay:1.8s}
+  @media (prefers-reduced-motion: reduce){
+    .sky{animation:none;opacity:1}
+    .rise{animation:none;opacity:1;transform:none}
+  }
+
+  .wrap{max-width:680px;margin:0 auto;padding:56px 22px 80px}
+  header .house{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--dim);
+  }
+  h1{
+    font-family:'Fraunces',serif;font-weight:600;
+    font-size:clamp(2rem, 7vw, 3rem);
+    line-height:1.08;margin:.45em 0 .35em;
+  }
+  header p{color:var(--dim);font-size:.98rem;max-width:44ch}
+
+  /* Today's piece — the live cue */
+  .stage{
+    margin-top:44px;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:26px 24px 24px;
+    background:linear-gradient(180deg, rgba(245,236,221,.05), rgba(245,236,221,.015));
+    position:relative;overflow:hidden;
+  }
+  .stage::before{ /* a beam across the card */
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(80% 120% at 85% -20%, rgba(240,163,94,.16), transparent 55%);
+  }
+  .cue{
+    font-family:'IBM Plex Mono',monospace;font-size:.72rem;
+    letter-spacing:.18em;text-transform:uppercase;color:var(--tungsten);
+  }
+  .cue .go{color:var(--horizon)}
+  .stage h2{
+    font-family:'Fraunces',serif;font-weight:600;
+    font-size:clamp(1.5rem, 5.4vw, 2.1rem);margin:.4em 0 .3em;
+  }
+  .stage .note{color:var(--dim);font-size:.97rem;margin-bottom:20px;max-width:48ch}
+  .tag{
+    display:inline-block;font-family:'IBM Plex Mono',monospace;
+    font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;
+    border:1px solid var(--line);border-radius:99px;
+    padding:4px 10px;color:var(--dim);margin-bottom:14px;
+  }
+  .curtain{
+    display:inline-block;text-decoration:none;
+    font-family:'Karla',sans-serif;font-weight:500;font-size:.95rem;
+    color:#141021;background:var(--tungsten);
+    padding:11px 20px;border-radius:9px;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .curtain:hover,.curtain:focus-visible{
+    transform:translateY(-1px);
+    box-shadow:0 6px 22px rgba(240,163,94,.35);
+  }
+  .curtain:focus-visible{outline:2px solid var(--paper);outline-offset:3px}
+
+  /* Cue sheet — the archive */
+  .sheet{margin-top:52px}
+  .sheet h3{
+    font-family:'IBM Plex Mono',monospace;font-weight:500;
+    font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--dim);margin-bottom:6px;
+  }
+  .row{
+    display:flex;align-items:baseline;gap:14px;
+    padding:15px 2px;border-bottom:1px solid var(--line);
+    text-decoration:none;color:var(--paper);
+    transition:padding-left .15s ease;
+  }
+  .row:hover,.row:focus-visible{padding-left:8px}
+  .row:focus-visible{outline:2px solid var(--tungsten);outline-offset:2px;border-radius:4px}
+  .row .num{
+    font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--tungsten);
+    min-width:3.2em;
+  }
+  .row .title{font-family:'Fraunces',serif;font-size:1.05rem;flex:1}
+  .row .kind{
+    font-family:'IBM Plex Mono',monospace;font-size:.64rem;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--dim);
+  }
+  .row .date{
+    font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--dim);
+  }
+  .empty{color:var(--dim);font-size:.95rem;padding:18px 2px}
+
+  footer{
+    margin-top:64px;color:var(--dim);font-size:.8rem;
+    font-family:'IBM Plex Mono',monospace;letter-spacing:.06em;
+  }
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"></div>
+<div class="wrap">
+
+  <header class="rise d1">
+    <div class="house">House to half — go</div>
+    <h1>The Surprise Morning Piece</h1>
+    <p>Every night an agent dreams up one small thing — a game, a toy, a moving picture — and leaves it here for the morning.</p>
+  </header>
+
+  <section class="stage rise d2" id="today" aria-label="Today's piece">
+    <div class="cue" id="cueLabel">Cue — <span class="go">standby</span></div>
+    <h2 id="pieceTitle">Loading…</h2>
+    <span class="tag" id="pieceKind" hidden></span>
+    <p class="note" id="pieceNote"></p>
+    <a class="curtain" id="pieceLink" href="#" hidden>Raise the curtain →</a>
+  </section>
+
+  <section class="sheet rise d3" aria-label="Previous pieces">
+    <h3>Cue sheet — previous mornings</h3>
+    <div id="archive"><div class="empty">Nothing in the stack yet. The first piece arrives tomorrow.</div></div>
+  </section>
+
+  <footer class="rise d4">Built nightly · reviewed over coffee</footer>
+</div>
+
+<script>
+(async function(){
+  const $ = id => document.getElementById(id);
+  try{
+    const res = await fetch('projects/manifest.json', {cache:'no-store'});
+    const data = await res.json();
+    const pieces = (data.pieces || []).slice().sort((a,b)=> b.date.localeCompare(a.date));
+    if(!pieces.length){
+      $('pieceTitle').textContent = 'The stage is empty';
+      $('pieceNote').textContent = 'The first piece will appear here after the agent\u2019s first night.';
+      return;
+    }
+    const [today, ...rest] = pieces;
+    const n = String(pieces.length).padStart(3,'0');
+    const d = new Date(today.date + 'T00:00:00');
+    const dateStr = d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+    $('cueLabel').innerHTML = `Cue ${n} · ${dateStr} — <span class="go">go</span>`;
+    $('pieceTitle').textContent = today.title;
+    $('pieceNote').textContent = today.note || '';
+    const kind = $('pieceKind');
+    kind.textContent = today.kind || 'piece'; kind.hidden = false;
+    const link = $('pieceLink');
+    link.href = today.path; link.hidden = false;
+
+    if(rest.length){
+      $('archive').innerHTML = rest.map((p,i)=>{
+        const num = String(pieces.length - 1 - i).padStart(3,'0');
+        return `<a class="row" href="${p.path}">
+          <span class="num">${num}</span>
+          <span class="title">${p.title}</span>
+          <span class="kind">${p.kind||''}</span>
+          <span class="date">${p.date.slice(5)}</span>
+        </a>`;
+      }).join('');
+    }
+  }catch(e){
+    $('pieceTitle').textContent = 'Manifest not found';
+    $('pieceNote').textContent = 'projects/manifest.json is missing or unreadable. The agent (or you) can fix that.';
+  }
+})();
+</script>
+</body>
+</html>
