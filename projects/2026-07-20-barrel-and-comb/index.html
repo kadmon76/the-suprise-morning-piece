@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Barrel &amp; Comb · The Surprise Morning Piece</title>
+<style>
+  html,body{margin:0;height:100%;background:#160f0a;overflow:hidden;touch-action:none;
+    -webkit-user-select:none;user-select:none}
+  canvas{display:block;width:100%;height:100%}
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:2;
+    font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:#c9a877;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(245,224,180,.2);border-radius:99px;
+    background:rgba(22,15,10,.55);backdrop-filter:blur(4px);
+  }
+  a.back:hover{color:#f5e0b4}
+  p.hint{
+    position:fixed;left:0;right:0;bottom:22px;z-index:1;
+    text-align:center;margin:0;pointer-events:none;
+    font-family:ui-serif,Georgia,serif;font-style:italic;font-size:14px;
+    color:rgba(245,224,180,.55);letter-spacing:.02em;
+    transition:opacity 1.2s ease;
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<canvas id="c"></canvas>
+<p class="hint" id="hint">turn the wheel</p>
+<script>
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const hint = document.getElementById('hint');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let W, H, dpr, cx, cy, R;
+function size(){
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = cv.width  = innerWidth  * dpr;
+  H = cv.height = innerHeight * dpr;
+  cx = W * 0.5;
+  cy = H * 0.56;
+  R = Math.min(W,H) * 0.30;
+}
+size(); addEventListener('resize', size);
+
+// ---------- audio (silent until first touch) ----------
+let actx = null, master = null;
+function ensureAudio(){
+  if(actx) return;
+  actx = new (window.AudioContext || window.webkitAudioContext)();
+  master = actx.createGain();
+  master.gain.value = 0.5;
+  master.connect(actx.destination);
+}
+function pluck(freq, strength){
+  if(!actx) return;
+  const t0 = actx.currentTime;
+  const osc = actx.createOscillator();
+  const gain = actx.createGain();
+  osc.type = 'triangle';
+  osc.frequency.value = freq;
+  const peak = Math.min(0.5, 0.12 + strength*0.35);
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(peak, t0 + 0.008);
+  gain.gain.exponentialRampToValueAtTime(0.0008, t0 + 0.9);
+  osc.connect(gain).connect(master);
+  osc.start(t0);
+  osc.stop(t0 + 0.95);
+}
+
+// ---------- the barrel: pins on concentric rings, each ring a pitch ----------
+const SCALE = [261.63, 293.66,329.63, 392.00, 440.00, 523.25, 587.33, 659.25]; // C major pentatonic-ish, extended
+const RINGS = SCALE.length;
+const pins = [];
+for(let r = 0; r < RINGS; r++){
+  const count = 5 + r; // outer rings hold more pins
+  for(let i = 0; i < count; i++){
+    pins.push({
+      ring: r,
+      angle: (i / count) * Math.PI * 2 + Math.random()*0.15,
+      freq: SCALE[r],
+      lastK: null,
+      glow: 0
+    });
+  }
+}
+function ringRadius(r){ return R * (0.35 + 0.65 * (r / (RINGS - 1))); }
+
+const TRIGGER = -Math.PI / 2; // top of the wheel, under the comb
+for(const p of pins){
+  p.lastK = Math.floor((p.angle - TRIGGER) / (Math.PI*2));
+}
+
+// ---------- rotation state, driven by drag ----------
+let theta = 0;        // unbounded accumulated rotation
+let dragging = false;
+let lastAngle = 0;
+let angVel = 0;       // for inertia after release
+let combFlex = 0;      // visual tine bend
+let idleSway = 0;
+
+function pointerAngle(x, y){ return Math.atan2(y - cy, x - cx); }
+
+function onDown(x, y){
+  ensureAudio();
+  if(actx.state === 'suspended') actx.resume();
+  dragging = true;
+  angVel = 0;
+  lastAngle = pointerAngle(x, y);
+  if(hint) hint.style.opacity = '0';
+}
+function onMove(x, y){
+  if(!dragging) return;
+  const a = pointerAngle(x, y);
+  let d = a - lastAngle;
+  if(d > Math.PI) d -= Math.PI*2;
+  if(d < -Math.PI) d += Math.PI*2;
+  theta += d;
+  angVel = angVel*0.6 + d*0.4;
+  lastAngle = a;
+}
+function onUp(){
+  dragging = false;
+}
+
+cv.addEventListener('pointerdown', e => onDown(e.clientX*dpr, e.clientY*dpr));
+cv.addEventListener('pointermove', e => onMove(e.clientX*dpr, e.clientY*dpr));
+addEventListener('pointerup', onUp);
+addEventListener('pointercancel', onUp);
+
+function ringColor(r){
+  const t = r / (RINGS-1);
+  const hue = 34 + t*18; // brass to warm gold
+  return `hsl(${hue} 70% ${55 - t*10}%)`;
+}
+
+function draw(strength){
+  ctx.clearRect(0,0,W,H);
+
+  // backdrop, low warm vignette
+  let bg = ctx.createRadialGradient(cx,cy,0, cx,cy, Math.max(W,H)*0.75);
+  bg.addColorStop(0, '#241a10');
+  bg.addColorStop(1, '#120c08');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0,0,W,H);
+
+  // wooden case rim
+  ctx.beginPath();
+  ctx.arc(cx, cy, R*1.12, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(120,80,40,0.35)';
+  ctx.lineWidth = R*0.05;
+  ctx.stroke();
+
+  // rings (faint guide circles)
+  for(let r = 0; r < RINGS; r++){
+    ctx.beginPath();
+    ctx.arc(cx, cy, ringRadius(r), 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(245,224,180,0.05)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // pins
+  for(const p of pins){
+    const a = p.angle + theta;
+    const rad = ringRadius(p.ring);
+    const x = cx + Math.cos(a)*rad;
+    const y = cy + Math.sin(a)*rad;
+    const g = Math.max(0, p.glow);
+    const size = (R*0.018) * (1 + g*1.8);
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI*2);
+    ctx.fillStyle = g > 0.02
+      ? `rgba(255,236,190,${0.5 + g*0.5})`
+      : ringColor(p.ring);
+    ctx.shadowColor = g > 0.02 ? 'rgba(255,225,160,0.9)' : 'transparent';
+    ctx.shadowBlur = g > 0.02 ? size*4 : 0;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    p.glow *= 0.9;
+  }
+
+  // hub
+  ctx.beginPath();
+  ctx.arc(cx, cy, R*0.06, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(200,160,100,0.5)';
+  ctx.fill();
+
+  // the comb: fixed arm above the wheel, tine flexes on pluck
+  const combX = cx;
+  const combTopY = cy - R*1.28;
+  const tineY = cy - ringRadius(RINGS-1) - R*0.02;
+  ctx.strokeStyle = 'rgba(220,190,140,0.85)';
+  ctx.lineWidth = R*0.02;
+  ctx.beginPath();
+  ctx.moveTo(combX, combTopY);
+  ctx.lineTo(combX, tineY - R*0.05);
+  ctx.stroke();
+
+  const bend = combFlex * (R*0.05);
+  ctx.beginPath();
+  ctx.moveTo(combX, tineY - R*0.05);
+  ctx.quadraticCurveTo(combX + bend, tineY - R*0.02, combX, tineY + R*0.02);
+  ctx.lineWidth = R*0.014;
+  ctx.strokeStyle = `rgba(255,230,180,${0.7 + Math.min(0.3,Math.abs(combFlex))})`;
+  ctx.stroke();
+  combFlex *= 0.82;
+}
+
+let last = 0;
+function frame(ts){
+  const dt = last ? Math.min(0.05, (ts-last)/1000) : 0.016;
+  last = ts;
+
+  if(!dragging){
+    if(Math.abs(angVel) > 0.00005){
+      theta += angVel;
+      angVel *= reduceMotion ? 0.78 : 0.94;
+    } else if(!reduceMotion) {
+      idleSway += dt;
+      theta += Math.sin(idleSway*0.6) * 0.00025;
+    }
+  }
+
+  // crossing detection against fixed trigger under the comb
+  let strength = Math.min(1, Math.abs(angVel)*40 + (dragging ? 0.35 : 0));
+  for(const p of pins){
+    const k = Math.floor((p.angle + theta - TRIGGER) / (Math.PI*2));
+    if(k !== p.lastK){
+      const steps = Math.min(3, Math.abs(k - p.lastK));
+      for(let s=0; s<steps; s++) pluck(p.freq, Math.max(0.12, strength));
+      p.glow = 1;
+      combFlex = (k > p.lastK ? 1 : -1) * Math.max(0.4, strength);
+      p.lastK = k;
+    }
+  }
+
+  draw(strength);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

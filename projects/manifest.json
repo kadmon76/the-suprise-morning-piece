@@ -6,6 +6,13 @@
       "kind": "art",
       "note": "A restless beam hunts the dark. Move your finger — it will find you.",
       "path": "projects/2026-07-19-followspot/index.html"
+    },
+    {
+      "date": "2026-07-20",
+      "title": "Barrel & Comb",
+      "kind": "sound",
+      "note": "Scratch the wheel like a record — pins pluck a comb and a tiny music box wakes up.",
+      "path": "projects/2026-07-20-barrel-and-comb/index.html"
     }
   ]
 }
