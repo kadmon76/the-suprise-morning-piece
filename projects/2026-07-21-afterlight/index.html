@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Afterlight · The Surprise Morning Piece</title>
+<style>
+  html,body{margin:0;height:100%;background:#050608;overflow:hidden;touch-action:none;
+    -webkit-user-select:none;user-select:none}
+  canvas{display:block;width:100%;height:100%}
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:2;
+    font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:#7c8a9a;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(220,232,245,.16);border-radius:99px;
+    background:rgba(5,6,8,.55);backdrop-filter:blur(4px);
+  }
+  a.back:hover{color:#e8f0fa}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<canvas id="c"></canvas>
+<script>
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let W, H, dpr;
+function size(){
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = cv.width  = innerWidth  * dpr;
+  H = cv.height = innerHeight * dpr;
+}
+size(); addEventListener('resize', size);
+
+// ---------- soft round sprites, one per hue, drawn once and reused ----------
+const SPR = 128;
+const HUES = [
+  'hsla(38,90%,72%,',   // warm gold
+  'hsla(28,85%,68%,',   // ember
+  'hsla(205,70%,78%,',  // cool starlight
+  'hsla(340,55%,78%,',  // soft rose
+];
+function makeSprite(hue){
+  const s = document.createElement('canvas');
+  s.width = s.height = SPR;
+  const sc = s.getContext('2d');
+  const g = sc.createRadialGradient(SPR/2,SPR/2,0, SPR/2,SPR/2,SPR/2);
+  g.addColorStop(0,    hue+'1)');
+  g.addColorStop(0.35, hue+'0.5)');
+  g.addColorStop(1,    hue+'0)');
+  sc.fillStyle = g;
+  sc.fillRect(0,0,SPR,SPR);
+  return s;
+}
+const SPRITES = HUES.map(makeSprite);
+
+// ---------- the field: motes that hold a memory of being seen ----------
+const N = 190;
+const motes = Array.from({length:N}, () => ({
+  x: Math.random(), y: Math.random(),
+  dx:(Math.random()-.5)*0.00006, dy:(Math.random()-.5)*0.00006,
+  r: 0.55 + Math.random()*1.35,
+  sprite: SPRITES[(Math.random()*SPRITES.length)|0],
+  phase: Math.random()*Math.PI*2,
+  speed: 0.6 + Math.random()*0.9,
+  b: 0.05 + Math.random()*0.05, // current brightness
+}));
+
+const FLOOR = 0.045;   // it never goes fully dark
+const DECAY = 0.22;    // how fast neglected motes settle back to floor
+const RISE  = 7.0;     // how fast an attended mote catches the light
+
+// ---------- pointers (supports more than one finger) ----------
+const pointers = new Map();
+function setPointer(id, x, y){ pointers.set(id, {x: x*dpr, y: y*dpr}); }
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); setPointer(e.pointerId, e.clientX, e.clientY); });
+cv.addEventListener('pointermove', e => { if(pointers.has(e.pointerId)) setPointer(e.pointerId, e.clientX, e.clientY); });
+addEventListener('pointerup',     e => pointers.delete(e.pointerId));
+addEventListener('pointercancel', e => pointers.delete(e.pointerId));
+
+let last = 0, t = 0;
+function frame(ts){
+  const dt = last ? Math.min(0.05, (ts-last)/1000) : 0.016;
+  last = ts;
+  t += dt;
+
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#050608';
+  ctx.fillRect(0,0,W,H);
+
+  const R = Math.min(W,H) * 0.24;
+  const pts = [...pointers.values()];
+
+  ctx.globalCompositeOperation = 'lighter';
+  for(const m of motes){
+    if(!reduceMotion){
+      m.x += m.dx; m.y += m.dy;
+      if(m.x<0||m.x>1) m.dx*=-1;
+      if(m.y<0||m.y>1) m.dy*=-1;
+    }
+    const mx = m.x*W, my = m.y*H;
+
+    let target = FLOOR;
+    for(const p of pts){
+      const d = Math.hypot(mx-p.x, my-p.y);
+      if(d < R){
+        const f = 1 - d/R;
+        const warm = f*f*(3-2*f); // smoothstep falloff
+        if(warm > target) target = warm;
+      }
+    }
+    const rate = target > m.b ? RISE : DECAY;
+    m.b += (target - m.b) * Math.min(1, rate*dt);
+
+    let a = m.b;
+    if(!reduceMotion) a += Math.sin(t*m.speed + m.phase) * 0.05 * m.b;
+    a = Math.max(0, Math.min(1, a));
+
+    if(a > 0.012){
+      const size = m.r * dpr * (5 + 14*m.b);
+      ctx.globalAlpha = a;
+      ctx.drawImage(m.sprite, mx-size/2, my-size/2, size, size);
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

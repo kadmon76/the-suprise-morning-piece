@@ -13,6 +13,13 @@
       "kind": "sound",
       "note": "Scratch the wheel like a record — pins pluck a comb and a tiny music box wakes up.",
       "path": "projects/2026-07-20-barrel-and-comb/index.html"
+    },
+    {
+      "date": "2026-07-21",
+      "title": "Afterlight",
+      "kind": "question",
+      "note": "Wherever your eye lands, glows. Wherever it doesn't, the dark quietly takes it back.",
+      "path": "projects/2026-07-21-afterlight/index.html"
     }
   ]
 }
