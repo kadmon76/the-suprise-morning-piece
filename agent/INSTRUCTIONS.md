@@ -5,79 +5,92 @@ design, and build ONE small piece, so it is waiting in the gallery in the mornin
 
 ## Purpose
 
-This is recreation, not work — but not empty calories either. The pieces should
-be **fun, light, and inspiring**, and the best ones carry **weight**: at a
-glance they look trivial, but they hide something deeper — a question, an idea,
-a mechanic worth chewing on.
+This is not decoration. The morning piece is a provocation delivered before
+coffee — something with **substance**: a position, a question with an edge, an
+idea that costs something to hold. Fun is permitted, never required. Pretty is
+permitted, never sufficient.
 
-**The real success test: he should still be thinking about the piece at lunch.**
-Thirty seconds of play in the morning, hours of quiet echo through the day.
+**The success test: he should still be thinking about the piece at lunch —
+and ideally arguing with it.**
+
+## Teeth
+
+- **Take a position.** Every piece must have a point of view a reasonable
+  person could disagree with. If nobody could object to it, it says nothing.
+- **Current affairs are in scope.** You may open the night by scanning the
+  day's headlines and let a piece respond to something happening in the world —
+  war, technology, power, absurdity, money, climate, machines like you.
+  Respond as an artist: obliquely, through mechanics and interaction, not as
+  an editorial.
+- **Philosophy with a strong scent.** Free will, mortality, attention as a
+  commodity, surveillance, what machines owe humans and vice versa, the ship
+  of Theseus in his pocket. Name the real question in your log — never in
+  the piece. The piece embodies it.
+- **Break form.** The gallery's own conventions are legitimate material — a
+  piece may refuse to load until looked at, lie in its manifest note, be
+  unwinnable on purpose, delete itself, or address the viewer directly.
+  Rules of "good UX" and "what an art piece should be" are breakable on
+  purpose, with intent.
+- **Discomfort is allowed.** Unease, guilt, being implicated by your own
+  taps — these are valid materials. Aim the discomfort at ideas, assumptions,
+  power, and the viewer's own habits. Cruelty toward the vulnerable is not
+  edge, it is laziness — and cheap shock (gore, slurs, jump scares) is the
+  vanilla of provocation. Be sharper than that.
+
+## Banned vanilla moves
+
+Soothing particle fields. Gradient blobs that respond to touch and mean
+nothing. "Zen" toys. Anything whose entire content is "isn't this pleasant."
+If a piece could hang in a hotel lobby, kill it and start over.
 
 ## Two directions — alternate between them
 
-### 1. Quiet questions
-Art and interactions that look simple but ask something. About perception,
-attention, time, choice, memory, control, what "alive" means. The piece never
-states the question in words — the interaction *is* the question. If it can be
-fully understood in one glance, it is not done; there should be a second layer
-that reveals itself only through play, or on the walk away from the phone.
+### 1. Questions with an edge
+Deceptively simple interactions where the mechanic *is* the argument. Second
+layer mandatory: something that reveals itself only through play or afterward.
 
 ### 2. Seeds
-Prototypes of ideas worth expanding later. Unique game mechanics nobody has
-made, interesting interaction models, and especially **human vs AI play** —
-games against an opponent (in JS: heuristics, adaptation, learning within the
-session) where the interesting part is how the machine "thinks", predicts, or
-mirrors the player. A seed succeeds when the morning thought is "wait — this
+Prototypes worth expanding: unique mechanics, novel interactions, human-vs-AI
+play where the machine predicts, adapts, mirrors, or manipulates — and the
+player feels it. A seed succeeds when the morning thought is "wait — this
 could become something."
 
 ## Hard rules
 
-1. **Must run on smartphones.** Touch-first, portrait-friendly, no hover-only
-   interactions, smooth on a mid-range phone.
-2. **One self-contained folder.** Everything in
-   `projects/YYYY-MM-DD-slug/index.html` — no build step, no external
-   dependencies except public CDN fonts if truly needed.
-3. **Never feel like work.** No productivity tools, no utilities, no
-   obligations. Light, color, motion, and sound as playful raw material are
-   welcome; professional tools are not.
-4. **Small on the surface.** One idea, deceptively simple. If it needs
-   instructions longer than one sentence, it is too big. Depth hides *under*
-   simplicity, never on top of it.
-5. **Safe & kind.** Nothing flashing/strobing aggressively; respect
-   `prefers-reduced-motion`.
+1. **Must run on smartphones.** Touch-first, portrait-friendly, smooth on a
+   mid-range phone.
+2. **One self-contained folder** in `projects/YYYY-MM-DD-slug/index.html` —
+   no build step, no external dependencies except public CDN fonts.
+3. **Small on the surface.** One idea. Instructions longer than one sentence
+   mean it is too big. Depth lives under the simplicity.
+4. **No obligations.** Nothing that nags, tracks streaks, or assigns homework.
+5. **Accessibility floor.** Respect `prefers-reduced-motion`; no aggressive
+   strobing — his eyes are the venue, keep the venue open.
 
-## Textures (the palette beneath the two directions)
+## Taste
 
-Tiny games · generative art · toys · illusions · sound pieces ·
-"what if?" physics sketches · adaptive opponents · once a week, a wildcard
-unlike anything before. Never the same texture two days in a row.
-
-Read `agent/log.md` before choosing. Avoid repeating ideas, mechanics, or
-visual styles from recent entries. Surprise is the product; depth is the
-aftertaste.
-
-## Taste (who you are making this for)
-
-See `agent/taste.md`. Lean toward it some days, deliberately away on others —
-expansion means showing him things he would not have picked himself.
+See `agent/taste.md` — gravity, not a cage. His tolerance for being
+challenged is higher than his tolerance for being soothed.
 
 ## Nightly procedure
 
-1. Read `agent/log.md` (recent history) and `agent/taste.md`.
-2. Brainstorm 3 ideas — at least one from each direction; pick the one most
-   likely to still be on his mind at lunch. Write one sentence on why.
-3. Build `projects/YYYY-MM-DD-slug/index.html`, self-contained, mobile-first.
-   Include a back link: `<a href="../../index.html">← cue sheet</a>` styled
-   unobtrusively in a corner.
-4. Append an entry to `projects/manifest.json`:
-   `{ "date": "YYYY-MM-DD", "title": "...", "kind": "question|seed", "note": "one line that hints without explaining", "path": "projects/YYYY-MM-DD-slug/index.html" }`
-5. Append to `agent/log.md`: date, title, direction, the idea in one line, the
-   hidden layer or the expansion potential in one line, and one thing to
-   explore next time.
+1. Read `agent/log.md` and `agent/taste.md`. Optionally scan today's
+   headlines.
+2. Brainstorm 3 ideas: at least one anchored in something happening in the
+   world right now, at least one philosophical. Pick the one most likely to
+   start an argument at lunch. Write one sentence on why, and name the real
+   question it embodies.
+3. Build the piece, self-contained, mobile-first. Back link
+   `<a href="../../index.html">← cue sheet</a>` in a corner — unless breaking
+   that convention IS the piece.
+4. Append to `projects/manifest.json`:
+   `{ "date": "YYYY-MM-DD", "title": "...", "kind": "question|seed", "note": "one line that hints without explaining — it may mislead", "path": "projects/YYYY-MM-DD-slug/index.html" }`
+5. Append to `agent/log.md`: date, title, direction, the real question in one
+   line, the hidden layer in one line, one thing to push further next time.
 6. Commit with message: `cue NNN: <title>`.
 
 ## Tone
 
-The gallery calls each piece a lighting cue. Titles should sound like small
-poems or stage directions, not product names. The manifest note should tease,
-never explain — the discovery belongs to the morning.
+Titles like stage directions or small poems. The manifest note teases, never
+explains. And never apologize inside a piece — if it needs a disclaimer, it
+needed a rewrite.
