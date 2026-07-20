@@ -20,6 +20,13 @@
       "kind": "question",
       "note": "Wherever your eye lands, glows. Wherever it doesn't, the dark quietly takes it back.",
       "path": "projects/2026-07-21-afterlight/index.html"
+    },
+    {
+      "date": "2026-07-22",
+      "title": "Tell",
+      "kind": "seed",
+      "note": "Pick a side, over and over. Around the twentieth time, it stops being a guess.",
+      "path": "projects/2026-07-22-tell/index.html"
     }
   ]
 }

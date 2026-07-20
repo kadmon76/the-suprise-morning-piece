@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Tell · The Surprise Morning Piece</title>
+<style>
+  :root{ --conf: 0; }
+  html,body{margin:0;height:100%;background:#07080a;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:manipulation}
+  body{
+    font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+    color:#dfe6ee;
+  }
+  .stage{position:fixed;inset:0;display:flex;flex-direction:column}
+  .label{
+    text-align:center;padding-top:max(18px, env(safe-area-inset-top));
+    font-family:Georgia,'Times New Roman',serif;font-style:italic;
+    letter-spacing:.32em;font-size:13px;color:#7c8a9a;
+  }
+  .hud{
+    display:flex;justify-content:center;gap:18px;
+    font-size:12px;letter-spacing:.08em;color:#5f6b78;
+    padding:8px 0 2px;
+  }
+  .hud b{color:#c9d3dc;font-weight:600}
+  .zones{flex:1;display:flex;position:relative}
+  .zone{
+    flex:1;border:none;background:transparent;position:relative;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .zone::after{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(circle at var(--fx,50%) var(--fy,50%),
+      rgba(230,238,247,calc(var(--flash,0) * .16)), transparent 55%);
+    transition:background .5s ease;
+  }
+  .hairline{
+    position:absolute;left:50%;top:0;bottom:0;width:1px;
+    background:rgba(220,232,245,.1);
+  }
+  .eye{
+    position:absolute;left:50%;top:50%;
+    width:calc(10px + 46px * var(--conf));
+    height:calc(10px + 46px * var(--conf));
+    margin:calc(-5px - 23px * var(--conf)) 0 0 calc(-5px - 23px * var(--conf));
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(230,238,247,.55), rgba(230,238,247,0) 70%);
+    filter:blur(1px);
+    pointer-events:none;
+    transition:width .6s ease, height .6s ease, margin .6s ease, opacity .6s ease;
+    animation:breathe 4.2s ease-in-out infinite;
+  }
+  @keyframes breathe{ 0%,100%{opacity:.55} 50%{opacity:.9} }
+  .tell{
+    position:absolute;left:0;right:0;bottom:26%;
+    text-align:center;padding:0 12vw;
+    font-family:Georgia,'Times New Roman',serif;font-style:italic;
+    font-size:15px;line-height:1.5;color:#b9c3ce;
+    opacity:0;transform:translateY(6px);
+    transition:opacity 1.4s ease, transform 1.4s ease;
+    pointer-events:none;
+  }
+  .tell.show{opacity:.92;transform:none}
+  .hint{
+    text-align:center;color:#4c5661;font-size:11px;letter-spacing:.04em;
+    padding:14px 24px max(16px, env(safe-area-inset-bottom));
+  }
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:2;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c8a9a;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(220,232,245,.16);border-radius:99px;
+    background:rgba(7,8,10,.55);backdrop-filter:blur(4px);
+  }
+  a.back:hover{color:#e8f0fa}
+  @media (prefers-reduced-motion: reduce){
+    .eye{animation:none}
+    .zone::after,.tell,.eye{transition:none}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div class="stage">
+  <div class="label">TELL</div>
+  <div class="hud"><span>reads you at <b id="acc">—</b></span><span id="count"></span></div>
+  <div class="zones">
+    <button class="zone" data-side="L" aria-label="left"></button>
+    <div class="hairline"></div>
+    <div class="eye" id="eye"></div>
+    <button class="zone" data-side="R" aria-label="right"></button>
+  </div>
+  <div class="tell" id="tell"></div>
+  <div class="hint">Tap either side — try to be unpredictable.</div>
+</div>
+<script>
+(function(){
+  const ORDER = 3;
+  const table = Object.create(null);
+  let history = [];
+  let correct = 0, total = 0;
+  let prediction = Math.random() < 0.5 ? 'L' : 'R';
+
+  const accEl = document.getElementById('acc');
+  const countEl = document.getElementById('count');
+  const tellEl = document.getElementById('tell');
+  const eye = document.getElementById('eye');
+  let tellShown = false;
+  let lastTellAt = 0;
+
+  function predict(){
+    for (let k = Math.min(ORDER, history.length); k >= 0; k--){
+      const key = history.slice(history.length - k).join('');
+      const row = table[key];
+      if (row && row.L !== row.R) return row.L > row.R ? 'L' : 'R';
+    }
+    return Math.random() < 0.5 ? 'L' : 'R';
+  }
+
+  function strongestTell(){
+    let best = null;
+    for (const key in table){
+      if (!key) continue;
+      const row = table[key];
+      const t = row.L + row.R;
+      if (t < 4) continue;
+      const dom = row.L >= row.R ? 'L' : 'R';
+      const ratio = Math.max(row.L, row.R) / t;
+      if (ratio < 0.62) continue;
+      if (!best || t * ratio > best.weight) best = {key, dom, ratio, t, weight: t * ratio};
+    }
+    return best;
+  }
+
+  function words(side){ return side === 'L' ? 'left' : 'right'; }
+  function seq(key){
+    return key.split('').map(words).join(', ');
+  }
+
+  function updateTell(){
+    const best = strongestTell();
+    if (!best) return;
+    const pct = Math.round(best.ratio * 100);
+    const sentence = best.key
+      ? `After ${seq(best.key)}, it expects ${words(best.dom)} — right ${pct}% of the time.`
+      : `Left alone, you still favor ${words(best.dom)} — ${pct}% of the time.`;
+    tellEl.textContent = sentence;
+    tellEl.classList.add('show');
+  }
+
+  function tap(side){
+    total++;
+    if (prediction === side) correct++;
+
+    for (let k = 0; k <= Math.min(ORDER, history.length); k++){
+      const key = history.slice(history.length - k).join('');
+      const row = table[key] || (table[key] = {L:0, R:0});
+      row[side]++;
+    }
+    history.push(side);
+    if (history.length > 400) history.shift();
+
+    prediction = predict();
+
+    accEl.textContent = Math.round((correct/total) * 100) + '%';
+    countEl.textContent = total + ' taps';
+    document.documentElement.style.setProperty('--conf', Math.min(1, correct/Math.max(1,total)));
+
+    if (total >= 22 && total - lastTellAt >= 12){
+      lastTellAt = total;
+      tellShown = true;
+      updateTell();
+    }
+  }
+
+  document.querySelectorAll('.zone').forEach(btn => {
+    btn.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      const r = btn.getBoundingClientRect();
+      btn.style.setProperty('--fx', ((e.clientX - r.left)/r.width*100) + '%');
+      btn.style.setProperty('--fy', ((e.clientY - r.top)/r.height*100) + '%');
+      btn.style.setProperty('--flash', 1);
+      tap(btn.dataset.side);
+      setTimeout(() => btn.style.setProperty('--flash', 0), 480);
+    });
+  });
+})();
+</script>
+</body>
+</html>
