@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>House Style · The Surprise Morning Piece</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;background:#0b0a08;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:manipulation}
+  body{
+    font-family:Georgia,'Times New Roman',serif;
+    color:#e7e0d2;
+    display:flex;flex-direction:column;
+  }
+  .stage{position:fixed;inset:0;display:flex;flex-direction:column;
+    background:radial-gradient(ellipse at 50% -10%, rgba(255,236,190,.10), transparent 55%),#0b0a08;
+  }
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:5;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#8a8070;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(231,224,210,.16);border-radius:99px;
+    background:rgba(11,10,8,.55);backdrop-filter:blur(4px);
+  }
+  a.back:hover{color:#e7e0d2}
+
+  .prompt{
+    text-align:center;padding-top:max(52px, env(safe-area-inset-top) + 38px);
+    font-style:italic;letter-spacing:.02em;font-size:14px;color:#8a8070;
+  }
+
+  .sentence{
+    flex:0 0 auto;
+    min-height:14vh;
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:center;
+    gap:.35em;
+    padding:18px 8vw 8px;
+    font-size:clamp(19px,5.6vw,28px);
+    line-height:1.5;
+    text-align:center;
+  }
+  .sentence.complete{
+    font-size:clamp(22px,6.4vw,32px);
+    padding-top:6vh;
+  }
+  .sentence.complete::before{content:"\201C"}
+  .sentence.complete::after{content:"\201D"}
+
+  .word{
+    display:inline-block;
+    cursor:pointer;
+    color:#f2ecdf;
+    border-bottom:1px solid rgba(242,236,223,.22);
+    transition:opacity .25s ease, transform .15s ease;
+  }
+  .word.raw-shown{
+    color:#c9a24a;
+    font-family:'Special Elite',ui-monospace,Menlo,monospace;
+    border-bottom-color:rgba(201,162,74,.4);
+  }
+  .word:active{transform:scale(.97)}
+
+  .tiles{
+    flex:1;
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:2px;
+    padding:6px 2px max(10px, env(safe-area-inset-bottom));
+    transition:opacity .5s ease;
+  }
+  .tiles.hidden{opacity:0;pointer-events:none;flex:none;height:0;padding:0;overflow:hidden}
+  .tile{
+    border:none;background:rgba(231,224,210,.03);
+    color:#c8bfa9;
+    font-family:'Special Elite',ui-monospace,Menlo,monospace;
+    font-size:clamp(15px,4.6vw,19px);
+    letter-spacing:.01em;
+    display:flex;align-items:center;justify-content:center;
+    padding:10px 6px;
+    transition:opacity .4s ease, background .15s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .tile:active{background:rgba(231,224,210,.09)}
+  .tile.used{opacity:0;pointer-events:none}
+
+  .final{
+    flex:0 0 auto;
+    text-align:center;
+    padding:2px 9vw 0;
+    opacity:0;transform:translateY(8px);
+    transition:opacity 1.1s ease, transform 1.1s ease;
+  }
+  .final.show{opacity:1;transform:none}
+  .final .raw{
+    font-family:'Special Elite',ui-monospace,Menlo,monospace;
+    font-size:12px;letter-spacing:.03em;color:#6b6255;
+    line-height:1.8;
+  }
+  .final .raw s{color:#4c463c}
+  .final .caption{
+    margin-top:14px;font-style:italic;font-size:13px;color:#726a5c;
+    padding-bottom:max(18px, env(safe-area-inset-bottom));
+  }
+
+  .reset{
+    position:fixed;bottom:14px;right:16px;z-index:5;
+    width:30px;height:30px;border-radius:50%;
+    border:1px solid rgba(231,224,210,.14);
+    background:rgba(11,10,8,.5);
+    color:#6b6255;font-size:15px;
+    display:flex;align-items:center;justify-content:center;
+    opacity:0;pointer-events:none;
+    transition:opacity .6s ease;
+  }
+  .reset.show{opacity:1;pointer-events:auto}
+
+  @media (prefers-reduced-motion: reduce){
+    .word,.tile,.final,.reset{transition:none}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div class="stage">
+  <div class="prompt">say something true.</div>
+  <div class="sentence" id="sentence"></div>
+  <div class="tiles" id="tiles"></div>
+  <div class="final" id="final">
+    <div class="raw" id="rawList"></div>
+    <div class="caption">This is the version people will read.</div>
+  </div>
+</div>
+<button class="reset" id="reset" aria-label="again">&#8635;</button>
+
+<script>
+(function(){
+  const WORDS = [
+    ['angry','passionate'],
+    ['tired','recharging'],
+    ['broke','pre-affluent'],
+    ['fired','transitioned'],
+    ['lonely','independent'],
+    ['lied','reframed'],
+    ['poor','underbanked'],
+    ['scared','concerned'],
+    ['dying','sunsetting'],
+    ['bombed','de-escalated'],
+    ['no','let’s circle back'],
+    ['stole','optimized'],
+    ['desperate','highly motivated'],
+    ['drowning','treading strategically']
+  ];
+  const NEEDED = 6;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const sentenceEl = document.getElementById('sentence');
+  const tilesEl = document.getElementById('tiles');
+  const finalEl = document.getElementById('final');
+  const rawListEl = document.getElementById('rawList');
+  const resetBtn = document.getElementById('reset');
+
+  let picked = [];
+  let ac = null;
+
+  function ensureAudio(){
+    if (ac) return ac;
+    try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { ac = null; }
+    return ac;
+  }
+
+  function clack(low){
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const t0 = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = low ? (120 + Math.random()*12) : (620 + Math.random()*140);
+    gain.gain.setValueAtTime(low ? .05 : .035, t0);
+    gain.gain.exponentialRampToValueAtTime(.0001, t0 + (low ? .16 : .045));
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + (low ? .18 : .06));
+  }
+
+  function shuffledWords(){
+    const arr = WORDS.slice();
+    for (let i = arr.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function attachHold(span){
+    let held = false;
+    const show = (e) => {
+      if (e.cancelable) e.preventDefault();
+      held = true;
+      span.textContent = span.dataset.raw;
+      span.classList.add('raw-shown');
+    };
+    const hide = () => {
+      if (!held) return;
+      held = false;
+      span.textContent = span.dataset.smooth;
+      span.classList.remove('raw-shown');
+    };
+    span.addEventListener('pointerdown', show);
+    span.addEventListener('pointerup', hide);
+    span.addEventListener('pointerleave', hide);
+    span.addEventListener('pointercancel', hide);
+  }
+
+  function addWord(raw, smooth){
+    const span = document.createElement('span');
+    span.className = 'word';
+    span.dataset.raw = raw;
+    span.dataset.smooth = smooth;
+    span.textContent = smooth;
+    if (!reduced){
+      span.style.opacity = '0';
+      sentenceEl.appendChild(span);
+      requestAnimationFrame(() => { span.style.opacity = '1'; });
+    } else {
+      sentenceEl.appendChild(span);
+    }
+    attachHold(span);
+    picked.push({raw, smooth});
+  }
+
+  function finalize(){
+    sentenceEl.classList.add('complete');
+    tilesEl.classList.add('hidden');
+    rawListEl.innerHTML = picked.map(w => '<s>' + w.raw + '</s>').join(', ');
+    clack(true);
+    setTimeout(() => {
+      finalEl.classList.add('show');
+      resetBtn.classList.add('show');
+    }, reduced ? 0 : 550);
+  }
+
+  function build(){
+    picked = [];
+    sentenceEl.className = 'sentence';
+    sentenceEl.innerHTML = '';
+    finalEl.classList.remove('show');
+    resetBtn.classList.remove('show');
+    tilesEl.classList.remove('hidden');
+    tilesEl.innerHTML = '';
+
+    shuffledWords().forEach(([raw, smooth]) => {
+      const btn = document.createElement('button');
+      btn.className = 'tile';
+      btn.type = 'button';
+      btn.textContent = raw;
+      btn.addEventListener('pointerdown', (e) => {
+        if (e.cancelable) e.preventDefault();
+        if (btn.classList.contains('used') || picked.length >= NEEDED) return;
+        btn.classList.add('used');
+        clack(false);
+        addWord(raw, smooth);
+        if (picked.length >= NEEDED) finalize();
+      }, {passive:false});
+      tilesEl.appendChild(btn);
+    });
+  }
+
+  resetBtn.addEventListener('pointerdown', (e) => {
+    if (e.cancelable) e.preventDefault();
+    build();
+  });
+
+  build();
+})();
+</script>
+</body>
+</html>
