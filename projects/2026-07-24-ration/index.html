@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ration · The Surprise Morning Piece</title>
+<style>
+  html,body{margin:0;height:100%;background:#070604;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:manipulation}
+  body{
+    font-family:Georgia,'Times New Roman',serif;
+    color:#e9dfce;
+  }
+  .stage{
+    position:fixed;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at 50% 38%, rgba(80,55,20,.14), transparent 60%),#070604;
+  }
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:5;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c7264;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(233,223,206,.14);border-radius:99px;
+    background:rgba(7,6,4,.5);backdrop-filter:blur(4px);
+  }
+  a.back:hover{color:#e9dfce}
+
+  .prompt{
+    position:fixed;top:0;left:0;right:0;
+    text-align:center;padding-top:max(52px, env(safe-area-inset-top) + 38px);
+    font-style:italic;letter-spacing:.02em;font-size:14px;color:#7c7264;
+    pointer-events:none;
+  }
+
+  .wrap{
+    position:relative;
+    width:min(60vw,220px);height:min(60vw,220px);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .glow{
+    position:absolute;inset:-40%;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(255,196,110,var(--peak,.2)) 0%, rgba(255,150,60,calc(var(--peak,.2)*.35)) 38%, transparent 68%);
+    transition:opacity .5s ease;
+    filter:blur(2px);
+  }
+  .flame{
+    position:relative;
+    width:30%;height:44%;
+    opacity:.55;
+    transform:scale(1);
+    transform-origin:50% 90%;
+    transition:opacity .7s ease, transform .7s ease;
+  }
+  .flame svg{display:block;width:100%;height:100%;overflow:visible}
+  .wick{
+    position:absolute;bottom:-10%;left:50%;transform:translateX(-50%);
+    width:3px;height:14%;background:#2a2118;border-radius:2px;
+  }
+
+  .ledger{
+    position:fixed;left:0;right:0;bottom:0;
+    padding:0 9vw max(28px, env(safe-area-inset-bottom) + 14px);
+    text-align:center;
+    opacity:0;transform:translateY(10px);
+    transition:opacity .35s ease, transform .35s ease;
+    pointer-events:none;
+  }
+  .ledger.show{opacity:1;transform:none}
+  .ledger .line{
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:13px;letter-spacing:.02em;color:#a99a82;
+    line-height:1.9;
+  }
+  .ledger .caption{
+    margin-top:10px;font-style:italic;font-size:12.5px;color:#7c7264;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .glow,.flame,.ledger{transition:none}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div class="stage" id="stage">
+  <div class="prompt">feed the lamp.</div>
+  <div class="wrap">
+    <div class="glow" id="glow"></div>
+    <div class="flame" id="flame">
+      <svg viewBox="0 0 100 140" preserveAspectRatio="xMidYMax meet">
+        <defs>
+          <radialGradient id="flameGrad" cx="50%" cy="72%" r="70%">
+            <stop offset="0%" stop-color="#fff6df"/>
+            <stop offset="35%" stop-color="#ffc35e"/>
+            <stop offset="72%" stop-color="#c85f1f"/>
+            <stop offset="100%" stop-color="#6e2c0c"/>
+          </radialGradient>
+        </defs>
+        <path fill="url(#flameGrad)" d="M50,4
+          C74,26 80,54 66,76
+          C86,90 88,116 68,130
+          C58,137 42,137 32,130
+          C12,116 14,90 34,76
+          C20,54 26,26 50,4 Z"/>
+      </svg>
+      <div class="wick"></div>
+    </div>
+  </div>
+  <div class="ledger" id="ledger">
+    <div class="line" id="ledgerLine"></div>
+    <div class="caption">you didn't ask it to keep score.</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const stage = document.getElementById('stage');
+  const glow = document.getElementById('glow');
+  const flame = document.getElementById('flame');
+  const ledger = document.getElementById('ledger');
+  const ledgerLine = document.getElementById('ledgerLine');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let trust = 0.5;
+  let lastTap = 0;
+  let recent = [];
+  let totalTaps = 0;
+  let holdTimer = null;
+  let holding = false;
+  let restTimer = null;
+
+  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+  function updateTrust(){
+    if (recent.length < 2){ return; }
+    const avg = recent.reduce((a,b)=>a+b,0) / recent.length;
+    const target = clamp((avg - 180) / (650 - 180), 0, 1);
+    trust = clamp(trust + (target - trust) * 0.18, 0, 1);
+  }
+
+  function settle(){
+    const rest = 0.10 + trust * 0.30;
+    glow.style.setProperty('--peak', rest.toFixed(3));
+    flame.style.opacity = (0.32 + trust * 0.28).toFixed(3);
+    flame.style.transform = 'scale(' + (0.88 + trust * 0.12).toFixed(3) + ')';
+  }
+
+  function feed(){
+    const now = performance.now();
+    if (lastTap){
+      const interval = now - lastTap;
+      recent.push(interval);
+      if (recent.length > 6) recent.shift();
+      updateTrust();
+    }
+    lastTap = now;
+    totalTaps++;
+
+    const peak = clamp(0.5 + trust * 0.5, 0, 1);
+    const scale = 1.05 + trust * 0.55;
+    glow.style.transition = reduced ? 'none' : 'opacity .12s ease';
+    glow.style.setProperty('--peak', peak.toFixed(3));
+    flame.style.transition = reduced ? 'none' : 'opacity .12s ease, transform .12s ease';
+    flame.style.opacity = (0.75 + trust * 0.25).toFixed(3);
+    flame.style.transform = 'scale(' + scale.toFixed(3) + ')';
+
+    clearTimeout(restTimer);
+    const holdMs = reduced ? 0 : (260 + trust * 300);
+    restTimer = setTimeout(() => {
+      glow.style.transition = 'opacity .5s ease';
+      flame.style.transition = 'opacity .7s ease, transform .7s ease';
+      settle();
+    }, holdMs);
+  }
+
+  function ledgerMessage(){
+    if (trust >= 0.7) return "it's stopped measuring you.";
+    if (trust >= 0.4) return "it's still deciding.";
+    return "it thinks you're in a hurry.";
+  }
+
+  function showLedger(){
+    const rationed = Math.round((1 - trust) * 100);
+    ledgerLine.innerHTML = 'tonight: ' + totalTaps + ' taps.<br>rationed: ' + rationed + '%.<br>' + ledgerMessage();
+    ledger.classList.add('show');
+  }
+
+  function hideLedger(){
+    ledger.classList.remove('show');
+  }
+
+  stage.addEventListener('pointerdown', (e) => {
+    if (e.cancelable) e.preventDefault();
+    holding = false;
+    holdTimer = setTimeout(() => {
+      holding = true;
+      showLedger();
+    }, 550);
+  }, {passive:false});
+
+  stage.addEventListener('pointerup', () => {
+    clearTimeout(holdTimer);
+    if (holding){
+      hideLedger();
+      holding = false;
+    } else {
+      feed();
+    }
+  });
+
+  stage.addEventListener('pointerleave', () => {
+    clearTimeout(holdTimer);
+    if (holding){
+      hideLedger();
+      holding = false;
+    }
+  });
+
+  stage.addEventListener('pointercancel', () => {
+    clearTimeout(holdTimer);
+    hideLedger();
+    holding = false;
+  });
+
+  settle();
+})();
+</script>
+</body>
+</html>
