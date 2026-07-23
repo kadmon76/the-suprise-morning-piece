@@ -41,6 +41,13 @@
       "kind": "seed",
       "note": "A small lamp. Feed it however you like — it's keeping track of more than you think.",
       "path": "projects/2026-07-24-ration/index.html"
+    },
+    {
+      "date": "2026-07-25",
+      "title": "Fixer",
+      "kind": "question",
+      "note": "Something's missing from this photograph. Touch it and watch it return — every time, a little differently.",
+      "path": "projects/2026-07-25-fixer/index.html"
     }
   ]
 }
