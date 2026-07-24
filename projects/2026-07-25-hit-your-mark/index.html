@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Hit Your Mark · The Surprise Morning Piece</title>
+<style>
+  html,body{margin:0;height:100%;background:#050507;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:none}
+  body{font-family:Georgia,'Times New Roman',serif;color:#e9dfce}
+
+  .venue{position:fixed;inset:0;background:#050507}
+  .wing{position:absolute;top:0;bottom:0;width:16vw;
+    background:linear-gradient(90deg, rgba(0,0,0,.6), transparent);
+    pointer-events:none;}
+  .wing.left{left:0}
+  .wing.right{right:0;transform:scaleX(-1)}
+
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:9;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c7264;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(233,223,206,.14);border-radius:99px;
+    background:rgba(5,5,7,.5);backdrop-filter:blur(4px);
+  }
+  a.back:hover{color:#e9dfce}
+
+  .prompt{
+    position:fixed;top:0;left:0;right:0;z-index:5;
+    text-align:center;padding-top:max(52px, env(safe-area-inset-top) + 38px);
+    font-style:italic;letter-spacing:.02em;font-size:14px;color:#7c7264;
+    pointer-events:none;
+  }
+
+  .floor{position:absolute;left:12%;top:30%;width:76%;height:40%;
+    border-radius:2%;
+    background:radial-gradient(ellipse at 50% 45%, rgba(255,224,160,.10), rgba(255,224,160,.02) 70%, transparent 78%);
+    pointer-events:none;}
+
+  .flat{position:absolute;background:#0a0a0d;
+    border-right:1px solid rgba(255,214,150,.10);
+    border-left:1px solid rgba(255,214,150,.03);
+    box-shadow:0 0 24px rgba(0,0,0,.7);
+    pointer-events:none;}
+
+  .mark{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;
+    border:1.5px solid rgba(233,223,206,.55);border-radius:50%;
+    pointer-events:none;}
+  .mark::before,.mark::after{content:'';position:absolute;background:rgba(233,223,206,.55);}
+  .mark::before{left:50%;top:6px;bottom:6px;width:1px;margin-left:-.5px}
+  .mark::after{top:50%;left:6px;right:6px;height:1px;margin-top:-.5px}
+  .mark{animation:pulse 2.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+
+  .light{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;
+    border-radius:50%;pointer-events:none;z-index:3;
+    background:radial-gradient(circle, #fff8e6 0%, #ffd98a 35%, rgba(255,180,70,.5) 60%, transparent 72%);
+    filter:blur(.5px);
+  }
+  .halo{position:absolute;width:150px;height:150px;margin:-75px 0 0 -75px;
+    border-radius:50%;pointer-events:none;z-index:2;opacity:.55;
+    background:radial-gradient(circle, rgba(255,205,120,.30) 0%, rgba(255,180,80,.10) 45%, transparent 70%);
+  }
+
+  .reveal{position:fixed;left:0;right:0;bottom:0;z-index:6;
+    padding:0 9vw max(32px, env(safe-area-inset-bottom) + 18px);
+    text-align:center;opacity:0;transform:translateY(8px);
+    transition:opacity .5s ease, transform .5s ease;pointer-events:none;}
+  .reveal.show{opacity:1;transform:none}
+  .reveal .l1{font-style:italic;font-size:14.5px;color:#d9cdb8;line-height:1.7}
+  .reveal .l2{font-style:italic;font-size:14.5px;color:#a99a82;line-height:1.7;
+    margin-top:8px;opacity:0;transition:opacity .8s ease;}
+  .reveal .l2.show{opacity:1}
+  .reveal .again{margin-top:16px;font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5c5448;
+    opacity:0;transition:opacity 1s ease;}
+  .reveal .again.show{opacity:1}
+
+  @media (prefers-reduced-motion: reduce){
+    .mark{animation:none}
+    .reveal,.reveal .l2,.reveal .again{transition:none}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div class="prompt">hit your mark.</div>
+
+<div class="venue" id="venue">
+  <div class="wing left"></div>
+  <div class="wing right"></div>
+  <div class="floor" id="floor"></div>
+  <div class="flat" id="flatA"></div>
+  <div class="flat" id="flatB"></div>
+  <div class="mark" id="mark"></div>
+  <div class="halo" id="halo"></div>
+  <div class="light" id="light"></div>
+</div>
+
+<div class="reveal" id="reveal">
+  <div class="l1" id="l1"></div>
+  <div class="l2" id="l2"></div>
+  <div class="again" id="again">tap to go again</div>
+</div>
+
+<script>
+(function(){
+  const venue = document.getElementById('venue');
+  const floorEl = document.getElementById('floor');
+  const flatA = document.getElementById('flatA');
+  const flatB = document.getElementById('flatB');
+  const markEl = document.getElementById('mark');
+  const lightEl = document.getElementById('light');
+  const haloEl = document.getElementById('halo');
+  const reveal = document.getElementById('reveal');
+  const l1 = document.getElementById('l1');
+  const l2 = document.getElementById('l2');
+  const again = document.getElementById('again');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let W, H, floor, mark, start, obstacles;
+  let pos, target;
+  let dragging = false, completed = false, wentOffstage = false;
+  let raf = null;
+
+  function rect(leftPct, topPct, wPct, hPct){
+    return { left: leftPct*W, top: topPct*H, w: wPct*W, h: hPct*H };
+  }
+
+  function layout(){
+    W = window.innerWidth; H = window.innerHeight;
+    floor = rect(0.12, 0.30, 0.76, 0.40);
+    obstacles = [
+      rect(0.30, 0.30, 0.16, 0.22),
+      rect(0.54, 0.48, 0.16, 0.22)
+    ];
+    flatA.style.left = obstacles[0].left+'px'; flatA.style.top = obstacles[0].top+'px';
+    flatA.style.width = obstacles[0].w+'px'; flatA.style.height = obstacles[0].h+'px';
+    flatB.style.left = obstacles[1].left+'px'; flatB.style.top = obstacles[1].top+'px';
+    flatB.style.width = obstacles[1].w+'px'; flatB.style.height = obstacles[1].h+'px';
+
+    mark = { x: floor.left + floor.w*0.86, y: floor.top + floor.h*0.86 };
+    start = { x: floor.left + floor.w*0.12, y: floor.top + floor.h*0.14 };
+    markEl.style.left = mark.x+'px'; markEl.style.top = mark.y+'px';
+
+    if (!pos) pos = { x: start.x, y: start.y };
+    if (!target) target = { x: start.x, y: start.y };
+  }
+
+  function inFloor(p){
+    return p.x >= floor.left && p.x <= floor.left+floor.w &&
+           p.y >= floor.top && p.y <= floor.top+floor.h;
+  }
+
+  function clampFromObstacles(p){
+    const pad = 20;
+    let out = { x: p.x, y: p.y };
+    for (const o of obstacles){
+      const left = o.left - pad, right = o.left+o.w + pad;
+      const top = o.top - pad, bottom = o.top+o.h + pad;
+      if (out.x > left && out.x < right && out.y > top && out.y < bottom){
+        const dLeft = out.x - left, dRight = right - out.x;
+        const dTop = out.y - top, dBottom = bottom - out.y;
+        const m = Math.min(dLeft, dRight, dTop, dBottom);
+        if (m === dLeft) out.x = left;
+        else if (m === dRight) out.x = right;
+        else if (m === dTop) out.y = top;
+        else out.y = bottom;
+      }
+    }
+    return out;
+  }
+
+  function render(){
+    lightEl.style.left = pos.x+'px'; lightEl.style.top = pos.y+'px';
+    haloEl.style.left = pos.x+'px'; haloEl.style.top = pos.y+'px';
+    const nearFloor = inFloor(pos) ? 1 : 0.45;
+    haloEl.style.opacity = (0.35 + nearFloor*0.2).toFixed(2);
+  }
+
+  function tick(){
+    let dest = target;
+    let easing = 0.9;
+    if (inFloor(target)){
+      dest = clampFromObstacles(target);
+      easing = reduced ? 1 : 0.16;
+    }
+    pos.x += (dest.x - pos.x) * easing;
+    pos.y += (dest.y - pos.y) * easing;
+    render();
+
+    const dx = pos.x - mark.x, dy = pos.y - mark.y;
+    if (!completed && Math.sqrt(dx*dx + dy*dy) < Math.min(W,H)*0.045){
+      complete();
+    }
+    if (dragging || Math.abs(dest.x-pos.x) > 0.3 || Math.abs(dest.y-pos.y) > 0.3){
+      raf = requestAnimationFrame(tick);
+    } else {
+      raf = null;
+    }
+  }
+
+  function ensureLoop(){
+    if (!raf) raf = requestAnimationFrame(tick);
+  }
+
+  function pointerToLocal(e){
+    return { x: e.clientX, y: e.clientY };
+  }
+
+  function onDown(e){
+    if (completed){
+      resetAll();
+      return;
+    }
+    dragging = true;
+    target = pointerToLocal(e);
+    if (!inFloor(target)) wentOffstage = true;
+    ensureLoop();
+  }
+  function onMove(e){
+    if (!dragging || completed) return;
+    target = pointerToLocal(e);
+    if (!inFloor(target)) wentOffstage = true;
+    ensureLoop();
+  }
+  function onUp(){
+    dragging = false;
+  }
+
+  function complete(){
+    completed = true;
+    dragging = false;
+    pos.x = mark.x; pos.y = mark.y;
+    render();
+    l1.textContent = wentOffstage
+      ? 'mark hit — by way of the wings.'
+      : 'mark hit — by way of the light.';
+    l2.textContent = 'resourceful, or rogue. that call gets made after, not before.';
+    reveal.classList.add('show');
+    const l2Delay = reduced ? 0 : 900;
+    const againDelay = reduced ? 0 : 2200;
+    setTimeout(() => l2.classList.add('show'), l2Delay);
+    setTimeout(() => again.classList.add('show'), againDelay);
+  }
+
+  function resetAll(){
+    completed = false;
+    wentOffstage = false;
+    pos = { x: start.x, y: start.y };
+    target = { x: start.x, y: start.y };
+    render();
+    reveal.classList.remove('show');
+    l2.classList.remove('show');
+    again.classList.remove('show');
+  }
+
+  window.addEventListener('resize', layout);
+  layout();
+  render();
+
+  venue.addEventListener('pointerdown', (e) => { if (e.cancelable) e.preventDefault(); onDown(e); }, {passive:false});
+  venue.addEventListener('pointermove', (e) => { if (e.cancelable) e.preventDefault(); onMove(e); }, {passive:false});
+  venue.addEventListener('pointerup', onUp);
+  venue.addEventListener('pointercancel', onUp);
+  venue.addEventListener('pointerleave', onUp);
+})();
+</script>
+</body>
+</html>
