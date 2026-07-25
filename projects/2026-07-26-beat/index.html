@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>(Beat.) · The Surprise Morning Piece</title>
+<style>
+  html,body{margin:0;height:100%;background:#07070a;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:none}
+  body{font-family:Georgia,'Times New Roman',serif;color:#e9dfce}
+
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:9;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c7264;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(233,223,206,.14);border-radius:99px;
+    background:rgba(7,7,10,.5);backdrop-filter:blur(4px);
+  }
+  a.back:hover{color:#e9dfce}
+
+  .prompt{
+    position:fixed;top:0;left:0;right:0;z-index:5;
+    text-align:center;padding-top:max(58px, env(safe-area-inset-top) + 42px);
+    font-style:italic;letter-spacing:.03em;font-size:15px;color:#8a8172;
+    pointer-events:none;transition:color .4s ease;
+  }
+  .prompt.go{color:#f0cf9a}
+  .prompt.taken{color:#9fd6e8}
+
+  .venue{position:fixed;inset:0}
+
+  .floor{position:absolute;left:12%;right:12%;top:54%;bottom:12%;border-radius:8%;
+    background:radial-gradient(ellipse at 50% 25%, rgba(255,205,150,.05), transparent 70%);
+    pointer-events:none}
+
+  .rig{position:absolute;left:50%;top:16%;width:1px;height:22%;
+    background:linear-gradient(180deg, rgba(233,223,206,.16), rgba(233,223,206,.02));
+    transform:translateX(-.5px);pointer-events:none}
+
+  .stand{position:absolute;left:50%;top:46.5%;width:70px;height:7px;margin-left:-35px;
+    border-radius:50%;background:rgba(0,0,0,.55);box-shadow:0 0 22px 5px rgba(0,0,0,.55);
+    pointer-events:none}
+
+  .housing{position:absolute;left:50%;top:38%;width:58px;height:58px;margin:-29px 0 0 -29px;
+    border-radius:50%;border:1.5px solid rgba(233,223,206,.2);background:#0c0b10;
+    box-shadow:inset 0 0 14px rgba(0,0,0,.85);pointer-events:none}
+
+  .lens{position:absolute;left:50%;top:38%;width:27px;height:27px;margin:-13.5px 0 0 -13.5px;
+    border-radius:50%;transition:background .25s ease, box-shadow .25s ease;pointer-events:none;
+    background:radial-gradient(circle,#5a2a18 0%, #26140d 70%);
+    box-shadow:0 0 8px 1px rgba(255,80,40,.25)}
+
+  .halo{position:absolute;left:50%;top:38%;width:240px;height:240px;margin:-120px 0 0 -120px;
+    border-radius:50%;pointer-events:none;transition:opacity .3s ease, background .3s ease;
+    opacity:.18;background:radial-gradient(circle, rgba(255,110,55,.22), transparent 70%)}
+
+  #venue.lamp-go .lens{background:radial-gradient(circle,#fff6df 0%, #ffd98a 42%, #ff9a3d 78%);
+    box-shadow:0 0 24px 7px rgba(255,205,130,.7)}
+  #venue.lamp-go .halo{opacity:.55;background:radial-gradient(circle, rgba(255,205,120,.4), transparent 70%)}
+
+  #venue.lamp-taken .lens{background:radial-gradient(circle,#eaf7ff 0%, #a9dcef 46%, #4f92ac 80%);
+    box-shadow:0 0 24px 7px rgba(160,220,240,.6)}
+  #venue.lamp-taken .halo{opacity:.5;background:radial-gradient(circle, rgba(160,220,240,.32), transparent 70%)}
+
+  #venue.flicker .lens{box-shadow:0 0 16px 3px rgba(255,90,40,.6)}
+  #venue.flash-called .halo{opacity:.85}
+
+  .late{position:fixed;left:0;right:0;top:63%;z-index:4;text-align:center;
+    font-style:italic;font-size:13px;color:#7fb8cf;opacity:0;
+    transition:opacity .5s ease;pointer-events:none}
+  .late.show{opacity:1}
+
+  .book-tab{position:fixed;right:0;bottom:0;width:64px;height:64px;z-index:8;
+    display:flex;align-items:flex-end;justify-content:flex-end;padding:0 16px 14px 0;
+    color:#3c372e;font-size:10px;font-family:ui-monospace,Menlo,Consolas,monospace}
+
+  .book{position:fixed;inset:0;z-index:10;background:rgba(5,5,8,.94);
+    backdrop-filter:blur(6px);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;opacity:0;pointer-events:none;
+    transition:opacity .35s ease}
+  .book.show{opacity:1;pointer-events:auto}
+  .book-title{font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;
+    text-transform:uppercase;font-size:11px;color:#7c7264;margin-bottom:20px}
+  .book-row{font-family:Georgia,serif;font-size:15px;color:#d9cdb8;
+    display:flex;gap:22px;justify-content:space-between;width:230px;padding:7px 0;
+    border-bottom:1px solid rgba(233,223,206,.08)}
+  .book-row .k{color:#a99a82}
+  .book-row .v{color:#f0cf9a;font-variant-numeric:tabular-nums}
+  .book-close{margin-top:24px;font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5c5448}
+
+  @media (prefers-reduced-motion: reduce){
+    .lens,.halo,.prompt,.late,.book{transition:none}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div class="prompt" id="prompt">standing by…</div>
+
+<div class="venue" id="venue">
+  <div class="floor"></div>
+  <div class="rig"></div>
+  <div class="halo"></div>
+  <div class="stand"></div>
+  <div class="housing"></div>
+  <div class="lens"></div>
+</div>
+
+<div class="late" id="late"></div>
+
+<div class="book-tab" id="bookTab">·</div>
+<div class="book" id="book">
+  <div class="book-title">the book</div>
+  <div id="bookBody"></div>
+  <div class="book-close">tap to close</div>
+</div>
+
+<script>
+(function(){
+  const KEY = 'beat.profile.v1';
+  const THRESHOLD = 3;
+  const STANDBY_MIN = 900, STANDBY_MAX = 2400;
+  const PAUSE = 1200;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const promptEl = document.getElementById('prompt');
+  const venue = document.getElementById('venue');
+  const lateEl = document.getElementById('late');
+  const bookTab = document.getElementById('bookTab');
+  const book = document.getElementById('book');
+  const bookBody = document.getElementById('bookBody');
+
+  function todayStr(){
+    const d = new Date();
+    return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+  }
+
+  function loadProfile(){
+    let p;
+    try { p = JSON.parse(localStorage.getItem(KEY)); } catch(e){ p = null; }
+    if (!p || typeof p.mean !== 'number'){
+      p = { mean: 650, count: 0, calledCount: 0, takenCount: 0, nights: 0, lastDate: null };
+    }
+    const today = todayStr();
+    if (p.lastDate !== today){ p.nights += 1; p.lastDate = today; }
+    return p;
+  }
+  function saveProfile(){
+    try { localStorage.setItem(KEY, JSON.stringify(profile)); } catch(e){}
+  }
+
+  let profile = loadProfile();
+  saveProfile();
+
+  let state = 'idle';
+  let goTime = 0;
+  let paused = false;
+  let bookOpen = false;
+  let timers = [];
+
+  function clearTimers(){ timers.forEach(clearTimeout); timers = []; }
+  function after(ms, fn){ const id = setTimeout(fn, ms); timers.push(id); return id; }
+
+  function setLampState(s){
+    venue.classList.remove('lamp-standby','lamp-go','lamp-taken');
+    venue.classList.add('lamp-'+s);
+  }
+  function setPrompt(text, cls){
+    promptEl.textContent = text;
+    promptEl.classList.remove('go','taken');
+    if (cls) promptEl.classList.add(cls);
+  }
+
+  function currentMargin(){
+    return Math.min(0.44, profile.count * 0.02);
+  }
+
+  function startRound(){
+    if (paused || bookOpen) return;
+    clearTimers();
+    state = 'standby';
+    setLampState('standby');
+    setPrompt('standing by…');
+    const wait = STANDBY_MIN + Math.random()*(STANDBY_MAX - STANDBY_MIN);
+    after(wait, goLive);
+  }
+
+  function goLive(){
+    state = 'go';
+    goTime = performance.now();
+    setLampState('go');
+    setPrompt('go.', 'go');
+    if (profile.count >= THRESHOLD){
+      const fireDelay = Math.max(140, profile.mean * (1 - currentMargin()));
+      after(fireDelay, autoFire);
+    }
+  }
+
+  function autoFire(){
+    if (state !== 'go') return;
+    state = 'taken';
+    setLampState('taken');
+    setPrompt('called.', 'taken');
+    profile.takenCount++;
+    saveProfile();
+    after(PAUSE + 300, startRound);
+  }
+
+  function registerCalled(reaction){
+    if (reaction < 2500){
+      profile.mean = profile.count > 0 ? (profile.mean*0.82 + reaction*0.18) : reaction;
+    }
+    profile.count++;
+    profile.calledCount++;
+    saveProfile();
+  }
+
+  function flashFalseStart(){
+    venue.classList.add('flicker');
+    after(160, ()=>venue.classList.remove('flicker'));
+  }
+  function flashLate(){
+    lateEl.textContent = 'already called.';
+    lateEl.classList.add('show');
+    after(reduced ? 500 : 900, ()=>lateEl.classList.remove('show'));
+  }
+
+  function onDown(){
+    if (bookOpen) return;
+    if (state === 'standby'){
+      flashFalseStart();
+      return;
+    }
+    if (state === 'go'){
+      clearTimers();
+      const reaction = performance.now() - goTime;
+      registerCalled(reaction);
+      state = 'called';
+      setPrompt('called.', 'go');
+      venue.classList.add('flash-called');
+      after(140, ()=>venue.classList.remove('flash-called'));
+      after(PAUSE, startRound);
+      return;
+    }
+    if (state === 'taken'){
+      flashLate();
+      return;
+    }
+  }
+
+  venue.addEventListener('pointerdown', (e)=>{
+    if (e.cancelable) e.preventDefault();
+    onDown();
+  }, {passive:false});
+
+  document.addEventListener('visibilitychange', ()=>{
+    paused = document.hidden;
+    clearTimers();
+    if (!paused && !bookOpen) startRound();
+  });
+
+  function row(k, v){
+    return '<div class="book-row"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>';
+  }
+  function renderBook(){
+    const lead = profile.count >= THRESHOLD
+      ? Math.round(profile.mean * currentMargin())
+      : 0;
+    bookBody.innerHTML = [
+      row('nights', profile.nights),
+      row('cues called', profile.calledCount),
+      row('cues taken', profile.takenCount),
+      row('your average', Math.round(profile.mean)+'ms'),
+      row("tonight's lead", lead+'ms')
+    ].join('');
+  }
+
+  bookTab.addEventListener('pointerdown', (e)=>{
+    e.stopPropagation();
+    if (e.cancelable) e.preventDefault();
+    bookOpen = true;
+    clearTimers();
+    renderBook();
+    book.classList.add('show');
+  });
+  book.addEventListener('pointerdown', (e)=>{
+    e.stopPropagation();
+    if (e.cancelable) e.preventDefault();
+    bookOpen = false;
+    book.classList.remove('show');
+    startRound();
+  });
+
+  startRound();
+})();
+</script>
+</body>
+</html>

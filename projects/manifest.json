@@ -48,6 +48,13 @@
       "kind": "question",
       "note": "One instruction. Nobody said which way to get there.",
       "path": "projects/2026-07-25-hit-your-mark/index.html"
+    },
+    {
+      "date": "2026-07-26",
+      "title": "(Beat.)",
+      "kind": "seed",
+      "note": "A single cue lamp. Wait for it — though it may not wait for you.",
+      "path": "projects/2026-07-26-beat/index.html"
     }
   ]
 }
