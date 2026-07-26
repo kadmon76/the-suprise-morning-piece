@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>(Bring the House Down.)</title>
+<style>
+  :root{
+    --power: 0;
+    --bg: #050403;
+  }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background: var(--bg);
+    overflow:hidden;
+    font-family: Georgia, 'Times New Roman', serif;
+    touch-action: manipulation;
+    color:#cbb98a;
+  }
+  body{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    min-height:100vh;
+    min-height:100dvh;
+    padding: env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0);
+  }
+
+  .backlink{
+    position:fixed;
+    top:10px; left:12px;
+    font-size:11px;
+    color:#5a4f38;
+    text-decoration:none;
+    letter-spacing:.03em;
+    z-index:20;
+    opacity:.7;
+  }
+  .backlink:active{ opacity:1; }
+
+  .ledger-mark{
+    position:fixed;
+    bottom:14px; right:16px;
+    width:22px; height:22px;
+    display:flex; align-items:center; justify-content:center;
+    z-index:20;
+  }
+  .ledger-mark span{
+    display:block;
+    width:4px; height:4px;
+    border-radius:50%;
+    background:#5a4f38;
+    opacity:.6;
+  }
+
+  .stage{
+    width:100%;
+    max-width:520px;
+    padding: 54px 18px 10px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    flex:0 0 auto;
+  }
+
+  .marquee{
+    position:relative;
+    width:100%;
+    padding: 26px 14px 20px;
+    border-radius: 10px;
+    border: 1px solid #3a2f1c;
+    background: radial-gradient(ellipse at center, rgba(255,214,140,0.05), rgba(0,0,0,0) 70%);
+    text-align:center;
+    user-select:none;
+    cursor:pointer;
+  }
+  .bulbs{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    border-radius: 10px;
+  }
+  .bulb{
+    position:absolute;
+    width:6px; height:6px;
+    border-radius:50%;
+    background:#3a2f1c;
+    box-shadow: 0 0 0 rgba(255,210,120,0);
+  }
+  .bulb.on{
+    background:#ffd97a;
+    box-shadow: 0 0 calc(4px + var(--power) * 1.4px) calc(1px + var(--power) * 0.3px) rgba(255,196,90,0.9);
+  }
+
+  .marquee-text{
+    position:relative;
+    font-size: clamp(22px, calc(6.2vw + var(--power) * 0.35px), 40px);
+    letter-spacing: calc(0.06em + var(--power) * 0.004em);
+    font-weight:700;
+    color:#ffe6ad;
+    text-shadow: 0 0 calc(6px + var(--power) * 2px) rgba(255,190,90, calc(0.35 + var(--power) * 0.02));
+    transition: font-size .35s ease, text-shadow .35s ease, letter-spacing .35s ease;
+    margin:0;
+  }
+
+  .caption{
+    margin-top: 14px;
+    font-size: 12px;
+    letter-spacing:.08em;
+    color:#7a6c4a;
+    text-align:center;
+  }
+
+  .house{
+    flex:1 1 auto;
+    width:100%;
+    max-width:480px;
+    display:grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 6px;
+    padding: 20px 16px 30px;
+    align-content:center;
+  }
+  .seat{
+    width:100%;
+    aspect-ratio:1;
+    border-radius:50%;
+    background:#161208;
+    transition: background .5s ease, box-shadow .5s ease;
+  }
+  .seat.lit{
+    background:#e8b64c;
+    box-shadow: 0 0 5px 1px rgba(232,182,76,0.55);
+  }
+
+  .overlay{
+    position:fixed;
+    inset:0;
+    background: rgba(2,2,1,0.94);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:50;
+    opacity:0;
+    pointer-events:none;
+    transition: opacity .3s ease;
+    padding: 30px;
+  }
+  .overlay.show{
+    opacity:1;
+    pointer-events:auto;
+  }
+  .ledger-box{
+    max-width: 340px;
+    font-size:14px;
+    line-height:1.9;
+    color:#cbb98a;
+    letter-spacing:.02em;
+  }
+  .ledger-box .row{
+    display:flex;
+    justify-content:space-between;
+    border-bottom:1px solid #2a2416;
+    padding: 4px 0;
+  }
+  .ledger-box .final{
+    margin-top:18px;
+    font-style:italic;
+    color:#8a7b52;
+    font-size:13px;
+    text-align:center;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .marquee-text, .seat, .bulb.on{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<a class="backlink" href="../../index.html">&larr; cue sheet</a>
+
+<div class="stage">
+  <div class="marquee" id="marquee">
+    <div class="bulbs" id="bulbs"></div>
+    <p class="marquee-text" id="marqueeText">THE SHOW</p>
+  </div>
+  <p class="caption">Tap the marquee.</p>
+</div>
+
+<div class="house" id="house"></div>
+
+<div class="ledger-mark" id="ledgerMark"><span></span></div>
+
+<div class="overlay" id="overlay">
+  <div class="ledger-box" id="ledgerBox"></div>
+</div>
+
+<script>
+(function(){
+  var TOTAL_SEATS = 240;
+  var COLS = 12;
+  var KEY = 'bthd_v1';
+
+  var todayStr = new Date().toDateString();
+
+  var state = load();
+
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if(raw){
+        var s = JSON.parse(raw);
+        if(s && Array.isArray(s.dark) && s.dark.length === TOTAL_SEATS){
+          return s;
+        }
+      }
+    }catch(e){}
+    return {
+      dark: new Array(TOTAL_SEATS).fill(false),
+      taps: 0,
+      nights: [],
+      firstDark: null
+    };
+  }
+
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+  }
+
+  if(state.nights.indexOf(todayStr) === -1){
+    state.nights.push(todayStr);
+    save();
+  }
+
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var houseEl = document.getElementById('house');
+  var seatEls = [];
+  for(var i=0;i<TOTAL_SEATS;i++){
+    var d = document.createElement('div');
+    d.className = 'seat';
+    houseEl.appendChild(d);
+    seatEls.push(d);
+  }
+
+  var bulbsEl = document.getElementById('bulbs');
+  var BULB_COUNT = 28;
+  var bulbEls = [];
+  (function placeBulbs(){
+    // distribute bulbs evenly around the marquee border
+    for(var i=0;i<BULB_COUNT;i++){
+      var b = document.createElement('div');
+      b.className = 'bulb';
+      var t = i / BULB_COUNT;
+      var pos = perimeterPoint(t);
+      b.style.left = pos.x + '%';
+      b.style.top = pos.y + '%';
+      bulbsEl.appendChild(b);
+      bulbEls.push(b);
+    }
+  })();
+
+  function perimeterPoint(t){
+    // t in [0,1) around a rounded rectangle perimeter, approx
+    var perim = t * 4;
+    if(perim < 1) return { x: perim*100, y: 2 };
+    if(perim < 2) return { x: 98, y: (perim-1)*100 };
+    if(perim < 3) return { x: (1-(perim-2))*100, y: 98 };
+    return { x: 2, y: (1-(perim-3))*100 };
+  }
+
+  function renderSeats(){
+    for(var i=0;i<TOTAL_SEATS;i++){
+      seatEls[i].classList.toggle('lit', !state.dark[i]);
+    }
+  }
+
+  function remainingLit(){
+    var n = 0;
+    for(var i=0;i<TOTAL_SEATS;i++) if(!state.dark[i]) n++;
+    return n;
+  }
+
+  function litIndices(){
+    var arr = [];
+    for(var i=0;i<TOTAL_SEATS;i++) if(!state.dark[i]) arr.push(i);
+    return arr;
+  }
+
+  function marqueeText(){
+    var lit = remainingLit();
+    var frac = lit / TOTAL_SEATS;
+    if(state.taps === 0) return 'THE SHOW';
+    if(lit === 0) return 'SOLD OUT';
+    if(frac > 0.75) return 'BIGGER TONIGHT';
+    if(frac > 0.5) return 'RECORD HOUSE';
+    if(frac > 0.25) return 'BRIGHTEST YET';
+    return 'ONE NIGHT ONLY';
+  }
+
+  var marqueeTextEl = document.getElementById('marqueeText');
+  var root = document.documentElement;
+
+  function renderMarquee(){
+    var power = Math.min(state.taps, 60);
+    root.style.setProperty('--power', power);
+    marqueeTextEl.textContent = marqueeText();
+    var onBulbs = reduced
+      ? Math.round(BULB_COUNT * Math.min(1, 0.15 + state.taps * 0.04))
+      : Math.round(BULB_COUNT * Math.min(1, 0.15 + state.taps * 0.04));
+    for(var i=0;i<bulbEls.length;i++){
+      bulbEls[i].classList.toggle('on', i < onBulbs);
+    }
+  }
+
+  var chaseOffset = 0;
+  var chaseTimer = null;
+  function startChase(){
+    if(reduced || chaseTimer) return;
+    chaseTimer = setInterval(function(){
+      var onCount = 0;
+      for(var i=0;i<bulbEls.length;i++) if(bulbEls[i].classList.contains('on')) onCount++;
+      if(onCount === 0) return;
+      chaseOffset = (chaseOffset + 1) % bulbEls.length;
+      for(var j=0;j<bulbEls.length;j++){
+        var shouldBeOn = j < onCount;
+        var idx = (j + chaseOffset) % bulbEls.length;
+        bulbEls[idx].classList.toggle('on', shouldBeOn);
+      }
+    }, Math.max(90, 260 - state.taps * 6));
+  }
+
+  function render(){
+    renderSeats();
+    renderMarquee();
+  }
+
+  var marqueeEl = document.getElementById('marquee');
+  marqueeEl.addEventListener('click', function(){
+    var lit = litIndices();
+    if(lit.length === 0){
+      render();
+      return;
+    }
+    state.taps += 1;
+    if(!state.firstDark) state.firstDark = new Date().toISOString().slice(0,10);
+
+    var toKill = Math.min(lit.length, state.taps);
+    for(var k=0; k<toKill; k++){
+      var pick = Math.floor(Math.random() * lit.length);
+      var seatIndex = lit[pick];
+      state.dark[seatIndex] = true;
+      lit.splice(pick, 1);
+    }
+    save();
+    render();
+    if(!reduced) restartChase();
+  });
+
+  function restartChase(){
+    if(chaseTimer){ clearInterval(chaseTimer); chaseTimer = null; }
+    startChase();
+  }
+
+  var overlay = document.getElementById('overlay');
+  var ledgerBox = document.getElementById('ledgerBox');
+  document.getElementById('ledgerMark').addEventListener('click', function(e){
+    e.stopPropagation();
+    var lit = remainingLit();
+    var dark = TOTAL_SEATS - lit;
+    var pct = Math.round((dark/TOTAL_SEATS)*100);
+    var lines = '';
+    lines += row('Seats dark', dark + ' / ' + TOTAL_SEATS + ' (' + pct + '%)');
+    lines += row('Taps drawn', String(state.taps));
+    lines += row('Nights you’ve done this', String(state.nights.length));
+    lines += row('First dark', state.firstDark || '—');
+    var final = dark === TOTAL_SEATS
+      ? 'The house has never been fuller.'
+      : 'It only goes one way.';
+    ledgerBox.innerHTML = lines + '<div class="final">' + final + '</div>';
+    overlay.classList.add('show');
+  });
+  overlay.addEventListener('click', function(){
+    overlay.classList.remove('show');
+  });
+
+  function row(label, value){
+    return '<div class="row"><span>' + label + '</span><span>' + value + '</span></div>';
+  }
+
+  render();
+  if(!reduced) startChase();
+})();
+</script>
+</body>
+</html>

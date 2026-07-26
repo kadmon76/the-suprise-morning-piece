@@ -55,6 +55,13 @@
       "kind": "seed",
       "note": "A single cue lamp. Wait for it — though it may not wait for you.",
       "path": "projects/2026-07-26-beat/index.html"
+    },
+    {
+      "date": "2026-07-27",
+      "title": "(Bring the House Down.)",
+      "kind": "question",
+      "note": "Tap the marquee. Watch the show get brighter and brighter.",
+      "path": "projects/2026-07-27-bring-the-house-down/index.html"
     }
   ]
 }
