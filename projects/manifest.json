@@ -62,6 +62,13 @@
       "kind": "question",
       "note": "Tap the marquee. Watch the show get brighter and brighter.",
       "path": "projects/2026-07-27-bring-the-house-down/index.html"
+    },
+    {
+      "date": "2026-07-28",
+      "title": "Counterweight",
+      "kind": "seed",
+      "note": "A rope, a batten, and a system happy to show you exactly how hard it's pulling back.",
+      "path": "projects/2026-07-28-counterweight/index.html"
     }
   ]
 }
