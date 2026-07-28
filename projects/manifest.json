@@ -69,6 +69,13 @@
       "kind": "seed",
       "note": "A rope, a batten, and a system happy to show you exactly how hard it's pulling back.",
       "path": "projects/2026-07-28-counterweight/index.html"
+    },
+    {
+      "date": "2026-07-29",
+      "title": "Practicals",
+      "kind": "question",
+      "note": "A mirror, a row of bulbs, and someone else's idea of your best angle.",
+      "path": "projects/2026-07-29-practicals/index.html"
     }
   ]
 }

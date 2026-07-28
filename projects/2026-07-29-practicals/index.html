@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Practicals · The Surprise Morning Piece</title>
+<style>
+  html,body{margin:0;height:100%;background:#0b0a08;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none}
+  body{font-family:Georgia,'Times New Roman',serif;color:#e9dfce}
+
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:9;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c7264;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(233,223,206,.14);border-radius:99px;
+    background:rgba(7,7,10,.5);backdrop-filter:blur(4px);
+  }
+  a.back:hover{color:#e9dfce}
+
+  .prompt{
+    position:fixed;top:0;left:0;right:0;z-index:5;
+    text-align:center;padding-top:max(58px, env(safe-area-inset-top) + 42px);
+    font-style:italic;letter-spacing:.03em;font-size:14px;color:#8a8172;
+    pointer-events:none;
+  }
+
+  .stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:2}
+
+  .mirror-frame{
+    position:relative;width:min(74vw,296px);aspect-ratio:0.74;
+  }
+  .mirror-ring{
+    position:absolute;inset:0;border-radius:50%;
+    border:1px solid rgba(233,223,206,.16);
+    box-shadow:inset 0 0 60px rgba(0,0,0,.55), 0 0 40px rgba(0,0,0,.4);
+  }
+  .mirror-glass{
+    position:absolute;inset:9%;border-radius:50%;
+    background:radial-gradient(ellipse at 50% 38%, #16130f 0%, #0d0b08 78%);
+    box-shadow:inset 0 0 26px rgba(0,0,0,.7);
+    overflow:hidden;
+  }
+  .face-svg{position:absolute;inset:0;width:100%;height:100%}
+
+  .bulb{
+    position:absolute;width:15px;height:15px;margin:-7.5px;border-radius:50%;
+    background:radial-gradient(circle,#332a1e 0%,#17130d 75%);
+    box-shadow:0 0 3px 0 rgba(255,150,70,.12);
+    transition:background .4s ease, box-shadow .4s ease;
+  }
+  .bulb.lit{transition:background .08s ease, box-shadow .08s ease}
+
+  .caption{
+    position:fixed;left:0;right:0;bottom:14%;z-index:5;text-align:center;
+    font-style:italic;font-size:13px;color:#a89a80;opacity:0;
+    transition:opacity 1s ease;pointer-events:none;letter-spacing:.02em;
+  }
+  .caption.show{opacity:1}
+
+  .ghost-label{
+    position:fixed;left:0;right:0;bottom:9%;z-index:5;text-align:center;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:#6d92a0;opacity:0;transition:opacity .5s ease;pointer-events:none;
+  }
+  .ghost-label.show{opacity:1}
+
+  @media (prefers-reduced-motion: reduce){
+    .bulb,.bulb.lit,.caption,.ghost-label{transition:none}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div class="prompt">touch a bulb before the house opens.</div>
+
+<div class="stage">
+  <div class="mirror-frame" id="mirrorFrame">
+    <div class="mirror-ring"></div>
+    <div class="mirror-glass">
+      <svg class="face-svg" id="face" viewBox="0 0 200 260" preserveAspectRatio="xMidYMid meet">
+        <g id="ghost" opacity="0" fill="none" stroke="#8fb3c0" stroke-width="1">
+          <ellipse id="gHead" cx="100" cy="132" ry="92"></ellipse>
+          <line id="gBrowL" x1="62" y1="88"></line>
+          <line id="gBrowR" x1="138" y1="88"></line>
+          <ellipse id="gEyeL" cy="112"></ellipse>
+          <ellipse id="gEyeR" cy="112"></ellipse>
+          <path id="gMouth" stroke-width="1.4"></path>
+          <circle id="gMark" cx="132" cy="142" r="2.6"></circle>
+        </g>
+        <g id="live" fill="#d9cdb3">
+          <ellipse id="head" cx="100" cy="132" ry="92" fill="#1c1811" stroke="#6d6350" stroke-width="1.2"></ellipse>
+          <line id="browL" x1="62" y1="88" stroke="#4a4132" stroke-width="2.4" stroke-linecap="round"></line>
+          <line id="browR" x1="138" y1="88" stroke="#4a4132" stroke-width="2.4" stroke-linecap="round"></line>
+          <ellipse id="eyeL" cy="112" fill="#0c0a07"></ellipse>
+          <ellipse id="eyeR" cy="112" fill="#0c0a07"></ellipse>
+          <path id="mouth" fill="none" stroke="#4a4132" stroke-width="2" stroke-linecap="round"></path>
+          <circle id="mark" cx="132" cy="142" r="2.6" fill="#2a2318"></circle>
+        </g>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<div class="caption" id="caption"></div>
+<div class="ghost-label" id="ghostLabel"></div>
+
+<script>
+(function(){
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const mirrorFrame = document.getElementById('mirrorFrame');
+  const face = document.getElementById('face');
+  const caption = document.getElementById('caption');
+  const ghostLabel = document.getElementById('ghostLabel');
+  const ghost = document.getElementById('ghost');
+
+  const head = document.getElementById('head');
+  const browL = document.getElementById('browL');
+  const browR = document.getElementById('browR');
+  const eyeL = document.getElementById('eyeL');
+  const eyeR = document.getElementById('eyeR');
+  const mouth = document.getElementById('mouth');
+  const mark = document.getElementById('mark');
+
+  const gHead = document.getElementById('gHead');
+  const gBrowL = document.getElementById('gBrowL');
+  const gBrowR = document.getElementById('gBrowR');
+  const gEyeL = document.getElementById('gEyeL');
+  const gEyeR = document.getElementById('gEyeR');
+  const gMouth = document.getElementById('gMouth');
+  const gMark = document.getElementById('gMark');
+
+  const TARGET = { jaw: 48, eye: 11, brow: 0, mouth: 20 };
+  const EASE = 0.09;
+  const MARK_STEP = 0.055;
+
+  const KEY = 'practicals.v1';
+
+  function rand(a,b){ return a + Math.random()*(b-a); }
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(KEY);
+      if (raw) return JSON.parse(raw);
+    }catch(e){}
+    const orig = {
+      jaw: rand(56,68), eye: rand(5,8), brow: rand(4,10), mouth: rand(-4,4), mark: 1
+    };
+    return { orig, cur: Object.assign({}, orig), taps: 0 };
+  }
+
+  let state = load();
+
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+  }
+
+  function shapeAttrs(p){
+    return {
+      jaw: p.jaw, eye: p.eye, brow: p.brow, mouth: p.mouth,
+      mark: p.mark === undefined ? 0 : p.mark
+    };
+  }
+
+  function paint(elHead, elBrowL, elBrowR, elEyeL, elEyeR, elMouth, elMark, p){
+    const s = shapeAttrs(p);
+    elHead.setAttribute('rx', s.jaw);
+    elBrowL.setAttribute('x2', 90); elBrowL.setAttribute('y2', 88 + s.brow);
+    elBrowR.setAttribute('x2', 110); elBrowR.setAttribute('y2', 88 + s.brow);
+    elEyeL.setAttribute('cx', 100 - (16 + s.eye*0.6));
+    elEyeR.setAttribute('cx', 100 + (16 + s.eye*0.6));
+    elEyeL.setAttribute('rx', s.eye); elEyeL.setAttribute('ry', s.eye*0.62);
+    elEyeR.setAttribute('rx', s.eye); elEyeR.setAttribute('ry', s.eye*0.62);
+    elMouth.setAttribute('d', 'M 78,158 Q 100,'+(158 + s.mouth)+' 122,158');
+    if (elMark) elMark.setAttribute('opacity', s.mark);
+  }
+
+  function renderFace(){
+    paint(head, browL, browR, eyeL, eyeR, mouth, mark, state.cur);
+    paint(gHead, gBrowL, gBrowR, gEyeL, gEyeR, gMouth, null, state.orig);
+  }
+
+  const CAPTIONS = ['warmer.', 'cleaner line.', 'brighter now.', 'a nicer angle.', 'better for the house lights.', 'smoother.', 'just a touch.'];
+  let lastCaption = -1;
+  function showCaption(){
+    let i = Math.floor(Math.random()*CAPTIONS.length);
+    if (i === lastCaption) i = (i+1) % CAPTIONS.length;
+    lastCaption = i;
+    caption.textContent = CAPTIONS[i];
+    caption.classList.add('show');
+    setTimeout(()=>caption.classList.remove('show'), reduced ? 900 : 2000);
+  }
+
+  function touchUp(){
+    state.taps++;
+    state.cur.jaw += (TARGET.jaw - state.cur.jaw) * EASE;
+    state.cur.eye += (TARGET.eye - state.cur.eye) * EASE;
+    state.cur.brow += (TARGET.brow - state.cur.brow) * EASE;
+    state.cur.mouth += (TARGET.mouth - state.cur.mouth) * EASE;
+    state.cur.mark = Math.max(0, state.cur.mark - MARK_STEP);
+    save();
+    renderFace();
+    if (state.taps % 4 === 0) showCaption();
+  }
+
+  function layoutBulbs(){
+    mirrorFrame.querySelectorAll('.bulb').forEach(b=>b.remove());
+    const w = mirrorFrame.offsetWidth, h = mirrorFrame.offsetHeight;
+    const n = 10;
+    for (let i=0;i<n;i++){
+      const a = (i/n) * Math.PI * 2 - Math.PI/2;
+      const rx = w*0.5, ry = h*0.5;
+      const x = w/2 + Math.cos(a)*rx;
+      const y = h/2 + Math.sin(a)*ry;
+      const b = document.createElement('div');
+      b.className = 'bulb';
+      b.style.left = x + 'px';
+      b.style.top = y + 'px';
+      b.addEventListener('pointerdown', (e)=>{
+        if (e.cancelable) e.preventDefault();
+        e.stopPropagation();
+        touchUp();
+        b.classList.add('lit');
+        setTimeout(()=>b.classList.remove('lit'), reduced ? 1 : 260);
+      }, {passive:false});
+      mirrorFrame.appendChild(b);
+    }
+  }
+  window.addEventListener('resize', layoutBulbs);
+
+  let pressTimer = null;
+  function showGhost(){
+    ghost.setAttribute('opacity', 0.55);
+    ghostLabel.textContent = 'opening night · ' + state.taps + ' touches since';
+    ghostLabel.classList.add('show');
+  }
+  function hideGhost(){
+    ghost.setAttribute('opacity', 0);
+    ghostLabel.classList.remove('show');
+  }
+  mirrorFrame.addEventListener('pointerdown', (e)=>{
+    if (e.target.classList.contains('bulb')) return;
+    if (e.cancelable) e.preventDefault();
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(showGhost, 550);
+  }, {passive:false});
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>{
+    mirrorFrame.addEventListener(ev, ()=>{ clearTimeout(pressTimer); hideGhost(); });
+  });
+
+  layoutBulbs();
+  renderFace();
+})();
+</script>
+</body>
+</html>
