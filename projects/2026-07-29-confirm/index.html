@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>(Confirm.) · The Surprise Morning Piece</title>
+<style>
+  html,body{margin:0;height:100%;background:#07070a;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none}
+  body{font-family:Georgia,'Times New Roman',serif;color:#e9dfce}
+
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:9;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c7264;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(233,223,206,.14);border-radius:99px;
+    background:rgba(7,7,10,.5);backdrop-filter:blur(4px);
+  }
+  a.back:hover{color:#e9dfce}
+
+  .status{
+    position:fixed;top:0;left:0;right:0;z-index:5;text-align:center;
+    padding-top:max(58px, env(safe-area-inset-top) + 42px);
+    font-style:italic;letter-spacing:.03em;font-size:15px;color:#726a5c;
+    transition:color .4s ease;
+  }
+  .status.cue{color:#f0cf9a}
+  .status.stamped{color:#cfe9c9}
+
+  .readout{
+    position:fixed;top:14px;right:14px;z-index:9;text-align:right;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
+    line-height:1.65;color:#7c7264;letter-spacing:.02em;
+    background:rgba(7,7,10,.4);border:1px solid rgba(233,223,206,.1);
+    border-radius:8px;padding:8px 11px;backdrop-filter:blur(4px);
+    pointer-events:none;
+  }
+  .readout .h{color:#5c5448;text-transform:uppercase;letter-spacing:.16em;font-size:9px;margin-bottom:3px}
+  .readout .v{color:#c9bda3;font-variant-numeric:tabular-nums}
+
+  .stage{position:fixed;inset:0;z-index:1}
+
+  .mark{position:absolute;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;
+    background:rgba(233,223,206,.08);pointer-events:none}
+
+  .beam{position:absolute;width:130px;height:130px;margin:-65px 0 0 -65px;border-radius:50%;
+    background:radial-gradient(circle, rgba(255,208,130,.92) 0%, rgba(255,172,74,.34) 42%, rgba(255,172,74,0) 74%);
+    filter:blur(1px);
+    transition:left .78s cubic-bezier(.22,.9,.28,1), top .78s cubic-bezier(.22,.9,.28,1),
+               transform .3s ease, opacity .3s ease;
+    pointer-events:none;
+  }
+  .beam.pulse{transform:scale(1.16)}
+
+  .authWrap{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;justify-content:center;
+    padding-bottom:max(46px, env(safe-area-inset-bottom) + 30px)}
+  button.authorize{
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;letter-spacing:.2em;
+    color:#e9dfce;background:rgba(255,255,255,.03);border:1px solid rgba(233,223,206,.22);
+    border-radius:99px;padding:16px 36px;text-transform:uppercase;
+    -webkit-tap-highlight-color:transparent;transition:background .15s ease, border-color .15s ease;
+  }
+  button.authorize:active{background:rgba(240,207,154,.16);border-color:rgba(240,207,154,.55)}
+
+  .stamp{position:fixed;left:0;right:0;top:56%;z-index:7;text-align:center;pointer-events:none;
+    font-style:italic;font-size:15.5px;color:#cfe9c9;opacity:0;transition:opacity .4s ease}
+  .stamp.show{opacity:1}
+  .stamp .lag{display:block;margin-top:6px;font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-style:normal;font-size:10.5px;color:#5c5448;letter-spacing:.05em}
+
+  .ledgerMark{position:fixed;left:16px;bottom:18px;z-index:9;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:16px;line-height:1;
+    color:#4d473d;padding:8px;}
+
+  .ledger{position:fixed;inset:0;z-index:12;background:rgba(5,5,7,.94);
+    display:flex;align-items:center;justify-content:center;
+    opacity:0;pointer-events:none;transition:opacity .3s ease}
+  .ledger.show{opacity:1;pointer-events:auto}
+  .ledger .panel{max-width:320px;padding:28px 26px;border:1px solid rgba(233,223,206,.14);border-radius:12px}
+  .ledger .title{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;
+    text-transform:uppercase;letter-spacing:.18em;color:#5c5448;margin-bottom:16px}
+  .ledger .row{margin:12px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
+    color:#9c9284;line-height:1.6}
+  .ledger .row .k{display:block;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#5c5448;margin-bottom:2px}
+  .ledger .claim{color:#f0cf9a}
+  .ledger .actual{color:#cfe9c9}
+  .ledger .close{margin-top:20px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:#4d473d;text-align:center}
+
+  @media (prefers-reduced-motion: reduce){
+    .beam,.status,.stamp{transition:none}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+
+<div class="status" id="status">standing by.</div>
+
+<div class="readout" id="readout">
+  <div class="h">record</div>
+  <div><span class="v" id="lagVal">last lag —</span></div>
+  <div><span class="v" id="countVal">0 signed</span></div>
+</div>
+
+<div class="stage" id="stage">
+  <div class="beam" id="beam"></div>
+</div>
+
+<div class="stamp" id="stamp">
+  <span id="stampText">authorized.</span>
+  <span class="lag" id="stampLag"></span>
+</div>
+
+<div class="authWrap">
+  <button class="authorize" id="authBtn">Authorize</button>
+</div>
+
+<div class="ledgerMark" id="ledgerMark">·</div>
+
+<div class="ledger" id="ledger">
+  <div class="panel">
+    <div class="title">the record</div>
+    <div class="row"><span class="k">claimed</span><span class="claim">100% approved in advance</span></div>
+    <div class="row"><span class="k">actual, across every visit</span><span class="actual" id="actualLine">—</span></div>
+    <div class="row"><span class="k">signatures on file</span><span id="totalLine">0, since —</span></div>
+    <div class="close" id="ledgerClose">tap to close</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const MIN_STANDBY = 1800, MAX_STANDBY = 4300;
+  const STAMP_MS = 1300, CUE_FLASH_MS = 500, DEBOUNCE_MS = 140;
+
+  const MARKS = [
+    {x:22,y:26},{x:74,y:23},{x:50,y:35},{x:16,y:54},
+    {x:82,y:50},{x:36,y:59},{x:66,y:20},{x:58,y:56}
+  ];
+
+  const PHRASES = [
+    'authorized — instantaneous.',
+    'confirmed. no delay recorded.',
+    'approved in real time.',
+    'signed, exactly as it happened.'
+  ];
+
+  const stage = document.getElementById('stage');
+  const beam = document.getElementById('beam');
+  const statusEl = document.getElementById('status');
+  const lagVal = document.getElementById('lagVal');
+  const countVal = document.getElementById('countVal');
+  const authBtn = document.getElementById('authBtn');
+  const stamp = document.getElementById('stamp');
+  const stampText = document.getElementById('stampText');
+  const stampLag = document.getElementById('stampLag');
+  const ledgerMark = document.getElementById('ledgerMark');
+  const ledger = document.getElementById('ledger');
+  const actualLine = document.getElementById('actualLine');
+  const totalLine = document.getElementById('totalLine');
+  const ledgerClose = document.getElementById('ledgerClose');
+
+  const KEY = 'confirm_v1_';
+  let total = parseInt(localStorage.getItem(KEY+'total') || '0', 10);
+  let withLag = parseInt(localStorage.getItem(KEY+'withLag') || '0', 10);
+  let sumLag = parseInt(localStorage.getItem(KEY+'sumLag') || '0', 10);
+  let first = localStorage.getItem(KEY+'first');
+  if (!first){
+    first = new Date().toISOString().slice(0,10);
+    localStorage.setItem(KEY+'first', first);
+  }
+
+  let markIndex = Math.floor(Math.random()*MARKS.length);
+  let lastCueTime = null;
+  let lastTapTime = 0;
+  let phraseIdx = Math.floor(Math.random()*PHRASES.length);
+  let stampTimer = null, statusTimer = null, cueTimer = null;
+
+  function placeBeam(){
+    const m = MARKS[markIndex];
+    beam.style.left = m.x + 'vw';
+    beam.style.top = m.y + 'vh';
+  }
+  placeBeam();
+
+  function nextMark(){
+    let i;
+    do { i = Math.floor(Math.random()*MARKS.length); } while (i === markIndex);
+    markIndex = i;
+  }
+
+  function setStatus(text, cls){
+    statusEl.textContent = text;
+    statusEl.classList.remove('cue','stamped');
+    if (cls) statusEl.classList.add(cls);
+  }
+
+  function fireCue(){
+    nextMark();
+    placeBeam();
+    lastCueTime = performance.now();
+    setStatus('cue.', 'cue');
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(()=>{ setStatus('standing by.'); }, CUE_FLASH_MS);
+    scheduleCue();
+  }
+
+  function scheduleCue(){
+    const delay = MIN_STANDBY + Math.random()*(MAX_STANDBY-MIN_STANDBY);
+    clearTimeout(cueTimer);
+    cueTimer = setTimeout(fireCue, delay);
+  }
+  scheduleCue();
+
+  function persist(){
+    localStorage.setItem(KEY+'total', String(total));
+    localStorage.setItem(KEY+'withLag', String(withLag));
+    localStorage.setItem(KEY+'sumLag', String(sumLag));
+  }
+
+  function updateReadout(lag){
+    lagVal.textContent = 'last lag ' + (lag === null ? '—' : Math.round(lag) + 'ms');
+    countVal.textContent = total + ' signed';
+  }
+
+  function onAuthorize(){
+    const now = performance.now();
+    if (now - lastTapTime < DEBOUNCE_MS) return;
+    lastTapTime = now;
+
+    const lag = lastCueTime === null ? null : (now - lastCueTime);
+    total += 1;
+    if (lag !== null){ withLag += 1; sumLag += lag; }
+    persist();
+    updateReadout(lag);
+
+    phraseIdx = (phraseIdx + 1) % PHRASES.length;
+    stampText.textContent = PHRASES[phraseIdx];
+    stampLag.textContent = lag === null ? '' : ('Δ ' + Math.round(lag) + 'ms');
+    stamp.classList.add('show');
+    setStatus(PHRASES[phraseIdx], 'stamped');
+    clearTimeout(stampTimer);
+    clearTimeout(statusTimer);
+    stampTimer = setTimeout(()=>{
+      stamp.classList.remove('show');
+      setStatus('standing by.');
+    }, STAMP_MS);
+
+    if (!reduced){
+      beam.classList.add('pulse');
+      setTimeout(()=>beam.classList.remove('pulse'), 260);
+    }
+  }
+
+  authBtn.addEventListener('pointerdown', (e)=>{
+    if (e.cancelable) e.preventDefault();
+    onAuthorize();
+  }, {passive:false});
+
+  function openLedger(){
+    const pct = withLag === 0 ? '—' : Math.round(sumLag/withLag);
+    actualLine.textContent = withLag === 0
+      ? 'no cue has ever been confirmed yet'
+      : ('averages ' + pct + 'ms after the light had already moved');
+    totalLine.textContent = total + ', since ' + first;
+    ledger.classList.add('show');
+  }
+  function closeLedger(){ ledger.classList.remove('show'); }
+
+  ledgerMark.addEventListener('pointerdown', (e)=>{
+    if (e.cancelable) e.preventDefault();
+    openLedger();
+  }, {passive:false});
+  ledger.addEventListener('pointerdown', (e)=>{
+    if (e.cancelable) e.preventDefault();
+    closeLedger();
+  }, {passive:false});
+  ledgerClose.addEventListener('pointerdown', (e)=>{
+    e.stopPropagation();
+  });
+
+  updateReadout(null);
+})();
+</script>
+</body>
+</html>
