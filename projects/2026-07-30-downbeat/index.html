@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Downbeat · The Surprise Morning Piece</title>
+<style>
+  html,body{margin:0;height:100%;background:#07070a;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none}
+  body{font-family:Georgia,'Times New Roman',serif;color:#e9dfce}
+
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:9;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c7264;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(233,223,206,.14);border-radius:99px;
+    background:rgba(7,7,10,.5);backdrop-filter:blur(4px);
+  }
+  a.back:hover{color:#e9dfce}
+
+  .status{
+    position:fixed;top:0;left:0;right:0;z-index:5;text-align:center;
+    padding-top:max(58px, env(safe-area-inset-top) + 42px);
+    font-style:italic;letter-spacing:.03em;font-size:15px;color:#726a5c;
+    transition:color .35s ease;
+  }
+  .status.good{color:#cfe9c9}
+  .status.late{color:#e9b98d}
+  .status.early{color:#e9cf8d}
+
+  .readout{
+    position:fixed;top:14px;right:14px;z-index:9;text-align:right;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
+    line-height:1.65;color:#7c7264;letter-spacing:.02em;
+    background:rgba(7,7,10,.4);border:1px solid rgba(233,223,206,.1);
+    border-radius:8px;padding:8px 11px;backdrop-filter:blur(4px);
+    pointer-events:none;
+  }
+  .readout .h{color:#5c5448;text-transform:uppercase;letter-spacing:.16em;font-size:9px;margin-bottom:3px}
+  .readout .v{color:#c9bda3;font-variant-numeric:tabular-nums}
+
+  .stage{position:fixed;inset:0;z-index:1;display:flex;align-items:flex-end;justify-content:center}
+
+  .pivotWrap{position:relative;width:100%;height:52vh;display:flex;justify-content:center;
+    padding-bottom:max(24vh, env(safe-area-inset-bottom) + 18vh)}
+
+  .arm{position:absolute;bottom:0;left:50%;width:3px;height:40vh;
+    margin-left:-1.5px;transform-origin:bottom center;transform:rotate(-30deg);
+    background:linear-gradient(to top, rgba(233,223,206,.06), rgba(233,223,206,.5) 78%, rgba(255,208,130,.95));
+    will-change:transform;
+  }
+  .bob{position:absolute;bottom:calc(40vh - 6px);left:50%;width:13px;height:13px;
+    margin-left:-6.5px;border-radius:50%;
+    background:radial-gradient(circle, rgba(255,208,130,.98) 0%, rgba(255,172,74,.5) 55%, rgba(255,172,74,0) 78%);
+    filter:blur(.3px);
+  }
+  .pivot{position:absolute;bottom:-5px;left:50%;width:10px;height:10px;margin-left:-5px;
+    border-radius:50%;background:rgba(233,223,206,.12)}
+
+  .glow{position:fixed;left:0;right:0;top:0;height:100%;z-index:0;pointer-events:none;
+    background:radial-gradient(circle at 50% 62%, rgba(255,190,110,0) 0%, rgba(255,190,110,0) 100%);
+    opacity:0;transition:opacity .5s ease}
+  .glow.pulse{opacity:.14;transition:opacity .06s ease}
+
+  .ledgerMark{position:fixed;left:16px;bottom:18px;z-index:9;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:16px;line-height:1;
+    color:#4d473d;padding:8px;}
+
+  .ledger{position:fixed;inset:0;z-index:12;background:rgba(5,5,7,.94);
+    display:flex;align-items:center;justify-content:center;
+    opacity:0;pointer-events:none;transition:opacity .3s ease}
+  .ledger.show{opacity:1;pointer-events:auto}
+  .ledger .panel{max-width:320px;padding:28px 26px;border:1px solid rgba(233,223,206,.14);border-radius:12px}
+  .ledger .title{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;
+    text-transform:uppercase;letter-spacing:.18em;color:#5c5448;margin-bottom:16px}
+  .ledger .row{margin:12px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
+    color:#9c9284;line-height:1.6}
+  .ledger .row .k{display:block;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#5c5448;margin-bottom:2px}
+  .ledger .claim{color:#f0cf9a}
+  .ledger .actual{color:#cfe9c9}
+  .ledger .close{margin-top:20px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:#4d473d;text-align:center}
+
+  @media (prefers-reduced-motion: reduce){
+    .status{transition:none}
+    .glow.pulse{opacity:.08;transition:none}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+
+<div class="glow" id="glow"></div>
+
+<div class="status" id="status">waiting.</div>
+
+<div class="readout" id="readout">
+  <div class="h">record</div>
+  <div><span class="v" id="nightsVal">night 1</span></div>
+  <div><span class="v" id="pctVal">kept — %</span></div>
+</div>
+
+<div class="stage">
+  <div class="pivotWrap">
+    <div class="arm" id="arm"></div>
+    <div class="bob" id="bob"></div>
+    <div class="pivot"></div>
+  </div>
+</div>
+
+<div class="ledgerMark" id="ledgerMark">·</div>
+
+<div class="ledger" id="ledger">
+  <div class="panel">
+    <div class="title">the record</div>
+    <div class="row"><span class="k">claimed</span><span class="claim">held to the beat</span></div>
+    <div class="row"><span class="k">held to, tonight</span><span class="actual" id="windowLine">—</span></div>
+    <div class="row"><span class="k">centered on</span><span class="actual" id="centerLine">—</span></div>
+    <div class="row"><span class="k">against the house clock</span><span id="houseLine">—</span></div>
+    <div class="row"><span class="k">called in time</span><span id="pctLine">—</span></div>
+    <div class="row"><span class="k">nights kept</span><span id="nightsLine">—</span></div>
+    <div class="close" id="ledgerClose">tap to close</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const BEAT_MS = 620;
+  const AMPLITUDE = 30;
+  const BASE_WINDOW = 150, MIN_WINDOW = 42, DECAY = 0.87;
+  const EMA_ALPHA = 0.15;
+  const WORD_MS = 520;
+  const DEBOUNCE_MS = 110;
+
+  const glow = document.getElementById('glow');
+  const statusEl = document.getElementById('status');
+  const nightsVal = document.getElementById('nightsVal');
+  const pctVal = document.getElementById('pctVal');
+  const arm = document.getElementById('arm');
+  const ledgerMark = document.getElementById('ledgerMark');
+  const ledger = document.getElementById('ledger');
+  const windowLine = document.getElementById('windowLine');
+  const centerLine = document.getElementById('centerLine');
+  const houseLine = document.getElementById('houseLine');
+  const pctLine = document.getElementById('pctLine');
+  const nightsLine = document.getElementById('nightsLine');
+  const ledgerClose = document.getElementById('ledgerClose');
+
+  const KEY = 'downbeat_v1_';
+  let ema = parseFloat(localStorage.getItem(KEY+'ema') || 'NaN');
+  let nights = parseInt(localStorage.getItem(KEY+'nights') || '0', 10);
+  let lastDate = localStorage.getItem(KEY+'lastDate') || '';
+  let allCount = parseInt(localStorage.getItem(KEY+'allCount') || '0', 10);
+  let allAbsSum = parseFloat(localStorage.getItem(KEY+'allAbsSum') || '0');
+  let inTimeCount = parseInt(localStorage.getItem(KEY+'inTimeCount') || '0', 10);
+  let first = localStorage.getItem(KEY+'first');
+
+  const today = new Date().toISOString().slice(0,10);
+  if (!first) first = today;
+  if (lastDate !== today){ nights += 1; lastDate = today; }
+
+  function persist(){
+    localStorage.setItem(KEY+'ema', isNaN(ema) ? '' : String(ema));
+    localStorage.setItem(KEY+'nights', String(nights));
+    localStorage.setItem(KEY+'lastDate', lastDate);
+    localStorage.setItem(KEY+'allCount', String(allCount));
+    localStorage.setItem(KEY+'allAbsSum', String(allAbsSum));
+    localStorage.setItem(KEY+'inTimeCount', String(inTimeCount));
+    localStorage.setItem(KEY+'first', first);
+  }
+  persist();
+
+  function windowMs(){
+    return Math.max(MIN_WINDOW, BASE_WINDOW * Math.pow(DECAY, Math.max(0, nights-1)));
+  }
+
+  function updateReadout(){
+    nightsVal.textContent = 'night ' + nights;
+    pctVal.textContent = allCount === 0 ? 'kept — %' : ('kept ' + Math.round(100*inTimeCount/allCount) + '%');
+  }
+  updateReadout();
+
+  // --- audio: a soft wood-block click, created lazily after first gesture ---
+  let actx = null;
+  function ensureAudio(){
+    if (actx || reduced) return;
+    try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
+  }
+  function click(){
+    if (!actx || actx.state !== 'running') return;
+    const t = actx.currentTime;
+    const osc = actx.createOscillator();
+    const gain = actx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(920, t);
+    osc.frequency.exponentialRampToValueAtTime(420, t + 0.05);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.09, t + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+    osc.connect(gain).connect(actx.destination);
+    osc.start(t);
+    osc.stop(t + 0.09);
+  }
+
+  // --- pendulum driver ---
+  let side = 1;         // target side of the swing currently underway
+  let swingStart = null;
+  let lastBeatTime = null;
+  let pulseTimer = null;
+
+  function frame(now){
+    if (swingStart === null) swingStart = now;
+    const t = Math.min(1, (now - swingStart) / BEAT_MS);
+    const eased = 0.5 - 0.5 * Math.cos(Math.PI * t);
+    const fromAngle = -side * AMPLITUDE;
+    const toAngle = side * AMPLITUDE;
+    const angle = fromAngle + (toAngle - fromAngle) * eased;
+    arm.style.transform = 'rotate(' + angle.toFixed(2) + 'deg)';
+    if (t >= 1){
+      onBeat(now);
+      side = -side;
+      swingStart = now;
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  function onBeat(now){
+    lastBeatTime = now;
+    click();
+    glow.classList.add('pulse');
+    clearTimeout(pulseTimer);
+    pulseTimer = setTimeout(()=>glow.classList.remove('pulse'), reduced ? 160 : 220);
+  }
+
+  // --- judging taps ---
+  let lastTapTime = 0;
+  let wordTimer = null;
+
+  function nearestDelta(now){
+    if (lastBeatTime === null) return null;
+    const sinceLast = now - lastBeatTime;
+    const toNext = BEAT_MS - sinceLast;
+    return sinceLast <= toNext ? sinceLast : -toNext;
+  }
+
+  function setStatus(text, cls){
+    statusEl.textContent = text;
+    statusEl.classList.remove('good','late','early');
+    if (cls) statusEl.classList.add(cls);
+  }
+
+  function onTap(now){
+    if (now - lastTapTime < DEBOUNCE_MS) return;
+    lastTapTime = now;
+    ensureAudio();
+    if (actx && actx.state === 'suspended') actx.resume();
+
+    const delta = nearestDelta(now);
+    if (delta === null){
+      setStatus('too soon.');
+      return;
+    }
+
+    const center = isNaN(ema) ? 0 : ema;
+    const judged = delta - center;
+    const w = windowMs();
+    const inTime = Math.abs(judged) <= w;
+
+    allCount += 1;
+    allAbsSum += Math.abs(delta);
+    if (inTime) inTimeCount += 1;
+    ema = isNaN(ema) ? delta : (ema * (1 - EMA_ALPHA) + delta * EMA_ALPHA);
+    persist();
+    updateReadout();
+
+    let word, cls;
+    if (inTime){ word = 'with you.'; cls = 'good'; }
+    else if (judged > 0){ word = 'dragging.'; cls = 'late'; }
+    else { word = 'rushing.'; cls = 'early'; }
+    setStatus(word, cls);
+    clearTimeout(wordTimer);
+    wordTimer = setTimeout(()=>setStatus('waiting.'), WORD_MS);
+  }
+
+  document.addEventListener('pointerdown', (e)=>{
+    if (e.target === ledgerMark || ledger.classList.contains('show')) return;
+    if (e.cancelable) e.preventDefault();
+    onTap(performance.now());
+  }, {passive:false});
+
+  function openLedger(){
+    const w = windowMs();
+    windowLine.textContent = '±' + Math.round(w) + 'ms';
+    const c = isNaN(ema) ? 0 : ema;
+    centerLine.textContent = allCount === 0
+      ? 'the true beat, so far'
+      : (Math.round(Math.abs(c)) + 'ms ' + (c >= 0 ? 'after' : 'before') + ' the true beat, on average — not zero');
+    houseLine.textContent = allCount === 0
+      ? 'no taps yet'
+      : ('avg ' + Math.round(allAbsSum/allCount) + 'ms off the actual beat, unmoved');
+    pctLine.textContent = allCount === 0 ? '—' : (Math.round(100*inTimeCount/allCount) + '% of ' + allCount + ' taps');
+    nightsLine.textContent = nights + ', since ' + first;
+    ledger.classList.add('show');
+  }
+  function closeLedger(){ ledger.classList.remove('show'); }
+
+  ledgerMark.addEventListener('pointerdown', (e)=>{
+    e.stopPropagation();
+    if (e.cancelable) e.preventDefault();
+    openLedger();
+  }, {passive:false});
+  ledger.addEventListener('pointerdown', (e)=>{
+    if (e.cancelable) e.preventDefault();
+    closeLedger();
+  }, {passive:false});
+  ledgerClose.addEventListener('pointerdown', (e)=>{
+    e.stopPropagation();
+  });
+})();
+</script>
+</body>
+</html>

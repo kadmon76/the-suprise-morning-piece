@@ -76,6 +76,13 @@
       "kind": "question",
       "note": "One button. Tap it whenever you like — it's always right on time.",
       "path": "projects/2026-07-29-confirm/index.html"
+    },
+    {
+      "date": "2026-07-30",
+      "title": "Downbeat",
+      "kind": "seed",
+      "note": "Tap along. The beat never moves — but being \"in time\" does.",
+      "path": "projects/2026-07-30-downbeat/index.html"
     }
   ]
 }
