@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>(Best Available.) · The Surprise Morning Piece</title>
+<style>
+  html,body{margin:0;height:100%;background:#0b0805;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none}
+  body{font-family:Georgia,'Times New Roman',serif;color:#e9dfce}
+
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:9;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c7264;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(233,223,206,.14);border-radius:99px;
+    background:rgba(7,7,10,.5);backdrop-filter:blur(4px);
+  }
+  a.back:hover{color:#e9dfce}
+
+  .stage{position:fixed;inset:0;z-index:1;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;padding:0 24px}
+
+  .glow{position:fixed;left:50%;top:44%;width:520px;height:520px;margin:-260px 0 0 -260px;
+    background:radial-gradient(circle, rgba(255,178,86,.16) 0%, rgba(255,178,86,0) 68%);
+    z-index:0;animation:breathe 5.6s ease-in-out infinite;}
+  @keyframes breathe{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}
+
+  .window{position:relative;z-index:2;width:min(78vw,320px);aspect-ratio:1/1.18;
+    border-radius:160px 160px 14px 14px;
+    background:linear-gradient(180deg, rgba(40,26,14,.9) 0%, rgba(20,13,7,.94) 100%);
+    border:1px solid rgba(240,207,154,.28);
+    box-shadow:0 0 60px rgba(255,178,86,.12), inset 0 0 40px rgba(0,0,0,.5);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    cursor:pointer;overflow:hidden;
+  }
+  .window::before{content:'';position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(90deg, rgba(0,0,0,.35) 0 2px, transparent 2px 34px);
+    opacity:.55;
+  }
+  .window.lit{border-color:rgba(240,207,154,.5)}
+  .window.lit::after{content:'';position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 30%, rgba(255,193,110,.22) 0%, rgba(255,193,110,0) 70%);}
+
+  .price{position:relative;z-index:2;font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:15vw;max-font-size:58px;font-weight:600;letter-spacing:.01em;
+    color:#f0cf9a;text-shadow:0 0 18px rgba(240,207,154,.45);
+    font-variant-numeric:tabular-nums;transition:opacity .18s ease;
+  }
+  .price.flashTrue{color:#bcd9f4;text-shadow:0 0 20px rgba(188,217,244,.6)}
+
+  .sub{position:relative;z-index:2;margin-top:6px;font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;color:#c7a97a;opacity:.75}
+  .sub.trueSub{color:#88a9c9}
+
+  .reassure{margin-top:26px;min-height:20px;font-style:italic;font-size:14.5px;
+    color:#a99a82;text-align:center;letter-spacing:.01em;transition:opacity .3s ease;opacity:1}
+
+  .instr{position:fixed;left:0;right:0;bottom:0;z-index:5;text-align:center;
+    padding-bottom:max(30px, env(safe-area-inset-bottom) + 20px);
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;letter-spacing:.1em;
+    color:#5c5448;pointer-events:none;}
+
+  @media (prefers-reduced-motion: reduce){
+    .glow{animation:none}
+    .price{transition:none}
+    .reassure{transition:none}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+
+<div class="glow"></div>
+
+<div class="stage">
+  <div class="window" id="window">
+    <div class="price" id="price">—</div>
+    <div class="sub" id="sub">tonight's price</div>
+  </div>
+  <div class="reassure" id="reassure">&nbsp;</div>
+</div>
+
+<div class="instr">Tap the window for tonight's price.</div>
+
+<script>
+(function(){
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const LIST_PRICE = 61;
+  const RAPID_MS = 900;
+  const FLASH_MS = reduced ? 320 : 420;
+  const DEBOUNCE_MS = 90;
+
+  const LINES = [
+    'Best price we have for you tonight.',
+    'This offer is yours alone.',
+    'Not available to everyone.',
+    'Every seat, priced just for you.',
+    'Nobody else was offered this.',
+    'Tonight’s price — personally yours.',
+    'We found this especially for you.',
+    'A rate tailored to you, right now.'
+  ];
+
+  const win = document.getElementById('window');
+  const priceEl = document.getElementById('price');
+  const subEl = document.getElementById('sub');
+  const reassureEl = document.getElementById('reassure');
+
+  let lastTap = 0;
+  let tapTimes = [];
+  let sessionHeat = 0;
+  let lineIdx = Math.floor(Math.random() * LINES.length);
+  let flashStartTimer = null, flashEndTimer = null, settleTimer = null;
+
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  function nextLine(){
+    let i;
+    do { i = Math.floor(Math.random() * LINES.length); } while (i === lineIdx && LINES.length > 1);
+    lineIdx = i;
+    return LINES[lineIdx];
+  }
+
+  function computePrice(interval){
+    let markup;
+    if (interval === null){
+      markup = LIST_PRICE * 0.05 + (Math.random() * 10 - 5);
+    } else {
+      const eagerness = clamp(1 - (interval - 150) / 1350, 0, 1);
+      markup = 4 + eagerness * 46 + (Math.random() * 12 - 6);
+      sessionHeat = clamp(sessionHeat + (eagerness > 0.55 ? 1.6 : -0.7), 0, 22);
+    }
+    const price = Math.round(LIST_PRICE + markup + sessionHeat);
+    return clamp(price, 24, 149);
+  }
+
+  function ask(){
+    const now = performance.now();
+    if (now - lastTap < DEBOUNCE_MS) return;
+    const interval = lastTap === 0 ? null : (now - lastTap);
+
+    tapTimes.push(now);
+    tapTimes = tapTimes.filter(t => now - t <= RAPID_MS);
+    lastTap = now;
+
+    clearTimeout(flashStartTimer);
+    clearTimeout(flashEndTimer);
+
+    const price = computePrice(interval);
+    priceEl.textContent = '$' + price;
+    subEl.textContent = 'tonight’s price';
+    priceEl.classList.remove('flashTrue');
+    subEl.classList.remove('trueSub');
+    win.classList.add('lit');
+
+    reassureEl.style.opacity = 0;
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(() => {
+      reassureEl.textContent = nextLine();
+      reassureEl.style.opacity = 1;
+    }, 90);
+
+    if (tapTimes.length >= 3){
+      flashStartTimer = setTimeout(() => {
+        priceEl.textContent = '$' + LIST_PRICE;
+        subEl.textContent = 'the only price there has ever been';
+        priceEl.classList.add('flashTrue');
+        subEl.classList.add('trueSub');
+        flashEndTimer = setTimeout(() => {
+          priceEl.textContent = '$' + price;
+          subEl.textContent = 'tonight’s price';
+          priceEl.classList.remove('flashTrue');
+          subEl.classList.remove('trueSub');
+        }, FLASH_MS);
+      }, 60);
+      tapTimes = [];
+    }
+  }
+
+  win.addEventListener('pointerdown', (e) => {
+    if (e.cancelable) e.preventDefault();
+    ask();
+  }, {passive:false});
+})();
+</script>
+</body>
+</html>

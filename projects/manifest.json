@@ -83,6 +83,13 @@
       "kind": "seed",
       "note": "Tap along. The beat never moves — but being \"in time\" does.",
       "path": "projects/2026-07-30-downbeat/index.html"
+    },
+    {
+      "date": "2026-07-31",
+      "title": "(Best Available.)",
+      "kind": "question",
+      "note": "Ask the window for tonight's price. It was made just for you.",
+      "path": "projects/2026-07-31-best-available/index.html"
     }
   ]
 }
