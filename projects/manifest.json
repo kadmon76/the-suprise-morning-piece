@@ -90,6 +90,13 @@
       "kind": "question",
       "note": "Ask the window for tonight's price. It was made just for you.",
       "path": "projects/2026-07-31-best-available/index.html"
+    },
+    {
+      "date": "2026-08-01",
+      "title": "Dress Rehearsal",
+      "kind": "seed",
+      "note": "One fader, one spotlight. Nobody has ever told you where the top is.",
+      "path": "projects/2026-08-01-dress-rehearsal/index.html"
     }
   ]
 }
