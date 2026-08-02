@@ -97,6 +97,13 @@
       "kind": "seed",
       "note": "One fader, one spotlight. Nobody has ever told you where the top is.",
       "path": "projects/2026-08-01-dress-rehearsal/index.html"
+    },
+    {
+      "date": "2026-08-02",
+      "title": "(Required Notice.)",
+      "kind": "question",
+      "note": "A brass plaque, fully compliant. Read it under the house lights — there's nothing else to find.",
+      "path": "projects/2026-08-02-required-notice/index.html"
     }
   ]
 }
