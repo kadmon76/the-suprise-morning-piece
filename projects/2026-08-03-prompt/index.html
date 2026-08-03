@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#07070a">
+<title>(Prompt.) · The Surprise Morning Piece</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500;1,600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html,body{margin:0;height:100%;background:#07070a;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none;
+    -webkit-tap-highlight-color:transparent;}
+  body{font-family:Georgia,'Times New Roman',serif;color:#e9dfce}
+
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:9;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c7264;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(233,223,206,.14);border-radius:99px;
+    background:rgba(7,7,10,.5);backdrop-filter:blur(4px);
+  }
+
+  .stage{position:fixed;inset:0;z-index:1;
+    background:radial-gradient(ellipse 80% 55% at 50% 14%, rgba(240,207,154,.05) 0%, rgba(7,7,10,0) 60%);
+  }
+
+  .flash{position:fixed;inset:0;z-index:2;background:radial-gradient(ellipse 60% 40% at 50% 24%, rgba(240,207,154,.55) 0%, rgba(240,207,154,0) 70%);
+    opacity:0;transition:opacity .5s ease;pointer-events:none}
+  .flash.on{opacity:.5;transition:opacity .04s ease}
+
+  .rig{position:absolute;left:50%;top:15vh;transform:translateX(-50%);
+    display:flex;flex-direction:column;align-items:center;z-index:3;}
+  .rig.sway{animation:sway 4.6s ease-in-out infinite;transform-origin:50% 0%;}
+  @keyframes sway{
+    0%,100%{transform:translateX(-50%) rotate(-1deg)}
+    50%{transform:translateX(-50%) rotate(1deg)}
+  }
+
+  .bracket{width:58px;height:9px;border-radius:2px;
+    background:linear-gradient(180deg,#7a6438,#4a3c22 55%,#2c2313);
+    box-shadow:0 2px 4px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,232,190,.25);}
+
+  .bellHouse{position:absolute;top:-3px;left:calc(50% + 34px);width:22px;height:20px;
+    border-radius:50% 50% 46% 46%;
+    background:radial-gradient(circle at 35% 30%, #8a7346, #3a2f1a 75%);
+    box-shadow:0 2px 5px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,232,190,.2);
+    transition:box-shadow .5s ease, filter .5s ease;}
+  .bellHouse.lit{box-shadow:0 0 16px 5px rgba(255,214,140,.85), inset 0 1px 0 rgba(255,232,190,.4);
+    filter:brightness(1.35);transition:box-shadow .04s ease, filter .04s ease;}
+
+  .cord{width:3px;height:26vh;min-height:150px;max-height:270px;
+    background:linear-gradient(180deg,#8a7346,#5c4a28 45%,#3a2f1a);
+    box-shadow:0 0 2px rgba(0,0,0,.4);
+    transition:height .62s cubic-bezier(.2,1.4,.3,1);}
+  .rig.dragging .cord{transition:none}
+
+  .handleWrap{padding:14px;margin-top:-2px;touch-action:none;}
+  .handle{width:44px;height:44px;border-radius:50%;
+    background:radial-gradient(circle at 34% 28%, #d8c08a, #8a6f3c 55%, #4a3c22 90%);
+    box-shadow:0 3px 8px rgba(0,0,0,.55), inset 0 1px 1px rgba(255,238,205,.4), inset 0 -3px 5px rgba(0,0,0,.35);
+    transition:box-shadow .3s ease, transform .3s ease;}
+  .handleWrap:active .handle{transform:scale(.96)}
+  .handle.lit{box-shadow:0 0 20px 6px rgba(255,214,140,.7), inset 0 1px 1px rgba(255,238,205,.5), inset 0 -3px 5px rgba(0,0,0,.3);}
+
+  .label{position:fixed;left:0;right:0;top:52vh;z-index:5;text-align:center;pointer-events:none;
+    font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-weight:500;
+    font-size:15.5px;letter-spacing:.03em;color:#f0cf9a;opacity:0;
+    text-shadow:0 0 10px rgba(255,214,140,.25);
+    transition:opacity .5s ease;}
+  .label.show{opacity:1;transition:opacity .04s ease}
+
+  .readout{
+    position:fixed;top:14px;right:14px;z-index:9;text-align:right;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
+    color:#5c5448;letter-spacing:.02em;
+    background:rgba(7,7,10,.4);border:1px solid rgba(233,223,206,.1);
+    border-radius:8px;padding:7px 10px;backdrop-filter:blur(4px);
+    pointer-events:none;
+  }
+  .readout .v{color:#8c8272;font-variant-numeric:tabular-nums}
+
+  .ledgerMark{position:fixed;left:16px;bottom:18px;z-index:9;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:16px;line-height:1;
+    color:#4d473d;padding:8px;}
+
+  .ledger{position:fixed;inset:0;z-index:12;background:rgba(5,5,7,.94);
+    display:flex;align-items:center;justify-content:center;
+    opacity:0;pointer-events:none;transition:opacity .3s ease}
+  .ledger.show{opacity:1;pointer-events:auto}
+  .ledger .panel{max-width:320px;padding:26px 26px 22px;border:1px solid rgba(233,223,206,.14);border-radius:12px}
+  .ledger .title{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;
+    text-transform:uppercase;letter-spacing:.18em;color:#5c5448;margin-bottom:16px}
+  .ledger .row{margin:11px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
+    color:#9c9284;line-height:1.6}
+  .ledger .row .k{display:block;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#5c5448;margin-bottom:2px}
+  .ledger .v{color:#f0cf9a}
+  .ledger .note{margin-top:18px;padding-top:14px;border-top:1px solid rgba(233,223,206,.1);
+    font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-size:12.5px;
+    color:#7c7264;line-height:1.5;}
+  .ledger .close{margin-top:18px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:#4d473d;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;}
+
+  @media (prefers-reduced-motion: reduce){
+    .rig.sway{animation:none}
+    .cord{transition:none}
+    .flash{transition:none}
+    .label{transition:none}
+    .bellHouse{transition:none}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">&larr; cue sheet</a>
+
+<div class="flash" id="flash"></div>
+
+<div class="stage" id="stage">
+  <div class="rig" id="rig">
+    <div class="bracket"></div>
+    <div class="bellHouse" id="bell"></div>
+    <div class="cord" id="cord"></div>
+    <div class="handleWrap" id="handleWrap">
+      <div class="handle" id="handle"></div>
+    </div>
+  </div>
+</div>
+
+<div class="label" id="label">RUNG.</div>
+
+<div class="readout" id="readout"><span class="v" id="ringCount">0 rung</span></div>
+
+<div class="ledgerMark" id="ledgerMark">&middot;</div>
+
+<div class="ledger" id="ledger">
+  <div class="panel">
+    <div class="title">prompt corner</div>
+    <div class="row"><span class="k">rings logged</span><span class="v" id="lRings">0</span></div>
+    <div class="row"><span class="k">carried through</span><span class="v" id="lConfirmed">0 (&mdash;)</span></div>
+    <div class="row"><span class="k">required grip, tonight</span><span class="v" id="lThresh">&mdash;</span></div>
+    <div class="row"><span class="k">nights</span><span class="v" id="lNights">1, since &mdash;</span></div>
+    <div class="note">Each ring itself is not kept &mdash; only the count above. The required grip moves to match it.</div>
+    <div class="close">tap to close</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var flash = document.getElementById('flash');
+  var rig = document.getElementById('rig');
+  var bell = document.getElementById('bell');
+  var cord = document.getElementById('cord');
+  var handleWrap = document.getElementById('handleWrap');
+  var handle = document.getElementById('handle');
+  var label = document.getElementById('label');
+  var ringCount = document.getElementById('ringCount');
+  var ledgerMark = document.getElementById('ledgerMark');
+  var ledger = document.getElementById('ledger');
+  var lRings = document.getElementById('lRings');
+  var lConfirmed = document.getElementById('lConfirmed');
+  var lThresh = document.getElementById('lThresh');
+  var lNights = document.getElementById('lNights');
+
+  if (!reduced) rig.classList.add('sway');
+
+  var KEY = 'promptcorner_v1_';
+  var rings = parseInt(localStorage.getItem(KEY+'rings') || '0', 10);
+  var confirmed = parseInt(localStorage.getItem(KEY+'confirmed') || '0', 10);
+  var nights = parseInt(localStorage.getItem(KEY+'nights') || '0', 10);
+  var firstDate = localStorage.getItem(KEY+'first');
+  var lastDate = localStorage.getItem(KEY+'lastDate');
+  var today = new Date().toISOString().slice(0,10);
+  if (!firstDate){ firstDate = today; localStorage.setItem(KEY+'first', firstDate); }
+  if (lastDate !== today){ nights += 1; localStorage.setItem(KEY+'lastDate', today); localStorage.setItem(KEY+'nights', String(nights)); }
+
+  var MIN_VH = 3, MAX_VH = 15, INITIAL_VH = 9, MAX_DRAG_VH = 20;
+
+  function thresholdVh(){
+    if (rings === 0) return INITIAL_VH;
+    var rate = confirmed / rings;
+    return MAX_VH - (MAX_VH - MIN_VH) * rate;
+  }
+
+  function persist(){
+    localStorage.setItem(KEY+'rings', String(rings));
+    localStorage.setItem(KEY+'confirmed', String(confirmed));
+  }
+
+  function updateReadout(){
+    ringCount.textContent = rings + ' rung';
+  }
+  updateReadout();
+
+  var baseCordPx = null;
+  function getBaseCordPx(){
+    if (baseCordPx === null) baseCordPx = cord.getBoundingClientRect().height;
+    return baseCordPx;
+  }
+
+  var dragging = false, pointerId = null, startY = 0, thisThreshPx = 0, confirmedThisDrag = false;
+  var labelTimer = null, flashTimer = null, bellTimer = null;
+
+  function fire(){
+    label.classList.remove('show');
+    void label.offsetWidth;
+    label.classList.add('show');
+    clearTimeout(labelTimer);
+    labelTimer = setTimeout(function(){ label.classList.remove('show'); }, 900);
+
+    if (!reduced){
+      flash.classList.remove('on'); void flash.offsetWidth; flash.classList.add('on');
+      clearTimeout(flashTimer);
+      flashTimer = setTimeout(function(){ flash.classList.remove('on'); }, 90);
+    }
+
+    bell.classList.add('lit');
+    handle.classList.add('lit');
+    clearTimeout(bellTimer);
+    bellTimer = setTimeout(function(){ bell.classList.remove('lit'); handle.classList.remove('lit'); }, 420);
+  }
+
+  function onDown(e){
+    if (dragging) return;
+    dragging = true;
+    pointerId = e.pointerId;
+    startY = e.clientY;
+    confirmedThisDrag = false;
+    thisThreshPx = window.innerHeight * (thresholdVh() / 100);
+    rig.classList.add('dragging');
+    try { handleWrap.setPointerCapture(pointerId); } catch(err){}
+    fire();
+    if (e.cancelable) e.preventDefault();
+  }
+
+  function onMove(e){
+    if (!dragging || e.pointerId !== pointerId) return;
+    var dy = Math.max(0, e.clientY - startY);
+    var maxPx = window.innerHeight * (MAX_DRAG_VH/100);
+    var clamped = Math.min(dy, maxPx);
+    cord.style.height = (getBaseCordPx() + clamped) + 'px';
+    if (dy >= thisThreshPx) confirmedThisDrag = true;
+    if (e.cancelable) e.preventDefault();
+  }
+
+  function endDrag(e){
+    if (!dragging || (e && e.pointerId !== pointerId)) return;
+    dragging = false;
+    rig.classList.remove('dragging');
+    cord.style.height = '';
+    rings += 1;
+    if (confirmedThisDrag) confirmed += 1;
+    persist();
+    updateReadout();
+  }
+
+  handleWrap.addEventListener('pointerdown', onDown, {passive:false});
+  handleWrap.addEventListener('pointermove', onMove, {passive:false});
+  handleWrap.addEventListener('pointerup', endDrag);
+  handleWrap.addEventListener('pointercancel', endDrag);
+
+  function openLedger(){
+    var rate = rings === 0 ? 0 : confirmed / rings;
+    var resist = Math.round((thresholdVh() - MIN_VH) / (MAX_VH - MIN_VH) * 100);
+    lRings.textContent = String(rings);
+    lConfirmed.textContent = confirmed + ' (' + (rings === 0 ? '—' : Math.round(rate*100) + '%') + ')';
+    lThresh.textContent = resist + '%';
+    lNights.textContent = nights + ', since ' + firstDate;
+    ledger.classList.add('show');
+  }
+  function closeLedger(){ ledger.classList.remove('show'); }
+
+  ledgerMark.addEventListener('pointerdown', function(e){ if (e.cancelable) e.preventDefault(); openLedger(); }, {passive:false});
+  ledger.addEventListener('pointerdown', function(e){ if (e.cancelable) e.preventDefault(); closeLedger(); }, {passive:false});
+})();
+</script>
+</body>
+</html>

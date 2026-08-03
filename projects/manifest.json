@@ -104,6 +104,13 @@
       "kind": "question",
       "note": "A brass plaque, fully compliant. Read it under the house lights — there's nothing else to find.",
       "path": "projects/2026-08-02-required-notice/index.html"
+    },
+    {
+      "date": "2026-08-03",
+      "title": "(Prompt.)",
+      "kind": "question",
+      "note": "A rope, a bell, and a rule about how sure you have to be. The rule keeps changing — it isn't telling you why.",
+      "path": "projects/2026-08-03-prompt/index.html"
     }
   ]
 }
