@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#08080b">
+<title>Topping · The Surprise Morning Piece</title>
+<style>
+  * { box-sizing: border-box; }
+  html,body{margin:0;height:100%;background:#08080b;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none;
+    -webkit-tap-highlight-color:transparent;}
+  body{font-family:Georgia,'Times New Roman',serif;color:#e9dfce}
+
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:9;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c7264;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(233,223,206,.14);border-radius:99px;
+    background:rgba(7,7,10,.5);backdrop-filter:blur(4px);
+  }
+
+  .readout{
+    position:fixed;top:14px;right:14px;z-index:9;text-align:right;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
+    line-height:1.7;color:#7c7264;letter-spacing:.02em;
+    background:rgba(7,7,10,.4);border:1px solid rgba(233,223,206,.1);
+    border-radius:8px;padding:8px 11px;backdrop-filter:blur(4px);
+    pointer-events:none;
+  }
+  .readout .h{color:#5c5448;text-transform:uppercase;letter-spacing:.16em;font-size:9px;margin-bottom:3px}
+  .readout .v{color:#c9bda3;font-variant-numeric:tabular-nums}
+  .readout .you{color:#f0cf9a}
+  .readout .partner{color:#9ec4e8}
+
+  .stage{position:fixed;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;flex-direction:column}
+
+  .spot{
+    width:118px;height:118px;border-radius:50%;
+    background:radial-gradient(circle at 38% 32%, #26241f, #121110 72%);
+    box-shadow:0 0 0 1px rgba(233,223,206,.08), inset 0 1px 1px rgba(255,255,255,.03);
+    transition:background .18s ease, box-shadow .18s ease;
+  }
+  .spot.you{
+    background:radial-gradient(circle at 38% 32%, #ffe3ab, #c99a4a 60%, #7a5a25 100%);
+    box-shadow:0 0 46px 14px rgba(240,207,154,.5), 0 0 0 1px rgba(240,207,154,.3);
+  }
+  .spot.partner{
+    background:radial-gradient(circle at 38% 32%, #cfe4fb, #6f9bd1 60%, #33507a 100%);
+    box-shadow:0 0 46px 14px rgba(120,170,230,.42), 0 0 0 1px rgba(158,196,232,.3);
+  }
+  .spot.topped{
+    transition:background .05s ease, box-shadow .05s ease;
+  }
+
+  .label{margin-top:22px;text-align:center;font-style:italic;letter-spacing:.03em;
+    font-size:15px;color:#7c7264;min-height:1.4em;transition:color .3s ease}
+  .label.you{color:#f0cf9a}
+  .label.partner{color:#9ec4e8}
+  .label.flash{color:#e9dfce}
+
+  @media (prefers-reduced-motion: reduce){
+    .spot{transition:none}
+    .label{transition:none}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">&larr; cue sheet</a>
+
+<div class="readout" id="readout">
+  <div class="h">reading you</div>
+  <div><span class="v" id="confVal">&mdash;</span></div>
+  <div><span class="v" id="leadVal">&mdash;</span></div>
+  <div style="margin-top:6px"><span class="you" id="youPct">&mdash;</span> &middot; <span class="partner" id="partnerPct">&mdash;</span></div>
+</div>
+
+<div class="stage">
+  <div class="spot" id="spot"></div>
+  <div class="label" id="label">listening.</div>
+</div>
+
+<script>
+(function(){
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var spot = document.getElementById('spot');
+  var label = document.getElementById('label');
+  var confVal = document.getElementById('confVal');
+  var leadVal = document.getElementById('leadVal');
+  var youPct = document.getElementById('youPct');
+  var partnerPct = document.getElementById('partnerPct');
+
+  var BASE_TURN = 650;      // ms a claimed turn holds
+  var GRACE = 260;          // ms window in which the AI's claim can be topped
+  var LEAD_FACTOR = 0.92;   // max fraction of predicted lag the AI will front-run
+  var ALPHA = 0.25;         // learning rate for the rhythm model
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function now(){ return performance.now(); }
+
+  var predictedLag = 700;   // ms — model's guess for how long you take to claim an open light
+  var variance = 900*900;   // starts wide: low confidence on turn one
+
+  function updateModel(interval){
+    var delta = interval - predictedLag;
+    predictedLag = clamp(predictedLag + ALPHA*delta, 120, 2200);
+    variance = (1-ALPHA)*variance + ALPHA*delta*delta;
+  }
+
+  function confidence(){
+    var cv = Math.sqrt(variance) / Math.max(predictedLag, 80);
+    return clamp(1 - cv, 0, 1);
+  }
+  function currentLead(){
+    return clamp(confidence() * predictedLag * LEAD_FACTOR, 0, predictedLag*0.95);
+  }
+
+  var turn = 'open';          // 'open' | 'you' | 'partner'
+  var openTime = now();
+  var claimTime = 0;
+  var aiTimer = null, turnEndTimer = null, graceTimer = null, labelTimer = null;
+
+  var youMs = 0, partnerMs = 0;
+
+  function setSpot(cls){
+    spot.classList.remove('you','partner');
+    if (cls) spot.classList.add(cls);
+  }
+  function setLabel(text, cls){
+    label.textContent = text;
+    label.classList.remove('you','partner','flash');
+    if (cls) label.classList.add(cls);
+  }
+
+  function scheduleAi(){
+    var delay = Math.max(30, predictedLag - currentLead());
+    aiTimer = setTimeout(aiClaims, delay);
+  }
+
+  function openTurn(){
+    var t = now();
+    if (turn === 'you') youMs += t - claimTime;
+    if (turn === 'partner') partnerMs += t - claimTime;
+    turn = 'open';
+    openTime = t;
+    setSpot(null);
+    setLabel('listening.');
+    clearTimeout(aiTimer); clearTimeout(turnEndTimer); clearTimeout(graceTimer);
+    scheduleAi();
+  }
+
+  function claimYou(t, wasTop){
+    turn = 'you';
+    claimTime = t;
+    setSpot('you');
+    setLabel(wasTop ? 'topped.' : 'yours.', 'you');
+    if (wasTop){
+      clearTimeout(labelTimer);
+      labelTimer = setTimeout(function(){ if (turn==='you') setLabel('yours.','you'); }, 420);
+    }
+    clearTimeout(turnEndTimer);
+    turnEndTimer = setTimeout(openTurn, BASE_TURN);
+  }
+
+  function aiClaims(){
+    if (turn !== 'open') return;
+    var t = now();
+    turn = 'partner';
+    claimTime = t;
+    setSpot('partner');
+    setLabel('through.', 'partner');
+    graceTimer = setTimeout(function(){
+      // grace passed uncontested — turn resolves solid
+      turnEndTimer = setTimeout(openTurn, Math.max(0, BASE_TURN - GRACE));
+    }, GRACE);
+  }
+
+  function onTap(){
+    var t = now();
+    if (turn === 'open'){
+      clearTimeout(aiTimer);
+      updateModel(t - openTime);
+      claimYou(t, false);
+    } else if (turn === 'partner'){
+      if (t - claimTime <= GRACE){
+        clearTimeout(graceTimer); clearTimeout(turnEndTimer);
+        // credit the partner's cut-short turn, then reward the topping tap
+        partnerMs += t - claimTime;
+        updateModel(t - openTime);
+        claimYou(t, true);
+      }
+      // too late — the line already got away from you; nothing to do but wait
+    }
+    // turn === 'you': already yours, extra taps do nothing
+  }
+
+  document.addEventListener('pointerdown', function(e){
+    if (e.cancelable) e.preventDefault();
+    onTap();
+  }, {passive:false});
+
+  scheduleAi();
+
+  function render(){
+    var t = now();
+    var liveYou = youMs + (turn==='you' ? t-claimTime : 0);
+    var livePartner = partnerMs + (turn==='partner' ? t-claimTime : 0);
+    var total = liveYou + livePartner;
+    var conf = confidence();
+    confVal.textContent = 'confidence ' + Math.round(conf*100) + '%';
+    leadVal.textContent = 'lead ' + Math.round(currentLead()) + 'ms';
+    if (total < 400){
+      youPct.textContent = 'yours —';
+      partnerPct.textContent = 'partner —';
+    } else {
+      youPct.textContent = 'yours ' + Math.round(liveYou/total*100) + '%';
+      partnerPct.textContent = 'partner ' + Math.round(livePartner/total*100) + '%';
+    }
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+})();
+</script>
+</body>
+</html>
