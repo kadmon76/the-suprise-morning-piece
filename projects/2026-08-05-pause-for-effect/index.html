@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#08080b">
+<title>(Pause for Effect.) · The Surprise Morning Piece</title>
+<style>
+  * { box-sizing: border-box; }
+  html,body{margin:0;height:100%;background:#08080b;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none;
+    -webkit-tap-highlight-color:transparent;}
+  body{font-family:Georgia,'Times New Roman',serif;color:#e9dfce}
+
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:9;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c7264;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(233,223,206,.14);border-radius:99px;
+    background:rgba(7,7,10,.5);backdrop-filter:blur(4px);
+  }
+
+  .stage{position:fixed;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;flex-direction:column}
+
+  .cord{width:1px;height:16vh;max-height:140px;background:linear-gradient(rgba(233,223,206,0), rgba(233,223,206,.22));}
+
+  .lamp{position:relative;width:130px;height:130px;display:flex;align-items:center;justify-content:center}
+  .lampGlow{
+    width:100%;height:100%;border-radius:50%;
+    background:radial-gradient(circle at 40% 34%, #f0cf9a, #a9793f 55%, #3a2a15 100%);
+    opacity:.55;
+    box-shadow:0 0 34px 10px rgba(240,207,154,.18);
+    animation:breathe 4.2s ease-in-out infinite;
+  }
+  .lamp.thinking .lampGlow{
+    animation:flicker 1.05s steps(2,end) infinite;
+    box-shadow:0 0 30px 8px rgba(240,207,154,.14);
+  }
+  .lamp.lit .lampGlow{
+    animation:none;
+    opacity:1;
+    transform:scale(1.1);
+    box-shadow:0 0 60px 20px rgba(240,207,154,.42), 0 0 0 1px rgba(240,207,154,.25);
+    transition:opacity .5s ease, transform .5s ease, box-shadow .5s ease;
+  }
+
+  @keyframes breathe{
+    0%,100%{opacity:.5; transform:scale(1)}
+    50%{opacity:.72; transform:scale(1.035)}
+  }
+  @keyframes flicker{
+    0%{opacity:.42} 15%{opacity:.85} 30%{opacity:.4}
+    45%{opacity:.78} 60%{opacity:.46} 75%{opacity:.9} 100%{opacity:.5}
+  }
+
+  .label{margin-top:26px;min-height:1.6em;text-align:center;max-width:82vw;
+    font-style:italic;letter-spacing:.02em;font-size:16px;line-height:1.5;
+    color:#f0cf9a;transition:opacity .4s ease}
+  .label.hint{color:#635a4c;font-style:normal;font-size:12px;letter-spacing:.1em;
+    text-transform:lowercase}
+
+  .peek{
+    position:fixed;left:14px;bottom:14px;z-index:8;pointer-events:none;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;line-height:1.7;
+    color:#9ec4e8;letter-spacing:.02em;
+    background:rgba(7,7,10,.5);border:1px solid rgba(158,196,232,.16);
+    border-radius:8px;padding:8px 11px;backdrop-filter:blur(4px);
+    opacity:0;transition:opacity .15s ease;
+  }
+  .peek.show{opacity:1}
+  .peek .dash{color:#5c6b78}
+
+  .mark{
+    position:fixed;right:16px;bottom:16px;z-index:9;
+    width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+    color:#5c5448;font-size:22px;line-height:1;opacity:0;transition:opacity .6s ease;
+  }
+  .mark.show{opacity:.7}
+
+  .overlay{
+    position:fixed;inset:0;z-index:20;background:rgba(4,4,6,.86);backdrop-filter:blur(3px);
+    display:flex;align-items:flex-end;justify-content:center;
+    opacity:0;pointer-events:none;transition:opacity .25s ease;
+  }
+  .overlay.open{opacity:1;pointer-events:auto}
+  .panel{
+    width:100%;max-width:480px;margin-bottom:0;padding:22px 22px calc(26px + env(safe-area-inset-bottom));
+    background:#0d0d10;border-top:1px solid rgba(158,196,232,.16);
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;color:#c9bda3;
+    transform:translateY(0);
+  }
+  .panel .h{color:#9ec4e8;text-transform:uppercase;letter-spacing:.2em;font-size:11px;margin-bottom:14px}
+  .panel .row{display:flex;justify-content:space-between;gap:14px;margin-bottom:8px;color:#8a8272}
+  .panel .row .v{color:#c9bda3;text-align:right}
+  .panel .pool{margin:14px 0;padding-top:12px;border-top:1px solid rgba(233,223,206,.08)}
+  .panel .pool div{margin-bottom:6px;font-style:italic;color:#e9dfce;font-family:Georgia,serif;font-size:13px;opacity:.55}
+  .panel .pool div.heard{opacity:1}
+  .panel .closer{margin-top:14px;padding-top:12px;border-top:1px solid rgba(233,223,206,.08);
+    color:#7c7264;font-family:Georgia,serif;font-style:italic;font-size:12.5px;line-height:1.5}
+
+  @media (prefers-reduced-motion: reduce){
+    .lampGlow, .lamp.thinking .lampGlow, .lamp.lit .lampGlow{animation:none}
+    .lampGlow{opacity:.65}
+    .lamp.lit .lampGlow{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">&larr; cue sheet</a>
+
+<div class="stage">
+  <div class="cord"></div>
+  <div class="lamp" id="lamp"><div class="lampGlow"></div></div>
+  <div class="label hint" id="label">touch the lamp.</div>
+</div>
+
+<div class="peek" id="peek">
+  <div>elapsed &nbsp;<span id="peekMs">0ms</span></div>
+  <div>computing <span class="dash">&mdash;</span></div>
+</div>
+
+<div class="mark" id="mark">&middot;</div>
+
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <div class="h">greenroom</div>
+    <div class="row"><span>asks tonight</span><span class="v" id="gAsks">0</span></div>
+    <div class="row"><span>pause drawn</span><span class="v">1.4s&ndash;4.6s, at random, every time</span></div>
+    <div class="row"><span>tied to the question</span><span class="v">never</span></div>
+    <div class="row"><span>lines in rotation</span><span class="v" id="gLines">7</span></div>
+    <div class="row"><span>heard so far</span><span class="v" id="gHeard">0</span></div>
+    <div class="pool" id="gPool"></div>
+    <div class="closer">Nothing in here got harder to answer. It only got slower to say.</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var lamp = document.getElementById('lamp');
+  var label = document.getElementById('label');
+  var peek = document.getElementById('peek');
+  var peekMs = document.getElementById('peekMs');
+  var mark = document.getElementById('mark');
+  var overlay = document.getElementById('overlay');
+  var gAsks = document.getElementById('gAsks');
+  var gLines = document.getElementById('gLines');
+  var gHeard = document.getElementById('gHeard');
+  var gPool = document.getElementById('gPool');
+
+  var LINES = [
+    "Yes. You knew that before you asked.",
+    "Wait for the next cue — this one isn't it.",
+    "It was decided before you touched me.",
+    "Ask again when it costs you something to hear it.",
+    "No. Sit with that a moment.",
+    "You already moved on. Good.",
+    "The pause was for you, not for this."
+  ];
+
+  var PAUSE_MIN = 1400, PAUSE_MAX = 4600;
+
+  var state = 'idle'; // idle | thinking | answered
+  var asks = 0;
+  var lastIdx = -1;
+  var heard = {};
+  var thinkStart = 0;
+  var holding = false;
+  var fadeTimer = null;
+  var dotsTimer = null;
+
+  gLines.textContent = LINES.length;
+  LINES.forEach(function(line){
+    var d = document.createElement('div');
+    d.textContent = '“' + line + '”';
+    d.dataset.line = line;
+    gPool.appendChild(d);
+  });
+
+  function pick(){
+    var i;
+    do { i = Math.floor(Math.random() * LINES.length); }
+    while (LINES.length > 1 && i === lastIdx);
+    lastIdx = i;
+    return i;
+  }
+
+  function startDots(){
+    var n = 0;
+    label.textContent = '';
+    dotsTimer = setInterval(function(){
+      n = (n % 3) + 1;
+      label.textContent = '.'.repeat(n);
+    }, 380);
+  }
+  function stopDots(){
+    clearInterval(dotsTimer);
+    dotsTimer = null;
+  }
+
+  function ask(){
+    clearTimeout(fadeTimer);
+    state = 'thinking';
+    thinkStart = performance.now();
+    lamp.classList.remove('lit');
+    lamp.classList.add('thinking');
+    label.classList.remove('hint');
+    startDots();
+    var dur = PAUSE_MIN + Math.random() * (PAUSE_MAX - PAUSE_MIN);
+    setTimeout(answer, dur);
+  }
+
+  function answer(){
+    if (state !== 'thinking') return;
+    state = 'answered';
+    asks++;
+    stopDots();
+    lamp.classList.remove('thinking');
+    lamp.classList.add('lit');
+    var idx = pick();
+    heard[idx] = true;
+    label.textContent = LINES[idx];
+    gAsks.textContent = asks;
+    gHeard.textContent = Object.keys(heard).length;
+    if (asks >= 3) mark.classList.add('show');
+    fadeTimer = setTimeout(function(){
+      state = 'idle';
+      lamp.classList.remove('lit');
+      label.textContent = '';
+    }, 2600);
+  }
+
+  function syncPool(){
+    var kids = gPool.children;
+    for (var i = 0; i < kids.length; i++){
+      kids[i].classList.toggle('heard', !!heard[i]);
+    }
+  }
+
+  function openPanel(){
+    syncPool();
+    overlay.classList.add('open');
+  }
+  function closePanel(){
+    overlay.classList.remove('open');
+  }
+
+  mark.addEventListener('pointerdown', function(e){
+    e.stopPropagation();
+    if (e.cancelable) e.preventDefault();
+    openPanel();
+  });
+  overlay.addEventListener('pointerdown', function(e){
+    if (e.target === overlay){
+      closePanel();
+    }
+  });
+
+  document.addEventListener('pointerdown', function(e){
+    if (overlay.classList.contains('open')) return;
+    if (e.target === mark) return;
+    if (e.cancelable) e.preventDefault();
+    holding = true;
+    if (state === 'idle') ask();
+  }, {passive:false});
+
+  document.addEventListener('pointerup', function(){ holding = false; });
+  document.addEventListener('pointercancel', function(){ holding = false; });
+
+  function loop(){
+    if (holding && state === 'thinking'){
+      peek.classList.add('show');
+      peekMs.textContent = Math.round(performance.now() - thinkStart) + 'ms';
+    } else {
+      peek.classList.remove('show');
+    }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
