@@ -118,6 +118,13 @@
       "kind": "seed",
       "note": "A spotlight, a rhythm, and a partner who's gotten very good at knowing when you're about to reach for it.",
       "path": "projects/2026-08-04-topping/index.html"
+    },
+    {
+      "date": "2026-08-06",
+      "title": "(Leave It for the Next One.)",
+      "kind": "question",
+      "note": "A corkboard backstage, half in shadow. Somebody's been leaving notes. Read them in whatever order you like.",
+      "path": "projects/2026-08-06-call-board/index.html"
     }
   ]
 }
