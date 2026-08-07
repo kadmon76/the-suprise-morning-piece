@@ -125,6 +125,13 @@
       "kind": "question",
       "note": "A corkboard backstage, half in shadow. Somebody's been leaving notes. Read them in whatever order you like.",
       "path": "projects/2026-08-06-call-board/index.html"
+    },
+    {
+      "date": "2026-08-07",
+      "title": "Upstaged",
+      "kind": "seed",
+      "note": "A lamp, a cue, a partner taking his bow. He swears the applause is for both of you.",
+      "path": "projects/2026-08-07-upstaged/index.html"
     }
   ]
 }

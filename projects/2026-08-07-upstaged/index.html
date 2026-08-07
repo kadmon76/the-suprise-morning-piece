@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#08080b">
+<title>Upstaged · The Surprise Morning Piece</title>
+<style>
+  * { box-sizing: border-box; }
+  html,body{margin:0;height:100%;background:#08080b;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none;
+    -webkit-tap-highlight-color:transparent;}
+  body{font-family:Georgia,'Times New Roman',serif;color:#e9dfce}
+
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:9;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c7264;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(233,223,206,.14);border-radius:99px;
+    background:rgba(7,7,10,.5);backdrop-filter:blur(4px);
+  }
+
+  .mark{
+    position:fixed;bottom:14px;right:14px;z-index:9;
+    width:30px;height:30px;border-radius:50%;
+    border:1px solid rgba(233,223,206,.14);background:rgba(7,7,10,.5);
+    color:#5c5448;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;
+    display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);
+  }
+
+  .stage{position:fixed;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;flex-direction:column}
+
+  .dots{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9;
+    display:flex;gap:5px}
+  .dots i{width:5px;height:5px;border-radius:50%;background:rgba(233,223,206,.14);display:block}
+  .dots i.done{background:#7c7264}
+  .dots i.you{background:#f0cf9a}
+  .dots i.partner{background:#9ec4e8}
+
+  .lamp{
+    width:112px;height:112px;border-radius:50%;
+    background:radial-gradient(circle at 38% 32%, #2a231b, #121110 72%);
+    box-shadow:0 0 0 1px rgba(233,223,206,.08), inset 0 1px 1px rgba(255,255,255,.03);
+    transition:background .16s ease, box-shadow .16s ease;
+  }
+  .lamp.go{
+    background:radial-gradient(circle at 38% 32%, #ffe3ab, #c99a4a 60%, #7a5a25 100%);
+    box-shadow:0 0 46px 14px rgba(240,207,154,.5), 0 0 0 1px rgba(240,207,154,.3);
+  }
+  .lamp.taken{
+    background:radial-gradient(circle at 38% 32%, #cfe4fb, #6f9bd1 60%, #33507a 100%);
+    box-shadow:0 0 46px 14px rgba(120,170,230,.42), 0 0 0 1px rgba(158,196,232,.3);
+  }
+  .lamp.ready{
+    box-shadow:0 0 0 1px rgba(233,223,206,.08), 0 0 22px 6px rgba(233,223,206,.06);
+  }
+
+  .label{margin-top:22px;text-align:center;font-style:italic;letter-spacing:.03em;
+    font-size:15px;color:#7c7264;min-height:1.4em;transition:color .3s ease}
+  .label.you{color:#f0cf9a}
+  .label.partner{color:#9ec4e8}
+
+  .call{position:fixed;inset:0;z-index:2;display:none;align-items:center;justify-content:center;
+    flex-direction:column;background:#08080b}
+  .call.show{display:flex}
+  .figures{display:flex;gap:54px;align-items:flex-end;height:150px;margin-bottom:26px}
+  .figure{width:34px;height:118px;transform-origin:50% 100%;transition:transform 1.4s cubic-bezier(.2,.7,.2,1)}
+  .figure .head{width:20px;height:20px;border-radius:50%;margin:0 auto 4px}
+  .figure .body{width:34px;height:92px;border-radius:9px 9px 4px 4px}
+  .figure.you .head{background:#f0cf9a}
+  .figure.you .body{background:linear-gradient(#c99a4a,#7a5a25)}
+  .figure.partner .head{background:#9ec4e8}
+  .figure.partner .body{background:linear-gradient(#6f9bd1,#33507a)}
+
+  .applause{font-style:italic;color:#7c7264;font-size:15px;text-align:center;padding:0 14vw;
+    min-height:2.6em;transition:color .4s ease}
+  .replay{margin-top:20px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;
+    letter-spacing:.12em;text-transform:uppercase;color:#5c5448}
+
+  .drawer{position:fixed;left:0;right:0;bottom:0;z-index:10;
+    background:rgba(10,10,13,.96);border-top:1px solid rgba(233,223,206,.14);
+    padding:18px 20px 26px;transform:translateY(100%);transition:transform .35s ease;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#a89e8c;line-height:1.9}
+  .drawer.open{transform:translateY(0)}
+  .drawer .h{color:#5c5448;text-transform:uppercase;letter-spacing:.16em;font-size:10px;margin-bottom:8px}
+  .drawer .v{color:#c9bda3;font-variant-numeric:tabular-nums}
+  .drawer .line{font-style:italic;color:#7c7264;margin-top:10px;font-family:Georgia,serif;font-size:12.5px}
+
+  @media (prefers-reduced-motion: reduce){
+    .lamp,.label,.figure,.applause,.drawer{transition:none}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">&larr; cue sheet</a>
+<div class="mark" id="mark">&#9679;</div>
+
+<div class="dots" id="dots"></div>
+
+<div class="stage">
+  <div class="lamp" id="lamp"></div>
+  <div class="label" id="label">standing by.</div>
+</div>
+
+<div class="call" id="call">
+  <div class="figures">
+    <div class="figure you" id="figYou"><div class="head"></div><div class="body"></div></div>
+    <div class="figure partner" id="figPartner"><div class="head"></div><div class="body"></div></div>
+  </div>
+  <div class="applause" id="applause"></div>
+  <div class="replay" id="replay">tap to go again</div>
+</div>
+
+<div class="drawer" id="drawer">
+  <div class="h">call sheet</div>
+  <div>cues tonight &middot; <span class="v" id="dTotal">&mdash;</span></div>
+  <div>yours, raced &middot; <span class="v" id="dRaced">&mdash;</span></div>
+  <div>yours, already there &middot; <span class="v" id="dHeld">&mdash;</span></div>
+  <div>his &middot; <span class="v" id="dPartner">&mdash;</span></div>
+  <div style="margin-top:8px">your true reaction &middot; <span class="v" id="dReact">&mdash;</span></div>
+  <div>his shave &middot; <span class="v" id="dShave">&mdash;</span></div>
+  <div class="line">Every claim it took, you were already on your way &mdash; it simply moved first.</div>
+</div>
+
+<script>
+(function(){
+  var lamp = document.getElementById('lamp');
+  var label = document.getElementById('label');
+  var dots = document.getElementById('dots');
+  var call = document.getElementById('call');
+  var figYou = document.getElementById('figYou');
+  var figPartner = document.getElementById('figPartner');
+  var applause = document.getElementById('applause');
+  var replay = document.getElementById('replay');
+  var mark = document.getElementById('mark');
+  var drawer = document.getElementById('drawer');
+
+  var TOTAL = 14;
+  var SHAVE_MAX = 260;   // ms — the most it will ever dare front-run by
+  var ALPHA = 0.3;
+
+  function now(){ return performance.now(); }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+  var predictedReaction = 550;
+  var variance = 700*700;
+  var reactionSum = 0, reactionCount = 0;
+  var shaveSum = 0, shaveCount = 0;
+
+  function updateModel(r){
+    var delta = r - predictedReaction;
+    predictedReaction = clamp(predictedReaction + ALPHA*delta, 120, 1600);
+    variance = (1-ALPHA)*variance + ALPHA*delta*delta;
+    reactionSum += r; reactionCount++;
+  }
+  function confidence(){
+    var cv = Math.sqrt(variance) / Math.max(predictedReaction, 80);
+    return clamp(1 - cv, 0, 1);
+  }
+  function shaveFor(){
+    return confidence() * SHAVE_MAX;
+  }
+
+  var cue = 0;
+  var youRaced = 0, youHeld = 0, hisCount = 0;
+  var phase = 'standby'; // standby | go | resolved
+  var goTime = 0;
+  var aiTimer = null, nextTimer = null;
+  var pointerDown = false;
+
+  for (var i=0;i<TOTAL;i++){
+    var d = document.createElement('i');
+    dots.appendChild(d);
+  }
+
+  function paintDots(){
+    var items = dots.children;
+    for (var i=0;i<TOTAL;i++){
+      items[i].classList.remove('done','you','partner');
+    }
+  }
+  function markDot(i, cls){
+    dots.children[i].classList.add('done', cls);
+  }
+
+  function setLamp(cls){
+    lamp.classList.remove('go','taken','ready');
+    if (cls) lamp.classList.add(cls);
+  }
+
+  function scheduleGo(){
+    setLamp('ready');
+    label.textContent = 'standing by.';
+    label.className = 'label';
+    var wait = 900 + Math.random()*1700;
+    nextTimer = setTimeout(fireGo, wait);
+  }
+
+  function fireGo(){
+    if (cue >= TOTAL) return;
+    phase = 'go';
+    goTime = now();
+    if (pointerDown){
+      resolve('you', true);
+      return;
+    }
+    setLamp('go');
+    label.textContent = 'go.';
+    var delay = Math.max(20, predictedReaction - shaveFor());
+    aiTimer = setTimeout(function(){
+      if (phase === 'go') resolve('partner', false);
+    }, delay);
+  }
+
+  function resolve(who, held){
+    phase = 'resolved';
+    clearTimeout(aiTimer);
+    if (who === 'you'){
+      if (held){
+        youHeld++;
+        setLamp('go');
+        label.textContent = 'already there.';
+        label.className = 'label you';
+      } else {
+        youRaced++;
+        var r = now() - goTime;
+        updateModel(r);
+        setLamp('go');
+        label.textContent = 'yours.';
+        label.className = 'label you';
+      }
+    } else {
+      hisCount++;
+      shaveSum += shaveFor(); shaveCount++;
+      setLamp('taken');
+      label.textContent = 'through.';
+      label.className = 'label partner';
+    }
+    markDot(cue, who === 'you' ? 'you' : 'partner');
+    cue++;
+    nextTimer = setTimeout(function(){
+      if (cue >= TOTAL) curtainCall();
+      else scheduleGo();
+    }, 620);
+  }
+
+  function onDown(){
+    pointerDown = true;
+    if (phase === 'go'){
+      resolve('you', false);
+    }
+  }
+  function onUp(){
+    pointerDown = false;
+  }
+
+  document.addEventListener('pointerdown', function(e){
+    if (e.cancelable) e.preventDefault();
+    if (call.classList.contains('show')){
+      restage();
+      return;
+    }
+    onDown();
+  }, {passive:false});
+  document.addEventListener('pointerup', onUp);
+  document.addEventListener('pointercancel', onUp);
+
+  mark.addEventListener('pointerdown', function(e){
+    e.stopPropagation();
+    drawer.classList.toggle('open');
+    fillDrawer();
+  });
+
+  function fillDrawer(){
+    document.getElementById('dTotal').textContent = cue;
+    document.getElementById('dRaced').textContent = youRaced;
+    document.getElementById('dHeld').textContent = youHeld;
+    document.getElementById('dPartner').textContent = hisCount;
+    document.getElementById('dReact').textContent = reactionCount ? Math.round(reactionSum/reactionCount) + 'ms avg' : '—';
+    document.getElementById('dShave').textContent = shaveCount ? Math.round(shaveSum/shaveCount) + 'ms avg' : '—';
+  }
+
+  function curtainCall(){
+    setLamp(null);
+    var share = hisCount / TOTAL;
+    var deg = 14 + share*46;
+    var youDeg = 10 + (youRaced+youHeld)/TOTAL*40;
+    figYou.style.transform = 'rotate(' + youDeg + 'deg)';
+    figPartner.style.transform = 'rotate(' + deg + 'deg)';
+    var text;
+    if (share < .15) text = 'polite applause.';
+    else if (share < .35) text = 'warm applause.';
+    else if (share < .55) text = "he's stealing glances at the wings.";
+    else if (share < .75) text = "the house can't quite tell which of you they're clapping for.";
+    else text = 'on its feet — for both of you.';
+    applause.textContent = text;
+    call.classList.add('show');
+  }
+
+  function restage(){
+    call.classList.remove('show');
+    drawer.classList.remove('open');
+    cue = 0; youRaced = 0; youHeld = 0; hisCount = 0;
+    reactionSum = 0; reactionCount = 0; shaveSum = 0; shaveCount = 0;
+    predictedReaction = 550; variance = 700*700;
+    paintDots();
+    scheduleGo();
+  }
+
+  scheduleGo();
+})();
+</script>
+</body>
+</html>
