@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#08080b">
+<title>(Near Enough.) · The Surprise Morning Piece</title>
+<style>
+  * { box-sizing: border-box; }
+  html,body{margin:0;height:100%;background:#08080b;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none;
+    -webkit-tap-highlight-color:transparent;}
+  body{font-family:Georgia,'Times New Roman',serif;color:#e9dfce;display:flex;flex-direction:column}
+
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:9;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c7264;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(233,223,206,.14);border-radius:99px;
+    background:rgba(7,7,10,.5);backdrop-filter:blur(4px);
+  }
+  .mark{
+    position:fixed;bottom:14px;right:14px;z-index:9;
+    width:30px;height:30px;border-radius:50%;
+    border:1px solid rgba(233,223,206,.14);background:rgba(7,7,10,.5);
+    color:#5c5448;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;
+    display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);
+  }
+
+  .stage{flex:1;display:flex;flex-direction:column;justify-content:center;padding:56px 16px 18px;gap:22px;min-height:0}
+
+  .head{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.2em;
+    text-transform:uppercase;color:#5c5448;text-align:center}
+  .target{text-align:center;font-style:italic;font-size:16px;line-height:1.5;color:#a89e8c}
+  .target b{color:#f0cf9a;font-weight:normal;font-style:normal}
+
+  .roster{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .tag{border:1px solid rgba(233,223,206,.14);border-radius:6px;padding:7px 4px;
+    text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
+    color:#5c5448;background:rgba(255,255,255,.02);position:relative;
+    transition:color .25s ease,border-color .25s ease,background .25s ease,box-shadow .25s ease}
+  .tag.before{color:#8a5849;border-color:rgba(182,98,74,.35)}
+  .tag.lit{color:#f0cf9a;border-color:rgba(240,207,154,.55);box-shadow:0 0 10px rgba(240,207,154,.18)}
+  .tag.logged{color:#c98369;border-color:rgba(182,98,74,.55);background:rgba(182,98,74,.08)}
+  .tag.logged.lit{color:#f0cf9a;border-color:rgba(240,207,154,.7);box-shadow:0 0 12px rgba(240,207,154,.25)}
+  .tag i{position:absolute;top:-4px;right:-4px;width:7px;height:7px;border-radius:50%;
+    background:#b6624a;display:none;box-shadow:0 0 0 2px #08080b}
+  .tag.logged i{display:block}
+
+  .timeline{position:relative;height:56px;border-top:1px dashed rgba(233,223,206,.12);
+    border-bottom:1px dashed rgba(233,223,206,.12)}
+  .tick{position:absolute;top:50%;width:2px;height:6px;margin-top:-3px;background:rgba(233,223,206,.2);border-radius:1px}
+  .band{position:absolute;top:0;bottom:0;background:linear-gradient(rgba(240,207,154,.16),rgba(240,207,154,.1));
+    border-left:1px solid rgba(240,207,154,.5);border-right:1px solid rgba(240,207,154,.5)}
+  .grip{position:absolute;top:50%;width:26px;height:26px;margin-top:-13px;margin-left:-13px;
+    border-radius:50%;background:rgba(8,8,11,.7);border:1px solid rgba(240,207,154,.6);
+    display:flex;align-items:center;justify-content:center}
+  .grip::after{content:'';width:2px;height:10px;background:rgba(240,207,154,.7);border-radius:1px}
+
+  .stats{display:flex;justify-content:space-between;align-items:center;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;color:#5c5448;letter-spacing:.02em}
+  .xref{border:1px solid rgba(233,223,206,.14);border-radius:99px;padding:6px 12px;
+    color:#7c7264;background:rgba(255,255,255,.02)}
+  .xref.on{color:#f0cf9a;border-color:rgba(240,207,154,.5);background:rgba(240,207,154,.06)}
+
+  .closing{position:fixed;inset:0;z-index:8;display:none;flex-direction:column;
+    align-items:center;justify-content:center;gap:16px;background:#08080b;padding:0 8vw;text-align:center}
+  .closing.show{display:flex}
+  .closing .tally{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:#c9bda3;line-height:2}
+  .closing .tally b{color:#f0cf9a;font-weight:normal}
+  .closing .line{font-style:italic;color:#7c7264;font-size:14.5px;line-height:1.6;max-width:34ch}
+  .closing .replay{margin-top:6px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;
+    letter-spacing:.12em;text-transform:uppercase;color:#5c5448}
+
+  .drawer{position:fixed;left:0;right:0;bottom:0;z-index:10;
+    background:rgba(10,10,13,.96);border-top:1px solid rgba(233,223,206,.14);
+    padding:18px 20px 26px;transform:translateY(100%);transition:transform .35s ease;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#a89e8c;line-height:1.9}
+  .drawer.open{transform:translateY(0)}
+  .drawer .h{color:#5c5448;text-transform:uppercase;letter-spacing:.16em;font-size:10px;margin-bottom:8px}
+  .drawer .v{color:#c9bda3;font-variant-numeric:tabular-nums}
+  .drawer .line{font-style:italic;color:#7c7264;margin-top:10px;font-family:Georgia,serif;font-size:12.5px}
+
+  @media (prefers-reduced-motion: reduce){
+    .tag,.band,.xref{transition:none}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">&larr; cue sheet</a>
+<div class="mark" id="mark">&#9679;</div>
+
+<div class="stage">
+  <div class="head">stage door &middot; tonight's log</div>
+  <div class="target">find <b id="targetName">&mdash;</b> &mdash; drag the door log below until he's in the light.</div>
+
+  <div class="roster" id="roster"></div>
+
+  <div class="timeline" id="timeline">
+    <div class="band" id="band">
+      <div class="grip" id="gripL" style="left:0"></div>
+      <div class="grip" id="gripR" style="left:100%"></div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <span id="statTonight">swept tonight &middot; 0</span>
+    <button class="xref" id="xref">cross-reference</button>
+    <span id="statAll">on file &middot; 0</span>
+  </div>
+</div>
+
+<div class="closing" id="closing">
+  <div class="tally" id="tally"></div>
+  <div class="line" id="closingLine"></div>
+  <div class="replay">tap to sweep again</div>
+</div>
+
+<div class="drawer" id="drawer">
+  <div class="h">door log — full</div>
+  <div>nights you've come by &middot; <span class="v" id="dNights">&mdash;</span></div>
+  <div>on file, all time &middot; <span class="v" id="dAll">&mdash;</span>/<span id="dTotal">&mdash;</span></div>
+  <div>swept tonight &middot; <span class="v" id="dTonight">&mdash;</span></div>
+  <div>narrowest sweep allowed &middot; <span class="v" id="dFloor">&mdash;</span></div>
+  <div class="line">The board doesn't say which one you needed. Now neither can you.</div>
+</div>
+
+<script>
+(function(){
+  var NAMES = ["Priya M.","Devon K.","Theo R.","Ines V.","Marcus L.","Odalys F.","Sam T.","Rina B.",
+    "Callum W.","Noor A.","Beckett S.","Yuki H.","Farrah J.","Milo C.","Estelle P.","Owen D.",
+    "Tamsin G.","Rocco N.","Ivy Q.","Declan X.","Suki E.","Bram Z.","Lior Y.","Nadia R."];
+  var N = NAMES.length;
+  var FLOOR = 0.09;
+  var LS_LOGGED = 'nearEnough.logged';
+  var LS_NIGHTS = 'nearEnough.nights';
+
+  var roster = document.getElementById('roster');
+  var timeline = document.getElementById('timeline');
+  var band = document.getElementById('band');
+  var gripL = document.getElementById('gripL');
+  var gripR = document.getElementById('gripR');
+  var targetName = document.getElementById('targetName');
+  var statTonight = document.getElementById('statTonight');
+  var statAll = document.getElementById('statAll');
+  var xref = document.getElementById('xref');
+  var closing = document.getElementById('closing');
+  var tally = document.getElementById('tally');
+  var closingLine = document.getElementById('closingLine');
+  var mark = document.getElementById('mark');
+  var drawer = document.getElementById('drawer');
+
+  function loadLogged(){
+    try { return new Set(JSON.parse(localStorage.getItem(LS_LOGGED) || '[]')); }
+    catch(e){ return new Set(); }
+  }
+  function saveLogged(set){
+    try { localStorage.setItem(LS_LOGGED, JSON.stringify(Array.from(set))); } catch(e){}
+  }
+  var nights = 0;
+  try { nights = parseInt(localStorage.getItem(LS_NIGHTS) || '0', 10) + 1; localStorage.setItem(LS_NIGHTS, nights); } catch(e){}
+
+  var loggedAllTime = loadLogged();
+  var sweptTonight = new Set();
+
+  var times = [];
+  var slot = 1/N;
+  for (var i=0;i<N;i++){
+    times.push(i*slot + slot*0.5 + (Math.random()-0.5)*slot*0.5);
+  }
+  var targetIndex = Math.floor(Math.random()*N);
+  targetName.textContent = NAMES[targetIndex];
+
+  var tagEls = [];
+  NAMES.forEach(function(name, i){
+    var t = document.createElement('div');
+    t.className = 'tag';
+    if (loggedAllTime.has(name)) t.classList.add('before');
+    t.innerHTML = name + '<i></i>';
+    t.addEventListener('pointerdown', function(e){
+      e.stopPropagation();
+      onTapTag(i);
+    });
+    roster.appendChild(t);
+    tagEls.push(t);
+  });
+
+  var ticks = [];
+  times.forEach(function(t){
+    var el = document.createElement('div');
+    el.className = 'tick';
+    el.style.left = (t*100)+'%';
+    timeline.insertBefore(el, band);
+    ticks.push(el);
+  });
+
+  var selStart = 0.4, selEnd = 0.4 + FLOOR*1.6;
+  var prevCoverage = new Set();
+  var crossRefOn = false;
+  var resolved = false;
+
+  function coverageNow(){
+    var s = new Set();
+    for (var i=0;i<N;i++){
+      if (times[i] >= selStart && times[i] <= selEnd) s.add(i);
+    }
+    return s;
+  }
+
+  function paint(){
+    var live = coverageNow();
+    var display = live;
+    if (crossRefOn) {
+      display = new Set();
+      live.forEach(function(i){ if (prevCoverage.has(i)) display.add(i); });
+    }
+    for (var i=0;i<N;i++){
+      var lit = display.has(i);
+      tagEls[i].classList.toggle('lit', lit);
+      tagEls[i].classList.toggle('logged', loggedAllTime.has(NAMES[i]));
+    }
+    band.style.left = (selStart*100)+'%';
+    band.style.width = ((selEnd-selStart)*100)+'%';
+    statTonight.textContent = 'swept tonight · ' + sweptTonight.size;
+    statAll.textContent = 'on file · ' + loggedAllTime.size;
+
+    // ratchet: anything under the live beam gets permanently logged, whether or not cross-ref hides it
+    var changed = false;
+    live.forEach(function(i){
+      if (!sweptTonight.has(i)) { sweptTonight.add(i); changed = true; }
+      if (!loggedAllTime.has(NAMES[i])) { loggedAllTime.add(NAMES[i]); changed = true; }
+    });
+    if (changed) saveLogged(loggedAllTime);
+  }
+
+  function onTapTag(i){
+    if (resolved) return;
+    var live = coverageNow();
+    if (!live.has(i)) {
+      tagEls[i].animate([{transform:'translateX(0)'},{transform:'translateX(-3px)'},{transform:'translateX(3px)'},{transform:'translateX(0)'}],
+        {duration:220});
+      return;
+    }
+    if (i === targetIndex) {
+      resolve();
+    } else {
+      tagEls[i].animate([{opacity:1},{opacity:.4},{opacity:1}], {duration:260});
+    }
+  }
+
+  // --- drag handling ---
+  var dragMode = null; // 'left' | 'right' | 'band'
+  var dragAnchorFrac = 0, dragOrigStart = 0, dragOrigEnd = 0;
+
+  function fracFromEvent(e){
+    var r = timeline.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+  }
+
+  function startDrag(mode, e){
+    if (resolved) return;
+    dragMode = mode;
+    prevCoverage = coverageNow();
+    dragAnchorFrac = fracFromEvent(e);
+    dragOrigStart = selStart; dragOrigEnd = selEnd;
+  }
+
+  gripL.addEventListener('pointerdown', function(e){ e.stopPropagation(); startDrag('left', e); });
+  gripR.addEventListener('pointerdown', function(e){ e.stopPropagation(); startDrag('right', e); });
+  band.addEventListener('pointerdown', function(e){ e.stopPropagation(); startDrag('band', e); });
+
+  document.addEventListener('pointermove', function(e){
+    if (!dragMode) return;
+    var f = fracFromEvent(e);
+    if (dragMode === 'left') {
+      selStart = Math.max(0, Math.min(f, selEnd - FLOOR));
+    } else if (dragMode === 'right') {
+      selEnd = Math.min(1, Math.max(f, selStart + FLOOR));
+    } else if (dragMode === 'band') {
+      var width = dragOrigEnd - dragOrigStart;
+      var shift = f - dragAnchorFrac;
+      var newStart = Math.max(0, Math.min(1-width, dragOrigStart + shift));
+      selStart = newStart; selEnd = newStart + width;
+    }
+    paint();
+  });
+  document.addEventListener('pointerup', function(){ dragMode = null; });
+  document.addEventListener('pointercancel', function(){ dragMode = null; });
+
+  xref.addEventListener('pointerdown', function(e){
+    e.stopPropagation();
+    crossRefOn = !crossRefOn;
+    xref.classList.toggle('on', crossRefOn);
+    paint();
+  });
+
+  mark.addEventListener('pointerdown', function(e){
+    e.stopPropagation();
+    drawer.classList.toggle('open');
+    document.getElementById('dNights').textContent = nights;
+    document.getElementById('dAll').textContent = loggedAllTime.size;
+    document.getElementById('dTotal').textContent = N;
+    document.getElementById('dTonight').textContent = sweptTonight.size;
+    document.getElementById('dFloor').textContent = Math.round(FLOOR*100) + '% of the log, minimum';
+  });
+
+  function resolve(){
+    resolved = true;
+    var extra = sweptTonight.size - 1;
+    tally.innerHTML = 'Sought · <b>1</b><br>Swept tonight · <b>' + sweptTonight.size + '</b><br>On file, all time · <b>' + loggedAllTime.size + '</b>/' + N;
+    var lines = [
+      'He was in there. So were ' + Math.max(extra,0) + ' others who happened to be.',
+      "The log doesn't keep a reason. Only a time.",
+      'Nobody on that board can prove they were only passing through.',
+      "It never did learn to ask for just one person."
+    ];
+    closingLine.textContent = lines[Math.min(Math.max(extra,0), lines.length-1)];
+    closing.classList.add('show');
+  }
+
+  closing.addEventListener('pointerdown', function(){
+    restage();
+  });
+
+  function restage(){
+    closing.classList.remove('show');
+    drawer.classList.remove('open');
+    resolved = false;
+    sweptTonight = new Set();
+    crossRefOn = false;
+    xref.classList.remove('on');
+    for (var i=0;i<N;i++){
+      times[i] = i*slot + slot*0.5 + (Math.random()-0.5)*slot*0.5;
+      ticks[i].style.left = (times[i]*100)+'%';
+    }
+    targetIndex = Math.floor(Math.random()*N);
+    targetName.textContent = NAMES[targetIndex];
+    selStart = 0.4; selEnd = 0.4 + FLOOR*1.6;
+    prevCoverage = new Set();
+    paint();
+  }
+
+  paint();
+})();
+</script>
+</body>
+</html>

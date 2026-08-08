@@ -132,6 +132,13 @@
       "kind": "seed",
       "note": "A lamp, a cue, a partner taking his bow. He swears the applause is for both of you.",
       "path": "projects/2026-08-07-upstaged/index.html"
+    },
+    {
+      "date": "2026-08-08",
+      "title": "(Near Enough.)",
+      "kind": "question",
+      "note": "Find the one you were sent for. The door only remembers whole minutes at a time.",
+      "path": "projects/2026-08-08-near-enough/index.html"
     }
   ]
 }
