@@ -139,6 +139,13 @@
       "kind": "question",
       "note": "Find the one you were sent for. The door only remembers whole minutes at a time.",
       "path": "projects/2026-08-08-near-enough/index.html"
+    },
+    {
+      "date": "2026-08-09",
+      "title": "Understudy",
+      "kind": "seed",
+      "note": "A cleat, a coil of rope, and a partner who only needed to watch you tie it twice.",
+      "path": "projects/2026-08-09-understudy/index.html"
     }
   ]
 }
