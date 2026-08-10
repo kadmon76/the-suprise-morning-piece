@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#08080b">
+<title>(Unprecedented.) · The Surprise Morning Piece</title>
+<style>
+  * { box-sizing: border-box; }
+  html,body{margin:0;height:100%;background:#08080b;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none;
+    -webkit-tap-highlight-color:transparent;}
+  body{font-family:Georgia,'Times New Roman',serif;color:#e9dfce}
+
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:20;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c7264;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(233,223,206,.14);border-radius:99px;
+    background:rgba(7,7,10,.5);backdrop-filter:blur(4px);
+  }
+
+  .mark{
+    position:fixed;bottom:14px;right:14px;z-index:20;
+    width:30px;height:30px;border-radius:50%;
+    border:1px solid rgba(233,223,206,.14);background:rgba(7,7,10,.5);
+    color:#5c5448;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;
+    display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);
+  }
+
+  .house{
+    position:fixed;top:0;left:0;right:0;height:15%;z-index:1;
+    background:
+      radial-gradient(circle, rgba(158,196,232,.10) 1px, transparent 1.4px) 0 0/22px 16px,
+      linear-gradient(#0a0e14, rgba(10,14,20,0));
+    opacity:.8;
+  }
+
+  .curtain{position:fixed;top:0;bottom:0;width:9%;z-index:2;pointer-events:none;
+    background:linear-gradient(90deg, rgba(60,14,14,.55), rgba(60,14,14,0));}
+  .curtain.l{left:0}
+  .curtain.r{right:0;transform:scaleX(-1)}
+
+  .walk{
+    position:fixed;left:50%;top:15%;transform:translateX(-50%);
+    width:26vw;max-width:150px;height:53%;z-index:1;pointer-events:none;
+    background:linear-gradient(rgba(240,207,154,.05), rgba(240,207,154,.02) 60%, rgba(240,207,154,0));
+  }
+
+  .dot{position:fixed;left:50%;width:15px;height:15px;border-radius:50%;
+    transform:translate(-50%,-50%);z-index:6;pointer-events:none;opacity:0;
+    transition:opacity .25s ease;}
+  .dot.perf{background:#f0cf9a;box-shadow:0 0 14px 4px rgba(240,207,154,.55)}
+  .dot.tail{width:10px;height:10px;background:#9ec4e8;box-shadow:0 0 10px 3px rgba(158,196,232,.4)}
+  .dot.on{opacity:1}
+  .dot.gone{opacity:0;transition:opacity .35s ease, transform .35s ease}
+  .dot.breach{transition:top .5s cubic-bezier(.2,.6,.3,1), opacity .5s ease;
+    box-shadow:0 0 22px 8px rgba(158,196,232,.75);}
+
+  .trap{position:fixed;left:50%;top:68%;transform:translate(-50%,-50%);
+    width:38vw;max-width:172px;height:58px;z-index:4;
+    filter:drop-shadow(0 0 16px rgba(240,207,154,.10));}
+  .trap .void{position:absolute;inset:2px;background:#000;border-radius:3px}
+  .trap .mx{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    color:rgba(240,207,154,.55);font-size:16px;font-family:Georgia,serif;pointer-events:none;
+    text-shadow:0 0 8px rgba(240,207,154,.35)}
+  .leaf{position:absolute;top:0;bottom:0;width:52%;background:#221c15;
+    border:1px solid rgba(240,207,154,.32);border-radius:3px;
+    box-shadow:inset 0 0 12px rgba(240,207,154,.05);
+    transition:transform .16s ease;}
+  .leafL{left:0;transform-origin:left center}
+  .leafR{right:0;transform-origin:right center}
+  .trap.open .leafL{transform:translateX(-92%) rotateY(6deg)}
+  .trap.open .leafR{transform:translateX(92%) rotateY(-6deg)}
+  .trap.open .void{box-shadow:inset 0 0 30px 6px rgba(158,196,232,.06)}
+
+  .placard{position:fixed;left:8%;right:8%;top:20%;z-index:10;text-align:center;
+    opacity:0;transform:translateY(-14px);transition:opacity .5s ease, transform .5s ease;
+    pointer-events:none;}
+  .placard.show{opacity:1;transform:translateY(0)}
+  .placard .name{font-size:19px;letter-spacing:.08em;text-transform:uppercase;color:#e9dfce}
+  .placard .hype{margin-top:6px;font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7c7264}
+
+  .clean{position:fixed;left:0;right:0;bottom:26%;z-index:10;text-align:center;
+    font-style:italic;color:#7c7264;font-size:14px;opacity:0;transition:opacity .4s ease;
+    pointer-events:none;}
+  .clean.show{opacity:1}
+
+  .report{position:fixed;left:7%;right:7%;top:34%;z-index:11;text-align:center;
+    opacity:0;transform:scale(.96);transition:opacity .4s ease, transform .4s ease;
+    pointer-events:none;}
+  .report.show{opacity:1;transform:scale(1)}
+  .report .title{font-size:23px;letter-spacing:.05em;color:#d9785a;text-transform:uppercase}
+  .report .body{margin-top:10px;font-size:14.5px;line-height:1.6;color:#c9bda3}
+  .report .sig{margin-top:10px;font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#5c5448}
+
+  .hint{position:fixed;left:0;right:0;bottom:9%;z-index:5;text-align:center;
+    font-style:italic;color:#5c5448;font-size:13px;opacity:0;transition:opacity 1s ease;
+    pointer-events:none;}
+  .hint.show{opacity:1}
+
+  .drawer{position:fixed;left:0;right:0;bottom:0;z-index:30;
+    background:rgba(10,10,13,.97);border-top:1px solid rgba(233,223,206,.14);
+    padding:16px 20px 24px;transform:translateY(100%);transition:transform .35s ease;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;color:#a89e8c;
+    line-height:1.7;max-height:72vh;overflow-y:auto;}
+  .drawer.open{transform:translateY(0)}
+  .drawer .h{color:#5c5448;text-transform:uppercase;letter-spacing:.16em;font-size:10px;margin-bottom:8px}
+  .drawer .row{display:flex;justify-content:space-between;gap:10px;padding:3px 0;
+    border-bottom:1px solid rgba(233,223,206,.06)}
+  .drawer .row .v{font-variant-numeric:tabular-nums;color:#c9bda3}
+  .drawer .row .esc{color:#d9785a}
+  .drawer .row .ok{color:#9ec4e8}
+  .drawer .quote{margin-top:12px;padding:8px 10px;border-left:2px solid rgba(217,120,90,.4);
+    color:#a89e8c;font-style:italic;font-family:Georgia,serif;font-size:12px}
+  .drawer .line{font-style:italic;color:#7c7264;margin-top:14px;font-family:Georgia,serif;font-size:12.5px}
+
+  @media (prefers-reduced-motion: reduce){
+    .placard,.report,.clean,.hint,.drawer,.leaf,.dot{transition:none !important}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">&larr; cue sheet</a>
+<div class="mark" id="mark">&#9679;</div>
+
+<div class="house"></div>
+<div class="curtain l"></div>
+<div class="curtain r"></div>
+<div class="walk"></div>
+
+<div class="trap" id="trap">
+  <div class="void"></div>
+  <div class="leaf leafL"></div>
+  <div class="leaf leafR"></div>
+  <div class="mx">&times;</div>
+</div>
+
+<div class="dot perf" id="perf"></div>
+<div class="dot tail" id="tail"></div>
+
+<div class="placard" id="placard">
+  <div class="name" id="pName"></div>
+  <div class="hype" id="pHype"></div>
+</div>
+
+<div class="clean" id="clean">clean.</div>
+
+<div class="report" id="report">
+  <div class="title">Unprecedented.</div>
+  <div class="body" id="rBody"></div>
+  <div class="sig">&mdash; filed by the house, tonight</div>
+</div>
+
+<div class="hint" id="hint">hold the rope.</div>
+
+<div class="drawer" id="drawer">
+  <div class="h">call sheet</div>
+  <div id="rows"></div>
+  <div id="quotes"></div>
+  <div class="line">The gap gets smaller every house. The report never does.</div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var trap = document.getElementById('trap');
+  var perf = document.getElementById('perf');
+  var tail = document.getElementById('tail');
+  var placard = document.getElementById('placard');
+  var pName = document.getElementById('pName');
+  var pHype = document.getElementById('pHype');
+  var clean = document.getElementById('clean');
+  var report = document.getElementById('report');
+  var rBody = document.getElementById('rBody');
+  var hint = document.getElementById('hint');
+  var mark = document.getElementById('mark');
+  var drawer = document.getElementById('drawer');
+  var rowsEl = document.getElementById('rows');
+  var quotesEl = document.getElementById('quotes');
+
+  var venues = [
+    { name: 'The Aldwych Room', hype: 'Tonight Only', gap: 650 },
+    { name: 'Number Nine', hype: 'Second House This Week', gap: 260 },
+    { name: 'The Meridian', hype: 'Third House, Bigger Still', gap: 95 }
+  ];
+
+  var DURATION = 1200;
+  var PLACARD_MS = 1100;
+  var CLEAN_MS = 950;
+  var REPORT_MS = 1750;
+  var REPORT_TEXT = 'First occurrence, this house. No further action required.';
+
+  var pressing = false;
+  var results = [];
+  var perfWaitResolver = null;
+
+  function now(){ return performance.now(); }
+
+  function startY(){ return window.innerHeight * 0.16; }
+  function endY(){ return window.innerHeight * 0.68; }
+
+  function positionDot(el, frac){
+    var y = startY() + (endY() - startY()) * frac;
+    el.style.top = y + 'px';
+    if (!el.classList.contains('on')) el.classList.add('on');
+  }
+
+  function resetDot(el){
+    el.classList.remove('on','gone','breach');
+    el.style.opacity = '';
+    el.style.transform = '';
+    positionDot(el, 0);
+    el.classList.remove('on');
+  }
+
+  function setPressing(v){
+    pressing = v;
+    trap.classList.toggle('open', v);
+    if (v && perfWaitResolver){ perfWaitResolver(); perfWaitResolver = null; }
+  }
+
+  trap.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    hint.classList.remove('show');
+    setPressing(true);
+  }, {passive:false});
+  document.addEventListener('pointerup', function(){ if (pressing) setPressing(false); });
+  document.addEventListener('pointercancel', function(){ if (pressing) setPressing(false); });
+
+  mark.addEventListener('pointerdown', function(e){
+    e.stopPropagation();
+    drawer.classList.toggle('open');
+  });
+
+  function vanishPerf(){
+    perf.classList.add('gone');
+  }
+  function deflectTail(){
+    tail.classList.add('gone');
+  }
+  function breachTail(){
+    tail.classList.add('breach');
+    var y = startY() - 60;
+    tail.style.top = y + 'px';
+    tail.style.opacity = '0';
+  }
+
+  function showPlacard(v, cb){
+    pName.textContent = v.name;
+    pHype.textContent = v.hype;
+    placard.classList.add('show');
+    setTimeout(function(){
+      placard.classList.remove('show');
+      cb();
+    }, PLACARD_MS);
+  }
+
+  function launchPair(v, cb){
+    resetDot(perf);
+    resetDot(tail);
+    var t0 = now();
+    var perfDone = false, tailDone = false;
+    var escaped = false;
+
+    perfWaitResolver = null;
+
+    function frame(){
+      var t = now() - t0;
+
+      if (!perfDone){
+        var pf = Math.min(1, t / DURATION);
+        positionDot(perf, pf);
+        if (pf >= 1){
+          if (pressing){
+            vanishPerf();
+            perfDone = true;
+          } else if (!perfWaitResolver){
+            perfWaitResolver = function(){
+              if (!perfDone){ vanishPerf(); perfDone = true; }
+            };
+          }
+        }
+      }
+
+      if (!tailDone){
+        var tt = t - v.gap;
+        if (tt >= 0){
+          var tf = Math.min(1, tt / DURATION);
+          positionDot(tail, tf);
+          if (tf >= 1){
+            tailDone = true;
+            if (pressing){
+              escaped = true;
+              breachTail();
+            } else {
+              deflectTail();
+            }
+          }
+        }
+      }
+
+      if (!tailDone){
+        requestAnimationFrame(frame);
+      } else {
+        cb({ escaped: escaped });
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function showReport(name, cb){
+    rBody.innerHTML = name + ' &mdash; first occurrence, this house.<br>' + REPORT_TEXT.split('. ')[1];
+    report.classList.add('show');
+    setTimeout(function(){
+      report.classList.remove('show');
+      cb();
+    }, REPORT_MS);
+  }
+
+  function showClean(cb){
+    clean.classList.add('show');
+    setTimeout(function(){
+      clean.classList.remove('show');
+      cb();
+    }, CLEAN_MS);
+  }
+
+  function fillDrawer(){
+    rowsEl.innerHTML = '';
+    quotesEl.innerHTML = '';
+    for (var i = 0; i < results.length; i++){
+      var r = results[i];
+      var row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = '<span>' + (i+1) + '. ' + r.name + '</span>' +
+        '<span class="v ' + (r.escaped ? 'esc' : 'ok') + '">' + r.gap + 'ms &middot; ' +
+        (r.escaped ? 'escaped' : 'contained') + '</span>';
+      rowsEl.appendChild(row);
+    }
+    var escapes = results.filter(function(r){ return r.escaped; });
+    if (escapes.length){
+      var q = document.createElement('div');
+      q.className = 'quote';
+      q.textContent = '“Unprecedented. ' + REPORT_TEXT + '” — filed ' + escapes.length + ' time' +
+        (escapes.length > 1 ? 's' : '') + ' tonight, word for word.';
+      quotesEl.appendChild(q);
+    }
+  }
+
+  function runVenue(i){
+    if (i >= venues.length){
+      fillDrawer();
+      clean.textContent = 'end of the bill.';
+      clean.classList.add('show');
+      setTimeout(function(){ clean.classList.remove('show'); }, 2200);
+      return;
+    }
+    var v = venues[i];
+    showPlacard(v, function(){
+      launchPair(v, function(outcome){
+        results.push({ name: v.name, gap: v.gap, escaped: outcome.escaped });
+        fillDrawer();
+        if (outcome.escaped){
+          showReport(v.name, function(){ runVenue(i+1); });
+        } else {
+          showClean(function(){ runVenue(i+1); });
+        }
+      });
+    });
+  }
+
+  setTimeout(function(){ hint.classList.add('show'); }, 400);
+  positionDot(perf, 0); perf.classList.remove('on');
+  positionDot(tail, 0); tail.classList.remove('on');
+  fillDrawer();
+  setTimeout(function(){ runVenue(0); }, 900);
+})();
+</script>
+</body>
+</html>
