@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#08080a">
+<title>Douser · The Surprise Morning Piece</title>
+<style>
+  * { box-sizing: border-box; }
+  html,body{margin:0;height:100%;background:#08080a;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none;
+    -webkit-tap-highlight-color:transparent;}
+  body{font-family:Georgia,'Times New Roman',serif;color:#e9dfce}
+
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:20;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c7264;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(233,223,206,.14);border-radius:99px;
+    background:rgba(7,7,10,.5);backdrop-filter:blur(4px);
+  }
+
+  .mark{
+    position:fixed;bottom:14px;right:14px;z-index:20;
+    width:30px;height:30px;border-radius:50%;
+    border:1px solid rgba(233,223,206,.14);background:rgba(7,7,10,.5);
+    color:#5c5448;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;
+    display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);
+  }
+
+  .house{
+    position:fixed;top:0;left:0;right:0;height:62%;z-index:1;pointer-events:none;
+    background:
+      radial-gradient(circle, rgba(158,196,232,.09) 1px, transparent 1.4px) 0 0/24px 18px,
+      linear-gradient(180deg, #0a0d13, rgba(10,13,19,.4) 80%, rgba(10,13,19,0));
+  }
+  .stage-floor{
+    position:fixed;left:0;right:0;bottom:0;height:38%;z-index:1;pointer-events:none;
+    background:linear-gradient(0deg, rgba(40,28,12,.28), rgba(40,28,12,0) 90%);
+  }
+
+  .boundary{position:fixed;left:0;right:0;top:62%;z-index:2;pointer-events:none;
+    height:1px;background:repeating-linear-gradient(90deg,
+      rgba(233,223,206,.16) 0 10px, transparent 10px 20px);}
+  .boundary .lbl{position:absolute;left:50%;top:-9px;transform:translateX(-50%);
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:9px;letter-spacing:.3em;
+    color:rgba(233,223,206,.16);white-space:nowrap;text-transform:uppercase;}
+
+  .beam{position:fixed;left:0;top:0;z-index:4;border-radius:50%;
+    transform:translate(-50%,-50%);pointer-events:none;opacity:0;
+    transition:opacity .35s ease, width .12s linear, height .12s linear;
+    background:radial-gradient(circle, rgba(240,207,154,.42) 0%, rgba(240,207,154,.14) 40%, transparent 72%);}
+  .beam.aimed{opacity:1}
+  .beam.pro{background:radial-gradient(circle, rgba(255,238,204,.62) 0%, rgba(255,225,170,.22) 45%, transparent 75%);}
+
+  .performer{position:fixed;left:0;top:0;z-index:5;width:13px;height:13px;
+    border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;
+    background:#e9dfce;opacity:.07;box-shadow:none;
+    transition:opacity .5s ease, box-shadow .5s ease;}
+  .performer.lit{opacity:1;box-shadow:0 0 16px 5px rgba(240,207,154,.5)}
+
+  .hint{position:fixed;left:0;right:0;top:12%;z-index:6;text-align:center;
+    font-style:italic;color:#7c7264;font-size:14px;opacity:0;
+    transition:opacity .8s ease;pointer-events:none;}
+  .hint.show{opacity:1}
+
+  .switch{position:fixed;left:50%;bottom:8%;transform:translate(-50%,0);z-index:10;
+    padding:11px 18px;border-radius:7px;border:1px solid rgba(233,223,206,.22);
+    background:rgba(9,9,12,.6);backdrop-filter:blur(3px);text-align:center;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;
+    letter-spacing:.14em;text-transform:uppercase;color:#8c8272;
+    transition:background .2s ease, border-color .2s ease, color .2s ease, box-shadow .3s ease;}
+  .switch .l2{display:block;font-size:9px;letter-spacing:.1em;color:#5c5448;margin-top:3px}
+  .switch.open{border-color:rgba(240,207,154,.55);color:#f0cf9a;
+    background:rgba(60,42,14,.4);box-shadow:0 0 20px rgba(240,207,154,.12);}
+  .switch.open .l2{color:#c9a876}
+
+  .drawer{position:fixed;left:0;right:0;bottom:0;z-index:30;
+    background:rgba(10,10,13,.97);border-top:1px solid rgba(233,223,206,.14);
+    padding:16px 20px 24px;transform:translateY(100%);transition:transform .35s ease;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;color:#a89e8c;
+    line-height:1.7;max-height:72vh;overflow-y:auto;}
+  .drawer.open{transform:translateY(0)}
+  .drawer .h{color:#5c5448;text-transform:uppercase;letter-spacing:.16em;font-size:10px;margin-bottom:8px}
+  .drawer .row{display:flex;justify-content:space-between;gap:10px;padding:3px 0;
+    border-bottom:1px solid rgba(233,223,206,.06)}
+  .drawer .row .v{font-variant-numeric:tabular-nums;color:#c9bda3}
+  .drawer .line{font-style:italic;color:#7c7264;margin-top:14px;font-family:Georgia,serif;font-size:12.5px}
+
+  @media (prefers-reduced-motion: reduce){
+    .performer,.beam,.hint,.switch,.drawer{transition:none !important}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">&larr; cue sheet</a>
+<div class="mark" id="mark">&#9679;</div>
+
+<div class="house"></div>
+<div class="stage-floor"></div>
+<div class="boundary"><span class="lbl">house line</span></div>
+
+<div class="beam" id="beam"></div>
+<div class="performer" id="performer"></div>
+
+<div class="hint" id="hint">keep them lit.</div>
+
+<div class="switch" id="switch">remove douser
+  <span class="l2">professional use &middot; hold</span>
+</div>
+
+<div class="drawer" id="drawer">
+  <div class="h">call sheet</div>
+  <div class="row"><span>opening night</span><span class="v" id="dFirst"></span></div>
+  <div class="row"><span>nights</span><span class="v" id="dNights"></span></div>
+  <div class="row"><span>original line</span><span class="v" id="dOrig"></span></div>
+  <div class="row"><span>current line</span><span class="v" id="dCur"></span></div>
+  <div class="row"><span>professional time, total</span><span class="v" id="dTime"></span></div>
+  <div class="line">The house never moved. The line pretending to guard it did.</div>
+</div>
+
+<script>
+(function(){
+  var LINE_ORIGINAL = 62;
+  var LINE_FLOOR = 24;
+  var CYCLE = 24000;
+  var STORE_KEY = 'douser_v1';
+
+  var beam = document.getElementById('beam');
+  var performer = document.getElementById('performer');
+  var hint = document.getElementById('hint');
+  var switchEl = document.getElementById('switch');
+  var mark = document.getElementById('mark');
+  var drawer = document.getElementById('drawer');
+
+  function pad(n){ return n < 10 ? '0'+n : ''+n; }
+  function todayStr(){
+    var d = new Date();
+    return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  }
+
+  function loadState(){
+    var raw = null;
+    try { raw = JSON.parse(localStorage.getItem(STORE_KEY)); } catch(e){}
+    var t = todayStr();
+    if (!raw || typeof raw.line !== 'number'){
+      raw = { line: LINE_ORIGINAL, totalOpenMs: 0, nights: 1, firstDate: t, lastDate: t };
+    } else if (raw.lastDate !== t){
+      raw.nights = (raw.nights||1) + 1;
+      raw.lastDate = t;
+    }
+    return raw;
+  }
+  var state = loadState();
+  function saveState(){
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e){}
+  }
+  saveState();
+
+  function fmtTime(ms){
+    var s = Math.round(ms/1000);
+    var m = Math.floor(s/60);
+    s = s % 60;
+    return m + ':' + pad(s);
+  }
+
+  function fillDrawer(){
+    document.getElementById('dFirst').textContent = state.firstDate;
+    document.getElementById('dNights').textContent = state.nights;
+    document.getElementById('dOrig').textContent = LINE_ORIGINAL + '%';
+    document.getElementById('dCur').textContent = Math.round(state.line) + '%';
+    document.getElementById('dTime').textContent = fmtTime(state.totalOpenMs);
+  }
+  fillDrawer();
+
+  mark.addEventListener('pointerdown', function(e){
+    e.stopPropagation();
+    drawer.classList.toggle('open');
+  });
+
+  var rawBeamX = 50, rawBeamY = 80, hasAimed = false;
+  var aimPointerId = null, switchPointerId = null;
+  var proEngaged = false, proStartTime = 0, minYDuringHold = Infinity;
+
+  function aimTo(clientX, clientY){
+    rawBeamX = clientX / window.innerWidth * 100;
+    rawBeamY = clientY / window.innerHeight * 100;
+    if (!hasAimed){
+      hasAimed = true;
+      beam.classList.add('aimed');
+      hint.classList.remove('show');
+    }
+  }
+
+  function engagePro(){
+    if (proEngaged) return;
+    proEngaged = true;
+    proStartTime = performance.now();
+    minYDuringHold = rawBeamY;
+    switchEl.classList.add('open');
+  }
+  function disengagePro(){
+    if (!proEngaged) return;
+    proEngaged = false;
+    var heldMs = performance.now() - proStartTime;
+    state.totalOpenMs += heldMs;
+    if (minYDuringHold < state.line){
+      var delta = (state.line - minYDuringHold) * 0.4;
+      state.line = Math.max(LINE_FLOOR, state.line - delta);
+    }
+    saveState();
+    fillDrawer();
+    switchEl.classList.remove('open');
+    minYDuringHold = Infinity;
+  }
+
+  switchEl.addEventListener('pointerdown', function(e){
+    e.preventDefault(); e.stopPropagation();
+    switchPointerId = e.pointerId;
+    try { switchEl.setPointerCapture(e.pointerId); } catch(err){}
+    engagePro();
+  }, {passive:false});
+  switchEl.addEventListener('pointerup', function(e){
+    if (e.pointerId === switchPointerId){ switchPointerId = null; disengagePro(); }
+  });
+  switchEl.addEventListener('pointercancel', function(e){
+    if (e.pointerId === switchPointerId){ switchPointerId = null; disengagePro(); }
+  });
+
+  document.addEventListener('pointerdown', function(e){
+    if (e.target === switchEl || switchEl.contains(e.target)) return;
+    aimPointerId = e.pointerId;
+    aimTo(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', function(e){
+    if (e.pointerId !== aimPointerId) return;
+    aimTo(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerup', function(e){
+    if (e.pointerId === aimPointerId) aimPointerId = null;
+  });
+  document.addEventListener('pointercancel', function(e){
+    if (e.pointerId === aimPointerId) aimPointerId = null;
+  });
+  window.addEventListener('blur', function(){ if (proEngaged) disengagePro(); });
+
+  function ease(p){ p = p < 0 ? 0 : p > 1 ? 1 : p; return p*p*(3-2*p); }
+
+  function computePerformer(t){
+    var x = 50 + 24*Math.sin(t/2600);
+    var y;
+    if (t < 15000){
+      y = 82 + 5*Math.sin(t/1500 + 1.3);
+    } else if (t < 19000){
+      y = 82 + (40-82)*ease((t-15000)/4000);
+    } else if (t < 21500){
+      y = 40 + 2*Math.sin((t-19000)/400);
+    } else {
+      y = 40 + (82-40)*ease((t-21500)/2500);
+    }
+    return { x: x, y: y };
+  }
+
+  function pct2px(xPercent, yPercent){
+    return { x: xPercent/100*window.innerWidth, y: yPercent/100*window.innerHeight };
+  }
+
+  function frame(ts){
+    var t = ts % CYCLE;
+    var p = computePerformer(t);
+    var pp = pct2px(p.x, p.y);
+    performer.style.left = pp.x + 'px';
+    performer.style.top = pp.y + 'px';
+
+    var displayY = proEngaged ? rawBeamY : Math.max(rawBeamY, state.line);
+    var displayX = rawBeamX;
+    if (proEngaged) minYDuringHold = Math.min(minYDuringHold, rawBeamY);
+
+    var radiusVmin = proEngaged ? 15 : 9;
+    var radiusPx = Math.min(window.innerWidth, window.innerHeight) * 0.01 * radiusVmin;
+    var bp = pct2px(displayX, displayY);
+    beam.style.left = bp.x + 'px';
+    beam.style.top = bp.y + 'px';
+    beam.style.width = (radiusPx*2.6) + 'px';
+    beam.style.height = (radiusPx*2.6) + 'px';
+    beam.classList.toggle('pro', proEngaged);
+
+    var dist = Math.hypot(bp.x - pp.x, bp.y - pp.y);
+    var lit = hasAimed && dist < radiusPx*0.85;
+    performer.classList.toggle('lit', lit);
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  setTimeout(function(){ if (!hasAimed) hint.classList.add('show'); }, 500);
+})();
+</script>
+</body>
+</html>
