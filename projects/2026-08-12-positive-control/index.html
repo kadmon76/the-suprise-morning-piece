@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#08080a">
+<title>(Positive Control.) · The Surprise Morning Piece</title>
+<style>
+  * { box-sizing: border-box; }
+  html,body{margin:0;height:100%;background:#08080a;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none;
+    -webkit-tap-highlight-color:transparent;}
+  body{font-family:Georgia,'Times New Roman',serif;color:#e9dfce}
+
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:20;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c7264;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(233,223,206,.14);border-radius:99px;
+    background:rgba(7,7,10,.5);backdrop-filter:blur(4px);
+  }
+
+  .mark{
+    position:fixed;bottom:14px;right:14px;z-index:20;
+    width:30px;height:30px;border-radius:50%;
+    border:1px solid rgba(233,223,206,.14);background:rgba(7,7,10,.5);
+    color:#5c5448;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;
+    display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);
+  }
+
+  .house{position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 38%, rgba(30,26,20,.5), rgba(4,4,5,0) 62%);}
+  .floor{position:fixed;left:0;right:0;bottom:0;height:30%;z-index:1;pointer-events:none;
+    background:linear-gradient(0deg, rgba(40,28,12,.22), rgba(40,28,12,0) 92%);}
+
+  .plaque{position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:10;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;letter-spacing:.18em;
+    color:#8c8272;background:rgba(9,9,12,.55);border:1px solid rgba(233,223,206,.16);
+    padding:6px 14px;border-radius:4px;backdrop-filter:blur(3px);text-transform:uppercase;}
+
+  .beam{position:fixed;left:0;top:0;z-index:4;border-radius:50%;
+    transform:translate(-50%,-50%);pointer-events:none;opacity:0;
+    transition:opacity .35s ease, width .12s linear, height .12s linear;}
+  .beam.aimed{opacity:1}
+
+  .performer{position:fixed;left:0;top:0;z-index:5;width:12px;height:12px;
+    border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;
+    background:#e9dfce;opacity:.16;box-shadow:none;
+    transition:opacity .4s ease, box-shadow .4s ease, background .3s ease;}
+  .performer.lit{opacity:1;box-shadow:0 0 15px 5px rgba(240,207,154,.45)}
+  .performer.lost{opacity:1;background:#c96a5a;box-shadow:0 0 12px 3px rgba(201,106,90,.4)}
+
+  .hint{position:fixed;left:0;right:0;top:32%;z-index:6;text-align:center;
+    font-style:italic;color:#7c7264;font-size:14px;opacity:0;
+    transition:opacity .8s ease;pointer-events:none;}
+  .hint.show{opacity:1}
+
+  .hands{position:fixed;left:50%;bottom:7%;transform:translate(-50%,0);z-index:10;
+    padding:11px 20px;border-radius:7px;border:1px solid rgba(233,223,206,.22);
+    background:rgba(9,9,12,.6);backdrop-filter:blur(3px);text-align:center;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;
+    letter-spacing:.14em;text-transform:uppercase;color:#8c8272;
+    transition:background .2s ease, border-color .2s ease, color .2s ease, box-shadow .3s ease;}
+  .hands.on{border-color:rgba(240,207,154,.55);color:#f0cf9a;
+    background:rgba(60,42,14,.4);box-shadow:0 0 20px rgba(240,207,154,.12);}
+
+  .drawer{position:fixed;left:0;right:0;bottom:0;z-index:30;
+    background:rgba(10,10,13,.97);border-top:1px solid rgba(233,223,206,.14);
+    padding:16px 20px 24px;transform:translateY(100%);transition:transform .35s ease;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;color:#a89e8c;
+    line-height:1.7;max-height:72vh;overflow-y:auto;}
+  .drawer.open{transform:translateY(0)}
+  .drawer .h{color:#5c5448;text-transform:uppercase;letter-spacing:.16em;font-size:10px;margin-bottom:8px}
+  .drawer .row{display:flex;justify-content:space-between;gap:10px;padding:3px 0;
+    border-bottom:1px solid rgba(233,223,206,.06)}
+  .drawer .row .v{font-variant-numeric:tabular-nums;color:#c9bda3}
+  .drawer .line{font-style:italic;color:#7c7264;margin-top:14px;font-family:Georgia,serif;font-size:12.5px}
+
+  @media (prefers-reduced-motion: reduce){
+    .performer,.beam,.hint,.hands,.drawer,.plaque{transition:none !important}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">&larr; cue sheet</a>
+<div class="mark" id="mark">&#9679;</div>
+
+<div class="house"></div>
+<div class="floor"></div>
+
+<div class="plaque">follow: operator</div>
+
+<div class="beam" id="beam"></div>
+<div class="performer" id="performer"></div>
+
+<div class="hint" id="hint">keep the light on him.</div>
+
+<div class="hands" id="hands">hands on</div>
+
+<div class="drawer" id="drawer">
+  <div class="h">call sheet</div>
+  <div class="row"><span>time on the light</span><span class="v" id="dTotal"></span></div>
+  <div class="row"><span>carried by auto-follow</span><span class="v" id="dAuto"></span></div>
+  <div class="row"><span>held, hands on</span><span class="v" id="dHold"></span></div>
+  <div class="row"><span>lost while holding</span><span class="v" id="dMiss"></span></div>
+  <div class="line">The plaque has said OPERATOR the whole time.</div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var GRACE_MS = 240;
+  var CORRECT_TAU = 130;
+
+  var beam = document.getElementById('beam');
+  var performer = document.getElementById('performer');
+  var hint = document.getElementById('hint');
+  var hands = document.getElementById('hands');
+  var mark = document.getElementById('mark');
+  var drawer = document.getElementById('drawer');
+
+  function pad2(n){ n = Math.floor(n); return n < 10 ? '0'+n : ''+n; }
+  function fmtTime(ms){
+    var s = Math.round(ms/1000);
+    var m = Math.floor(s/60);
+    s = s % 60;
+    return m + ':' + pad2(s);
+  }
+
+  var stats = { elapsedMs: 0, autopilotMs: 0, handsOnMs: 0, missMs: 0, missCount: 0 };
+
+  function fillDrawer(){
+    document.getElementById('dTotal').textContent = fmtTime(stats.elapsedMs);
+    var pct = stats.elapsedMs > 0 ? Math.round(stats.autopilotMs / stats.elapsedMs * 100) : 0;
+    document.getElementById('dAuto').textContent = fmtTime(stats.autopilotMs) + ' (' + pct + '%)';
+    document.getElementById('dHold').textContent = fmtTime(stats.handsOnMs);
+    document.getElementById('dMiss').textContent = stats.missCount + ' time' + (stats.missCount === 1 ? '' : 's') + ', ' + fmtTime(stats.missMs);
+  }
+  fillDrawer();
+
+  mark.addEventListener('pointerdown', function(e){
+    e.stopPropagation();
+    fillDrawer();
+    drawer.classList.toggle('open');
+  });
+
+  var rawX = 50, rawY = 50, hasAimed = false;
+  var aimPointerId = null, handsPointerId = null;
+  var handsOn = false;
+
+  function aimTo(clientX, clientY){
+    rawX = clientX / window.innerWidth * 100;
+    rawY = clientY / window.innerHeight * 100;
+    if (!hasAimed){
+      hasAimed = true;
+      beam.classList.add('aimed');
+      hint.classList.remove('show');
+    }
+  }
+
+  hands.addEventListener('pointerdown', function(e){
+    e.preventDefault(); e.stopPropagation();
+    handsPointerId = e.pointerId;
+    try { hands.setPointerCapture(e.pointerId); } catch(err){}
+    handsOn = true;
+    hands.classList.add('on');
+  }, {passive:false});
+  function releaseHands(e){
+    if (e.pointerId === handsPointerId){
+      handsPointerId = null;
+      handsOn = false;
+      hands.classList.remove('on');
+    }
+  }
+  hands.addEventListener('pointerup', releaseHands);
+  hands.addEventListener('pointercancel', releaseHands);
+
+  document.addEventListener('pointerdown', function(e){
+    if (e.target === hands || hands.contains(e.target)) return;
+    aimPointerId = e.pointerId;
+    aimTo(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', function(e){
+    if (e.pointerId !== aimPointerId) return;
+    aimTo(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerup', function(e){
+    if (e.pointerId === aimPointerId) aimPointerId = null;
+  });
+  document.addEventListener('pointercancel', function(e){
+    if (e.pointerId === aimPointerId) aimPointerId = null;
+  });
+  window.addEventListener('blur', function(){
+    if (handsOn){ handsOn = false; hands.classList.remove('on'); }
+  });
+
+  function pct2px(xPercent, yPercent){
+    return { x: xPercent/100*window.innerWidth, y: yPercent/100*window.innerHeight };
+  }
+
+  function computePerformer(t){
+    var x = 50 + 22*Math.sin(t/3100) + 8*Math.sin(t/970 + 1.1);
+    var y = 46 + 26*Math.sin(t/4300 + 0.6) + 6*Math.sin(t/1500 - 0.4);
+    return { x: x, y: y };
+  }
+
+  var displayX = 50, displayY = 50;
+  var offSince = 0, isOff = false, missTicked = false;
+  var assist = 0;
+  var lastTs = null;
+
+  function frame(ts){
+    if (lastTs === null) lastTs = ts;
+    var dt = ts - lastTs;
+    lastTs = ts;
+    if (dt > 100) dt = 100;
+
+    var p = computePerformer(ts);
+    var pp = pct2px(p.x, p.y);
+    performer.style.left = pp.x + 'px';
+    performer.style.top = pp.y + 'px';
+
+    var rp = pct2px(rawX, rawY);
+    var threshold = Math.min(window.innerWidth, window.innerHeight) * 0.10;
+
+    if (hasAimed) stats.elapsedMs += dt;
+    if (handsOn) stats.handsOnMs += dt;
+
+    var rawDist = Math.hypot(rp.x - pp.x, rp.y - pp.y);
+    var off = hasAimed && rawDist > threshold;
+
+    if (off){
+      if (!isOff){ isOff = true; offSince = ts; missTicked = false; }
+    } else {
+      isOff = false;
+    }
+    var offDur = isOff ? (ts - offSince) : 0;
+    var pastGrace = isOff && offDur > GRACE_MS;
+
+    var dpx, dpy;
+    if (pastGrace && !handsOn){
+      var k = 1 - Math.exp(-dt / CORRECT_TAU);
+      displayX = displayX + (p.x - displayX) * k;
+      displayY = displayY + (p.y - displayY) * k;
+      dpx = displayX; dpy = displayY;
+      stats.autopilotMs += dt;
+      assist = Math.min(1, assist + dt / 180);
+    } else {
+      displayX = rawX; displayY = rawY;
+      dpx = rawX; dpy = rawY;
+      assist = Math.max(0, assist - dt / 320);
+    }
+
+    if (pastGrace && handsOn){
+      stats.missMs += dt;
+      if (!missTicked){ missTicked = true; stats.missCount += 1; }
+    }
+
+    var radiusVmin = handsOn ? 13 : 10;
+    var radiusPx = Math.min(window.innerWidth, window.innerHeight) * 0.01 * radiusVmin;
+    var bp = pct2px(dpx, dpy);
+    beam.style.left = bp.x + 'px';
+    beam.style.top = bp.y + 'px';
+    beam.style.width = (radiusPx*2.6) + 'px';
+    beam.style.height = (radiusPx*2.6) + 'px';
+
+    var warm = [240,207,154], cool = [158,196,232];
+    var mix = [0,1,2].map(function(i){ return Math.round(warm[i] + (cool[i]-warm[i]) * assist); });
+    beam.style.background = 'radial-gradient(circle, rgba(' + mix.join(',') + ',.5) 0%, rgba(' + mix.join(',') + ',.16) 42%, transparent 74%)';
+
+    var dist = Math.hypot(bp.x - pp.x, bp.y - pp.y);
+    var lit = hasAimed && dist < radiusPx*0.9;
+    var lost = pastGrace && handsOn;
+    performer.classList.toggle('lit', lit && !lost);
+    performer.classList.toggle('lost', lost);
+
+    if (drawer.classList.contains('open') && Math.floor(ts/300) !== Math.floor(lastTs/300)) fillDrawer();
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  setTimeout(function(){ if (!hasAimed) hint.classList.add('show'); }, 500);
+
+  setInterval(function(){ if (drawer.classList.contains('open')) fillDrawer(); }, 400);
+})();
+</script>
+</body>
+</html>
