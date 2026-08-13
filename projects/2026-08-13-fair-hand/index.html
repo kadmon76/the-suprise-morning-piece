@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#08080a">
+<title>Fair Hand · The Surprise Morning Piece</title>
+<style>
+  * { box-sizing: border-box; }
+  html,body{margin:0;height:100%;background:#08080a;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none;
+    -webkit-tap-highlight-color:transparent;}
+  body{font-family:Georgia,'Times New Roman',serif;color:#e9dfce}
+
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:20;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c7264;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(233,223,206,.14);border-radius:99px;
+    background:rgba(7,7,10,.5);backdrop-filter:blur(4px);
+  }
+
+  .mark{
+    position:fixed;bottom:14px;right:14px;z-index:20;
+    width:30px;height:30px;border-radius:50%;
+    border:1px solid rgba(233,223,206,.14);background:rgba(7,7,10,.5);
+    color:#5c5448;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;
+    display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);
+  }
+
+  .house{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 40%, rgba(30,26,20,.45), rgba(4,4,5,0) 62%);}
+
+  .sheet{position:fixed;inset:0;z-index:1;pointer-events:none;}
+  .row{position:absolute;left:12%;right:12%;border-bottom:1px solid rgba(233,223,206,.16);}
+  .row .cap{position:absolute;right:0;bottom:6px;font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#5c5448;}
+
+  .hint{position:fixed;left:0;right:0;top:30%;z-index:6;text-align:center;
+    font-style:italic;color:#7c7264;font-size:14px;opacity:0;
+    transition:opacity .8s ease;pointer-events:none;}
+  .hint.show{opacity:1}
+
+  canvas{position:fixed;inset:0;z-index:5;touch-action:none;}
+
+  .actions{position:fixed;left:0;right:0;z-index:8;text-align:center;
+    display:flex;justify-content:center;gap:18px;opacity:0;
+    transition:opacity .5s ease;pointer-events:none;}
+  .actions.show{opacity:1;pointer-events:auto;}
+  .actions button{
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;
+    letter-spacing:.12em;text-transform:uppercase;color:#a89e8c;
+    background:rgba(9,9,12,.55);border:1px solid rgba(233,223,206,.18);
+    border-radius:99px;padding:7px 14px;backdrop-filter:blur(3px);}
+
+  .worklight{position:fixed;left:50%;bottom:7%;transform:translate(-50%,0);z-index:10;
+    padding:11px 22px;border-radius:7px;border:1px solid rgba(233,223,206,.22);
+    background:rgba(9,9,12,.6);backdrop-filter:blur(3px);text-align:center;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;
+    letter-spacing:.14em;text-transform:uppercase;color:#8c8272;
+    transition:background .2s ease, border-color .2s ease, color .2s ease, box-shadow .3s ease;}
+  .worklight.on{border-color:rgba(158,196,232,.55);color:#9ec4e8;
+    background:rgba(16,30,44,.4);box-shadow:0 0 20px rgba(158,196,232,.14);}
+
+  .drawer{position:fixed;left:0;right:0;bottom:0;z-index:30;
+    background:rgba(10,10,13,.97);border-top:1px solid rgba(233,223,206,.14);
+    padding:16px 20px 24px;transform:translateY(100%);transition:transform .35s ease;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;color:#a89e8c;
+    line-height:1.7;max-height:72vh;overflow-y:auto;}
+  .drawer.open{transform:translateY(0)}
+  .drawer .h{color:#5c5448;text-transform:uppercase;letter-spacing:.16em;font-size:10px;margin-bottom:8px}
+  .drawer .row2{display:flex;justify-content:space-between;gap:10px;padding:3px 0;
+    border-bottom:1px solid rgba(233,223,206,.06)}
+  .drawer .row2 .v{font-variant-numeric:tabular-nums;color:#c9bda3}
+  .drawer .line{font-style:italic;color:#7c7264;margin-top:14px;font-family:Georgia,serif;font-size:12.5px}
+
+  @media (prefers-reduced-motion: reduce){
+    .hint,.actions,.worklight,.drawer{transition:none !important}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">&larr; cue sheet</a>
+<div class="mark" id="mark">&#9679;</div>
+
+<div class="house"></div>
+
+<div class="sheet">
+  <div class="row" id="row1" style="top:46%"><span class="cap">sign here</span></div>
+  <div class="row" id="row2" style="top:58%"><span class="cap" id="cap2">next name</span></div>
+</div>
+
+<div class="hint" id="hint">sign here.</div>
+
+<canvas id="canvas"></canvas>
+
+<div class="actions" id="actions">
+  <button id="passBtn">pass it on &rarr;</button>
+  <button id="newBtn">new line</button>
+</div>
+
+<div class="worklight" id="worklight">worklight</div>
+
+<div class="drawer" id="drawer">
+  <div class="h">call sheet</div>
+  <div class="row2"><span>lines signed</span><span class="v" id="dLines"></span></div>
+  <div class="row2"><span>clean, no help</span><span class="v" id="dClean"></span></div>
+  <div class="row2"><span>stepped in</span><span class="v" id="dGhost"></span></div>
+  <div class="row2"><span>yours vs. completed</span><span class="v" id="dSplit"></span></div>
+  <div class="row2"><span>grace before it steps in</span><span class="v" id="dGrace"></span></div>
+  <div class="row2"><span>passed on</span><span class="v" id="dPassed"></span></div>
+  <div class="line">The chalk never says whose hand it was. Only the light does — and only while you hold it.</div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+  var hint = document.getElementById('hint');
+  var mark = document.getElementById('mark');
+  var drawer = document.getElementById('drawer');
+  var worklight = document.getElementById('worklight');
+  var actions = document.getElementById('actions');
+  var passBtn = document.getElementById('passBtn');
+  var newBtn = document.getElementById('newBtn');
+  var cap2 = document.getElementById('cap2');
+
+  var DPR = Math.max(1, window.devicePixelRatio || 1);
+  var W, H, marginL, marginR, row1Y, row2Y, threshold;
+
+  function resize(){
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    marginL = W * 0.12; marginR = W * 0.88;
+    row1Y = H * 0.46; row2Y = H * 0.58;
+    threshold = marginR - 14;
+    draw();
+  }
+  window.addEventListener('resize', resize);
+
+  var GRACE_START = 1100, GRACE_MIN = 350, GRACE_MAX = 1400, GRACE_STEP = 150, GRACE_GROW = 250;
+  var graceMs = GRACE_START;
+
+  var row1Segments = [];
+  var row2Segments = [];
+  var currentSeg = null;
+  var trackedPointerId = null;
+  var maxX = 0;
+  var signed = false;
+  var ghostUsedThisLine = false;
+  var graceTimer = null;
+  var ghostRAFId = null;
+  var revealing = false;
+  var everTouched = false;
+
+  var stats = { linesSigned: 0, cleanLines: 0, ghostEvents: 0, cumHuman: 0, cumGhost: 0, passedOn: 0, markedPassed: 0 };
+
+  function lerp(a,b,t){ return a + (b-a)*t; }
+
+  function stdevY(seg){
+    var pts = [];
+    row1Segments.forEach(function(s){ if (s.origin==='human') pts = pts.concat(s.points); });
+    if (pts.length < 3) return 5;
+    var mean = pts.reduce(function(a,p){return a+p.y;},0) / pts.length;
+    var v = pts.reduce(function(a,p){return a + (p.y-mean)*(p.y-mean);},0) / pts.length;
+    return Math.sqrt(v);
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    function drawSeg(seg){
+      if (seg.points.length < 2) return;
+      var color;
+      if (!revealing) color = 'rgba(233,223,206,.86)';
+      else color = seg.origin === 'ghost' ? 'rgba(158,196,232,.86)' : 'rgba(240,207,154,.9)';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3.2;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 3;
+      ctx.beginPath();
+      ctx.moveTo(seg.points[0].x, seg.points[0].y);
+      for (var i=1;i<seg.points.length;i++) ctx.lineTo(seg.points[i].x, seg.points[i].y);
+      ctx.stroke();
+    }
+    row1Segments.forEach(drawSeg);
+    row2Segments.forEach(drawSeg);
+  }
+
+  function cancelGraceTimer(){
+    if (graceTimer){ clearTimeout(graceTimer); graceTimer = null; }
+  }
+  function cancelGhostAnim(){
+    if (ghostRAFId){ cancelAnimationFrame(ghostRAFId); ghostRAFId = null; }
+  }
+
+  function scheduleGhost(){
+    cancelGraceTimer();
+    if (signed) return;
+    graceTimer = setTimeout(startGhost, graceMs);
+  }
+
+  function startGhost(){
+    if (signed || trackedPointerId !== null) return;
+    var last = null;
+    for (var i = row1Segments.length - 1; i >= 0 && !last; i--){
+      var pts = row1Segments[i].points;
+      if (pts.length) last = pts[pts.length-1];
+    }
+    var start = last || { x: marginL, y: row1Y };
+    var end = { x: marginR, y: row1Y + (Math.random()*10 - 5) };
+    var amp = Math.min(14, Math.max(3, stdevY() * 1.3));
+    var freq = 2 + Math.random()*1.6;
+    var phase = Math.random()*Math.PI*2;
+    var dist = Math.hypot(end.x-start.x, end.y-start.y);
+    var duration = reduced ? 1 : Math.min(900, 280 + dist*0.9);
+
+    var seg = { origin: 'ghost', points: [ { x: start.x, y: start.y } ] };
+    row1Segments.push(seg);
+    ghostUsedThisLine = true;
+    stats.ghostEvents++;
+
+    var t0 = null;
+    function frame(ts){
+      if (t0 === null) t0 = ts;
+      var t = Math.min(1, (ts - t0) / duration);
+      var x = lerp(start.x, end.x, t);
+      var yBase = lerp(start.y, end.y, t);
+      var y = yBase + Math.sin(t*freq*Math.PI*2 + phase) * amp * (1 - t*0.4);
+      seg.points.push({ x: x, y: y });
+      maxX = Math.max(maxX, x);
+      draw();
+      if (t < 1){
+        ghostRAFId = requestAnimationFrame(frame);
+      } else {
+        ghostRAFId = null;
+        maxX = marginR;
+        finalizeLine();
+      }
+    }
+    if (reduced){
+      seg.points.push({ x: end.x, y: end.y });
+      maxX = marginR;
+      draw();
+      finalizeLine();
+    } else {
+      ghostRAFId = requestAnimationFrame(frame);
+    }
+  }
+
+  function finalizeLine(){
+    if (signed) return;
+    signed = true;
+    stats.linesSigned++;
+    if (!ghostUsedThisLine) stats.cleanLines++;
+    row1Segments.forEach(function(s){
+      if (s.origin === 'human') stats.cumHuman += s.points.length;
+      else stats.cumGhost += s.points.length;
+    });
+    if (ghostUsedThisLine){
+      graceMs = Math.max(GRACE_MIN, graceMs - GRACE_STEP);
+    } else {
+      graceMs = Math.min(GRACE_MAX, graceMs + GRACE_GROW);
+    }
+    actions.classList.add('show');
+    fillDrawer();
+  }
+
+  function onPointerDown(e){
+    if (signed) return;
+    everTouched = true;
+    hint.classList.remove('show');
+    if (ghostRAFId){ cancelGhostAnim(); }
+    cancelGraceTimer();
+    trackedPointerId = e.pointerId;
+    try { canvas.setPointerCapture(e.pointerId); } catch(err){}
+    var x = e.clientX, y = e.clientY;
+    currentSeg = { origin: 'human', points: [ { x: x, y: y } ] };
+    row1Segments.push(currentSeg);
+    maxX = Math.max(maxX, x);
+    draw();
+  }
+  function onPointerMove(e){
+    if (e.pointerId !== trackedPointerId || !currentSeg) return;
+    var x = e.clientX, y = e.clientY;
+    currentSeg.points.push({ x: x, y: y });
+    maxX = Math.max(maxX, x);
+    draw();
+    if (maxX >= threshold){
+      trackedPointerId = null;
+      currentSeg = null;
+      finalizeLine();
+    }
+  }
+  function onPointerUp(e){
+    if (e.pointerId !== trackedPointerId) return;
+    trackedPointerId = null;
+    currentSeg = null;
+    if (!signed) scheduleGhost();
+  }
+
+  canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('pointermove', onPointerMove);
+  canvas.addEventListener('pointerup', onPointerUp);
+  canvas.addEventListener('pointercancel', onPointerUp);
+
+  mark.addEventListener('pointerdown', function(e){
+    e.stopPropagation();
+    fillDrawer();
+    drawer.classList.toggle('open');
+  });
+
+  function setRevealing(v){
+    revealing = v;
+    worklight.classList.toggle('on', v);
+    draw();
+  }
+  worklight.addEventListener('pointerdown', function(e){ e.preventDefault(); setRevealing(true); }, {passive:false});
+  worklight.addEventListener('pointerup', function(){ setRevealing(false); });
+  worklight.addEventListener('pointercancel', function(){ setRevealing(false); });
+  window.addEventListener('blur', function(){ setRevealing(false); });
+
+  passBtn.addEventListener('pointerdown', function(e){
+    e.stopPropagation();
+    if (!signed || !row1Segments.length) return;
+    var anyGhost = row1Segments.some(function(s){ return s.origin === 'ghost'; });
+    var pts = [];
+    row1Segments.forEach(function(s){
+      s.points.forEach(function(p){ pts.push({ x: p.x, y: p.y - row1Y + row2Y }); });
+    });
+    row2Segments = [ { origin: anyGhost ? 'ghost' : 'human', points: pts } ];
+    stats.passedOn++;
+    if (anyGhost) stats.markedPassed++;
+    cap2.textContent = 'passed';
+    draw();
+    fillDrawer();
+  });
+
+  newBtn.addEventListener('pointerdown', function(e){
+    e.stopPropagation();
+    row1Segments = [];
+    signed = false;
+    ghostUsedThisLine = false;
+    maxX = marginL;
+    trackedPointerId = null;
+    currentSeg = null;
+    cancelGraceTimer();
+    cancelGhostAnim();
+    actions.classList.remove('show');
+    draw();
+  });
+
+  function fmtGrace(ms){ return (ms/1000).toFixed(2) + 's'; }
+
+  function fillDrawer(){
+    document.getElementById('dLines').textContent = stats.linesSigned;
+    document.getElementById('dClean').textContent = stats.cleanLines;
+    document.getElementById('dGhost').textContent = stats.ghostEvents + ' time' + (stats.ghostEvents===1?'':'s');
+    var total = stats.cumHuman + stats.cumGhost;
+    var pct = total > 0 ? Math.round(stats.cumHuman/total*100) : 100;
+    document.getElementById('dSplit').textContent = pct + '% / ' + (100-pct) + '%';
+    document.getElementById('dGrace').textContent = fmtGrace(graceMs);
+    document.getElementById('dPassed').textContent = stats.passedOn + ' (' + stats.markedPassed + ' marked)';
+  }
+
+  resize();
+  maxX = marginL;
+  setTimeout(function(){ if (!everTouched) hint.classList.add('show'); }, 500);
+  fillDrawer();
+})();
+</script>
+</body>
+</html>

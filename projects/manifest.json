@@ -167,6 +167,13 @@
       "kind": "question",
       "note": "A follow spot, a performer, and a console that's better at this than it lets on.",
       "path": "projects/2026-08-12-positive-control/index.html"
+    },
+    {
+      "date": "2026-08-13",
+      "title": "Fair Hand",
+      "kind": "seed",
+      "note": "A sign-in sheet, one blank line. Pause too long and somebody helps.",
+      "path": "projects/2026-08-13-fair-hand/index.html"
     }
   ]
 }
