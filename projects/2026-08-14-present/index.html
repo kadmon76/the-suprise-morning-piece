@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>(Present.)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0908;
+    --card:#17140f;
+    --card-edge:#302a1e;
+    --ink:#cfc6b4;
+    --ink-dim:#7c7364;
+    --gold:#e7c069;
+    --present:#8fd694;
+    --idle:#e0a640;
+    --away:#d1685a;
+    --stamp:#b5482f;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--ink);
+    font-family:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    touch-action:none; user-select:none; -webkit-user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .bulb{
+    width:14px; height:14px; border-radius:50%;
+    background:radial-gradient(circle at 50% 45%, #fff6da, var(--gold) 55%, #7a5b23 100%);
+    box-shadow:0 0 40px 18px rgba(231,192,105,0.18), 0 0 90px 60px rgba(231,192,105,0.07);
+    margin-bottom:2px;
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .bulb{ animation:flicker 6s ease-in-out infinite; }
+    @keyframes flicker{
+      0%,100%{ opacity:1; }
+      48%{ opacity:1; }
+      50%{ opacity:0.9; }
+      52%{ opacity:1; }
+      74%{ opacity:1; }
+      75%{ opacity:0.85; }
+      76%{ opacity:1; }
+    }
+  }
+  .cord{
+    width:1px; height:34px; background:linear-gradient(var(--card-edge), transparent);
+    margin-bottom:22px;
+  }
+  .card{
+    position:relative;
+    width:min(84vw, 340px);
+    background:var(--card);
+    border:1px solid var(--card-edge);
+    border-radius:6px;
+    padding:26px 22px 22px;
+    box-shadow:0 30px 70px -20px rgba(0,0,0,0.7);
+  }
+  .stamp{
+    position:absolute; top:-14px; right:-10px;
+    font-size:9.5px; letter-spacing:0.04em;
+    color:var(--stamp);
+    border:1.5px solid var(--stamp);
+    padding:4px 7px;
+    border-radius:3px;
+    transform:rotate(6deg);
+    opacity:0.82;
+    background:rgba(10,9,8,0.6);
+    max-width:190px;
+    text-align:center;
+    line-height:1.35;
+  }
+  .field-label{
+    font-size:9.5px; letter-spacing:0.18em; color:var(--ink-dim);
+    text-transform:uppercase; margin-bottom:3px;
+  }
+  .clock{
+    font-size:44px; font-weight:600; letter-spacing:0.02em;
+    color:var(--ink); margin:2px 0 10px; font-variant-numeric:tabular-nums;
+  }
+  .status{
+    font-size:13px; letter-spacing:0.14em; font-weight:600;
+    margin-bottom:18px; transition:color 0.4s ease;
+  }
+  @media (prefers-reduced-motion: reduce){ .status{ transition:none; } }
+  .status.present{ color:var(--present); }
+  .status.idle{ color:var(--idle); }
+  .status.away{ color:var(--away); }
+  .status.rest{ color:var(--ink-dim); }
+  .presence-row{
+    display:flex; justify-content:space-between; align-items:baseline;
+    border-top:1px dashed var(--card-edge); padding-top:12px; margin-bottom:20px;
+  }
+  .presence-row .num{ font-size:20px; color:var(--gold); font-weight:600; }
+  .btn{
+    width:100%; padding:14px 0; border-radius:4px; border:1px solid var(--card-edge);
+    background:transparent; color:var(--ink); font-family:inherit;
+    font-size:13px; letter-spacing:0.16em; font-weight:600; text-transform:uppercase;
+    cursor:pointer;
+  }
+  .btn.in{ border-color:var(--present); color:var(--present); }
+  .btn.out{ border-color:var(--away); color:var(--away); }
+  .btn:active{ opacity:0.6; }
+  .instruction{
+    margin-top:16px; font-size:11px; color:var(--ink-dim); text-align:center;
+    letter-spacing:0.02em; max-width:280px;
+  }
+  .summary{ display:none; }
+  .summary.show{ display:block; }
+  .summary .verdict{
+    font-size:16px; font-weight:700; letter-spacing:0.08em; margin-bottom:8px;
+  }
+  .summary .verdict.exemplary{ color:var(--present); }
+  .summary .verdict.satisfactory{ color:var(--idle); }
+  .summary .verdict.flagged{ color:var(--away); }
+  .summary .line{ font-size:12.5px; color:var(--ink); line-height:1.55; margin-bottom:14px; }
+  .summary .meta{ font-size:10.5px; color:var(--ink-dim); line-height:1.7; margin-bottom:18px; }
+  .back{
+    position:fixed; top:calc(14px + env(safe-area-inset-top)); left:calc(14px + env(safe-area-inset-left));
+    font-size:11px; color:var(--ink-dim); text-decoration:none; letter-spacing:0.02em; opacity:0.6;
+  }
+  .logmark{
+    position:fixed; bottom:calc(16px + env(safe-area-inset-bottom)); right:calc(16px + env(safe-area-inset-right));
+    font-size:10px; letter-spacing:0.14em; color:var(--ink-dim); opacity:0.5;
+    background:none; border:none; font-family:inherit; padding:8px; cursor:pointer;
+  }
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,4,0.94);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s ease;
+    z-index:10;
+  }
+  @media (prefers-reduced-motion: reduce){ .overlay{ transition:none; } }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:420px; background:var(--card); border:1px solid var(--card-edge);
+    border-radius:14px 14px 0 0; padding:22px 22px calc(26px + env(safe-area-inset-bottom));
+    max-height:78vh; overflow-y:auto;
+  }
+  .sheet h2{
+    font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold);
+    margin:0 0 14px; font-weight:600;
+  }
+  .sheet .row{
+    display:flex; justify-content:space-between; font-size:11.5px; color:var(--ink);
+    padding:6px 0; border-bottom:1px solid var(--card-edge);
+  }
+  .sheet .row span:last-child{ color:var(--ink-dim); }
+  canvas#spark{
+    width:100%; height:52px; display:block; margin:14px 0 10px;
+    background:#0d0b09; border:1px solid var(--card-edge); border-radius:3px;
+  }
+  .sheet .confession{
+    font-size:11.5px; color:var(--ink-dim); line-height:1.6; margin-top:12px;
+    font-style:italic;
+  }
+  .sheet .close{
+    display:block; margin:20px auto 0; background:none; border:1px solid var(--card-edge);
+    color:var(--ink-dim); font-family:inherit; font-size:11px; letter-spacing:0.1em;
+    padding:9px 22px; border-radius:4px;
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="../../index.html">← cue sheet</a>
+
+<div class="stage">
+  <div class="bulb"></div>
+  <div class="cord"></div>
+
+  <div class="card" id="card">
+    <div class="stamp" id="stamp">NO FILE YET</div>
+
+    <div class="field-label">Shift clock</div>
+    <div class="clock" id="clock">00:00</div>
+    <div class="status rest" id="status">CLOCKED OUT</div>
+
+    <div class="presence-row">
+      <div class="field-label" style="margin:0;">Presence</div>
+      <div class="num" id="presenceNum">—</div>
+    </div>
+
+    <button class="btn in" id="toggleBtn">Clock In</button>
+
+    <div class="summary" id="summary">
+      <div class="verdict" id="verdict"></div>
+      <div class="line" id="verdictLine"></div>
+    </div>
+  </div>
+
+  <div class="instruction">Clock in, and stay present.</div>
+</div>
+
+<button class="logmark" id="logmark">⋯ file</button>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>Personnel file</h2>
+    <div id="fileRows"></div>
+    <canvas id="spark" width="600" height="104"></canvas>
+    <div class="confession">This is everything the file has ever measured. No task ever had a name here — only whether you kept moving.</div>
+    <button class="close" id="closeLog">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var STORE_KEY = 'present_personnel_file_v1';
+
+  function loadFile(){
+    try{
+      var raw = localStorage.getItem(STORE_KEY);
+      if(!raw) return { shifts: [] };
+      var parsed = JSON.parse(raw);
+      if(!parsed || !Array.isArray(parsed.shifts)) return { shifts: [] };
+      return parsed;
+    }catch(e){ return { shifts: [] }; }
+  }
+  function saveFile(file){
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(file)); }catch(e){}
+  }
+
+  var file = loadFile();
+
+  function avgPresence(shifts){
+    if(!shifts.length) return null;
+    var sum = 0;
+    for(var i=0;i<shifts.length;i++) sum += shifts[i].presence;
+    return sum / shifts.length;
+  }
+
+  function fileLabel(shifts){
+    var avg = avgPresence(shifts);
+    if(avg === null) return 'NO FILE YET';
+    var tag = avg >= 85 ? 'MODEL EMPLOYEE' : (avg >= 60 ? 'REGULAR' : 'MONITOR CLOSELY');
+    return shifts.length + ' SHIFT' + (shifts.length===1?'':'S') + ' · AVG ' + Math.round(avg) + '% · ' + tag;
+  }
+
+  var stampEl = document.getElementById('stamp');
+  stampEl.textContent = fileLabel(file.shifts);
+
+  var clockEl = document.getElementById('clock');
+  var statusEl = document.getElementById('status');
+  var presenceNumEl = document.getElementById('presenceNum');
+  var toggleBtn = document.getElementById('toggleBtn');
+  var summaryEl = document.getElementById('summary');
+  var verdictEl = document.getElementById('verdict');
+  var verdictLineEl = document.getElementById('verdictLine');
+  var cardEl = document.getElementById('card');
+
+  var running = false;
+  var lastMoveTime = 0;
+  var lastFrameTime = 0;
+  var totalElapsed = 0;
+  var totalPresent = 0;
+  var idleInstances = 0;
+  var awayInstances = 0;
+  var wasPresent = true;
+  var wasIdle = false;
+  var samples = []; // 0 away, 0.5 idle, 1 present
+  var lastSampleTime = 0;
+  var rafId = null;
+
+  var PRESENT_WINDOW = 1200;
+  var AWAY_WINDOW = 4000;
+
+  function markMoved(){
+    lastMoveTime = performance.now();
+  }
+
+  function fmtTime(ms){
+    var totalSec = Math.floor(ms/1000);
+    var m = Math.floor(totalSec/60);
+    var s = totalSec % 60;
+    return (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+  }
+
+  function tick(now){
+    if(!running) return;
+    if(!lastFrameTime) lastFrameTime = now;
+    var dt = now - lastFrameTime;
+    lastFrameTime = now;
+    totalElapsed += dt;
+
+    var sinceMove = now - lastMoveTime;
+    var currentStatus;
+    if(sinceMove < PRESENT_WINDOW){
+      currentStatus = 'present';
+      totalPresent += dt;
+    } else if(sinceMove < AWAY_WINDOW){
+      currentStatus = 'idle';
+      if(!wasIdle && wasPresent){ idleInstances++; }
+    } else {
+      currentStatus = 'away';
+      if(wasIdle || wasPresent){ awayInstances++; }
+    }
+    wasPresent = currentStatus === 'present';
+    wasIdle = currentStatus === 'idle';
+
+    statusEl.className = 'status ' + currentStatus;
+    statusEl.textContent = currentStatus === 'present' ? 'PRESENT' : (currentStatus === 'idle' ? 'IDLE' : 'AWAY — TIMER RUNNING');
+
+    clockEl.textContent = fmtTime(totalElapsed);
+    var pct = totalElapsed > 0 ? (totalPresent/totalElapsed*100) : 100;
+    presenceNumEl.textContent = Math.round(pct) + '%';
+
+    if(now - lastSampleTime > 200){
+      lastSampleTime = now;
+      samples.push(currentStatus === 'present' ? 1 : (currentStatus === 'idle' ? 0.5 : 0));
+      if(samples.length > 400) samples.shift();
+    }
+
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function startShift(){
+    running = true;
+    totalElapsed = 0;
+    totalPresent = 0;
+    idleInstances = 0;
+    awayInstances = 0;
+    samples = [];
+    wasPresent = true;
+    wasIdle = false;
+    lastFrameTime = 0;
+    lastSampleTime = 0;
+    markMoved();
+    summaryEl.classList.remove('show');
+    toggleBtn.textContent = 'Clock Out';
+    toggleBtn.classList.remove('in');
+    toggleBtn.classList.add('out');
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function endShift(){
+    running = false;
+    if(rafId) cancelAnimationFrame(rafId);
+
+    var pct = totalElapsed > 0 ? (totalPresent/totalElapsed*100) : 100;
+    pct = Math.round(pct);
+
+    file.shifts.push({ presence: pct });
+    if(file.shifts.length > 60) file.shifts.shift();
+    saveFile(file);
+    stampEl.textContent = fileLabel(file.shifts);
+
+    var verdictText, verdictClass, line;
+    if(pct >= 85){
+      verdictText = 'EXEMPLARY';
+      verdictClass = 'exemplary';
+      line = 'Nothing you did is on file. Only that you never stopped.';
+    } else if(pct >= 60){
+      verdictText = 'SATISFACTORY';
+      verdictClass = 'satisfactory';
+      line = 'Mostly present. The file doesn’t ask about the rest.';
+    } else {
+      verdictText = 'FLAGGED FOR REVIEW';
+      verdictClass = 'flagged';
+      line = 'Idle time noted. Nothing else was.';
+    }
+    verdictEl.textContent = verdictText;
+    verdictEl.className = 'verdict ' + verdictClass;
+    verdictLineEl.textContent = line;
+    summaryEl.classList.add('show');
+
+    statusEl.className = 'status rest';
+    statusEl.textContent = 'CLOCKED OUT';
+    presenceNumEl.textContent = pct + '%';
+
+    toggleBtn.textContent = 'Clock In';
+    toggleBtn.classList.remove('out');
+    toggleBtn.classList.add('in');
+  }
+
+  toggleBtn.addEventListener('pointerdown', function(e){
+    e.stopPropagation();
+  });
+  toggleBtn.addEventListener('click', function(){
+    if(running){ endShift(); } else { startShift(); }
+  });
+
+  document.addEventListener('pointermove', markMoved, {passive:true});
+  document.addEventListener('pointerdown', markMoved, {passive:true});
+  document.addEventListener('touchmove', markMoved, {passive:true});
+  document.addEventListener('touchstart', markMoved, {passive:true});
+
+  // --- ledger overlay ---
+  var overlay = document.getElementById('overlay');
+  var logmark = document.getElementById('logmark');
+  var closeLog = document.getElementById('closeLog');
+  var fileRows = document.getElementById('fileRows');
+  var spark = document.getElementById('spark');
+  var sctx = spark.getContext('2d');
+
+  function renderLedger(){
+    fileRows.innerHTML = '';
+    var shifts = file.shifts;
+    var recent = shifts.slice(-8).reverse();
+    if(!recent.length){
+      var row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = '<span>No shifts recorded yet</span><span>—</span>';
+      fileRows.appendChild(row);
+    } else {
+      recent.forEach(function(s, i){
+        var n = shifts.length - i;
+        var row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = '<span>Shift ' + n + '</span><span>' + s.presence + '% present</span>';
+        fileRows.appendChild(row);
+      });
+    }
+    var tonight = document.createElement('div');
+    tonight.className = 'row';
+    tonight.innerHTML = '<span>Tonight — idle / away</span><span>' + idleInstances + ' / ' + awayInstances + '</span>';
+    fileRows.appendChild(tonight);
+
+    // sparkline of tonight's raw motion samples
+    var w = spark.width, h = spark.height;
+    sctx.clearRect(0,0,w,h);
+    if(samples.length > 1){
+      sctx.beginPath();
+      sctx.strokeStyle = '#e7c069';
+      sctx.lineWidth = 2;
+      var step = w / (samples.length - 1);
+      for(var i=0;i<samples.length;i++){
+        var x = i * step;
+        var y = h - (samples[i] * (h-8)) - 4;
+        if(i===0) sctx.moveTo(x,y); else sctx.lineTo(x,y);
+      }
+      sctx.stroke();
+    } else {
+      sctx.fillStyle = '#544a38';
+      sctx.font = '11px monospace';
+      sctx.fillText('no motion recorded yet tonight', 8, h/2);
+    }
+  }
+
+  logmark.addEventListener('click', function(){
+    renderLedger();
+    overlay.classList.add('show');
+  });
+  closeLog.addEventListener('click', function(){
+    overlay.classList.remove('show');
+  });
+  overlay.addEventListener('click', function(e){
+    if(e.target === overlay) overlay.classList.remove('show');
+  });
+})();
+</script>
+</body>
+</html>
