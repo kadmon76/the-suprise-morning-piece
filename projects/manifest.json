@@ -188,6 +188,13 @@
       "kind": "seed",
       "note": "A house dimmer, a shared bus, and a rig that only takes what's left open.",
       "path": "projects/2026-08-15-headroom/index.html"
+    },
+    {
+      "date": "2026-08-16",
+      "title": "(Vital Local Water Resources.)",
+      "kind": "question",
+      "note": "A cistern backstage, a tap, and a lamp with first claim on all of it. Hold on — somebody upstream already knows how this ends.",
+      "path": "projects/2026-08-16-vital-local-water-resources/index.html"
     }
   ]
 }

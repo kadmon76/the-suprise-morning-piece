@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>(Vital Local Water Resources.)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0908;
+    --card:#17140f;
+    --card-edge:#302a1e;
+    --ink:#cfc6b4;
+    --ink-dim:#7c7364;
+    --lamp:#e7c069;
+    --water:#5fb8c9;
+    --deficit:#d1685a;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--ink);
+    font-family:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    touch-action:none; user-select:none; -webkit-user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center;
+    padding:calc(58px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(22px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+  }
+
+  .row{ width:100%; max-width:340px; display:flex; justify-content:space-between; align-items:baseline; }
+  .tag{ font-size:9.5px; letter-spacing:0.18em; color:var(--ink-dim); text-transform:uppercase; }
+  .lamprow .lampstatus{ font-size:10.5px; letter-spacing:0.05em; color:var(--lamp); font-variant-numeric:tabular-nums; }
+  .tankrow{ margin-top:14px; }
+  .tankrow .readout{ font-size:10.5px; letter-spacing:0.03em; color:var(--water); font-variant-numeric:tabular-nums; }
+
+  .pipewrap{ width:100%; max-width:340px; display:flex; justify-content:center; }
+  .pipe{ position:relative; width:2px; height:22px; background:var(--card-edge); overflow:visible; }
+  .drip{
+    position:absolute; left:-2px; top:0; width:6px; height:6px; border-radius:50%;
+    background:var(--lamp); opacity:0.9;
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .drip{ animation:dripfall 2.6s linear infinite; }
+  }
+  @keyframes dripfall{
+    0%{ top:-4px; opacity:0; }
+    12%{ opacity:0.9; }
+    88%{ opacity:0.9; }
+    100%{ top:20px; opacity:0; }
+  }
+
+  .tankwrap{ flex:1; width:100%; display:flex; align-items:center; justify-content:center; min-height:0; }
+  .tank{
+    position:relative; width:112px; height:38vh; max-height:300px; min-height:170px;
+    border:1px solid var(--card-edge); border-radius:6px; background:#0d0b09; overflow:hidden;
+  }
+  .tank.dry{ box-shadow:0 0 0 1px var(--deficit), 0 0 16px 2px rgba(209,104,90,0.45); }
+  @media (prefers-reduced-motion: no-preference){
+    .tank.dry{ animation:dryflash 0.9s steps(2,end) infinite; }
+  }
+  @keyframes dryflash{ 50%{ box-shadow:0 0 0 1px var(--deficit), 0 0 3px 0 rgba(209,104,90,0.15); } }
+  .fill{
+    position:absolute; left:0; right:0; bottom:0;
+    background:linear-gradient(var(--water), #1f4a52);
+  }
+  .rainmark{
+    position:absolute; right:6px; top:6px; width:5px; height:5px; border-radius:50%;
+    background:var(--water); opacity:0.85;
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .rainmark{ animation:raindrop 2.1s ease-in infinite; }
+  }
+  @keyframes raindrop{
+    0%{ top:6px; opacity:0; }
+    15%{ opacity:0.85; }
+    92%{ opacity:0.5; }
+    100%{ top:calc(100% - 8px); opacity:0; }
+  }
+
+  .tapwrap{ width:100%; max-width:340px; display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:14px; }
+  .tap{
+    width:64px; height:64px; border-radius:50%;
+    background:var(--card); border:1px solid var(--card-edge); color:var(--water);
+    font-family:inherit; font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    -webkit-user-select:none; touch-action:none;
+  }
+  .tap.active{ background:#132b30; border-color:var(--water); }
+  .tapreadout{ font-size:10.5px; color:var(--ink-dim); letter-spacing:0.03em; font-variant-numeric:tabular-nums; }
+
+  .instruction{
+    width:100%; max-width:340px; font-size:11.5px; color:var(--ink-dim);
+    line-height:1.5; text-align:center; margin-top:16px;
+  }
+
+  .back{
+    position:fixed; top:calc(14px + env(safe-area-inset-top)); left:calc(14px + env(safe-area-inset-left));
+    font-size:11px; color:var(--ink-dim); text-decoration:none; letter-spacing:0.02em; opacity:0.6;
+  }
+  .logmark{
+    position:fixed; bottom:calc(16px + env(safe-area-inset-bottom)); right:calc(16px + env(safe-area-inset-right));
+    font-size:10px; letter-spacing:0.14em; color:var(--ink-dim); opacity:0.5;
+    background:none; border:none; font-family:inherit; padding:8px; cursor:pointer;
+  }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,4,0.94);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s ease;
+    z-index:10;
+  }
+  @media (prefers-reduced-motion: reduce){ .overlay{ transition:none; } .tank.dry{ animation:none; } .drip,.rainmark{ animation:none; display:none; } }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:420px; background:var(--card); border:1px solid var(--card-edge);
+    border-radius:14px 14px 0 0; padding:22px 22px calc(26px + env(safe-area-inset-bottom));
+    max-height:78vh; overflow-y:auto;
+  }
+  .sheet h2{
+    font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--water);
+    margin:0 0 14px; font-weight:600;
+  }
+  .sheet .lrow{
+    display:flex; justify-content:space-between; gap:10px; font-size:11.5px; color:var(--ink);
+    padding:6px 0; border-bottom:1px solid var(--card-edge);
+  }
+  .sheet .lrow span:first-child{ flex-shrink:0; }
+  .sheet .lrow span:last-child{ color:var(--ink-dim); text-align:right; font-variant-numeric:tabular-nums; }
+  .sheet .confession{
+    font-size:11.5px; color:var(--ink-dim); line-height:1.6; margin-top:14px;
+    font-style:italic;
+  }
+  .sheet .close{
+    display:block; margin:20px auto 0; background:none; border:1px solid var(--card-edge);
+    color:var(--ink-dim); font-family:inherit; font-size:11px; letter-spacing:0.1em;
+    padding:9px 22px; border-radius:4px;
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="../../index.html">← cue sheet</a>
+
+<div class="stage">
+
+  <div class="row lamprow">
+    <span class="tag">Lamp</span>
+    <span class="lampstatus" id="lampStatus">drawing · 480L/night</span>
+  </div>
+  <div class="pipewrap"><div class="pipe"><div class="drip"></div></div></div>
+
+  <div class="row tankrow">
+    <span class="tag">Cistern</span>
+    <span class="readout" id="tankReadout">— / 410 L</span>
+  </div>
+  <div class="tankwrap">
+    <div class="tank" id="tank">
+      <div class="rainmark"></div>
+      <div class="fill" id="tankFill"></div>
+    </div>
+  </div>
+
+  <div class="tapwrap">
+    <button class="tap" id="tap">hold<br>to draw</button>
+    <div class="tapreadout">drawn tonight: <span id="drawnReadout">0</span> L</div>
+  </div>
+
+  <div class="instruction">Hold the tap and take what you need. The lamp already has.</div>
+
+</div>
+
+<button class="logmark" id="logmark">⋯ well</button>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>The well</h2>
+    <div class="lrow"><span>Contracted to the lamp</span><span>480 L / night — fixed</span></div>
+    <div class="lrow"><span>Rain</span><span>410 L / night</span></div>
+    <div class="lrow"><span>Nightly shortfall</span><span>−70 L, every night</span></div>
+    <div class="lrow"><span>Cistern now</span><span id="rNow">—</span></div>
+    <div class="lrow"><span>Gone since last visit</span><span id="rGone">—</span></div>
+    <div class="lrow"><span>You drew tonight</span><span id="rTonight">—</span></div>
+    <div class="lrow"><span>You've drawn, every night</span><span id="rTotal">—</span></div>
+    <div class="lrow"><span>Nights you've opened this</span><span id="rNights">—</span></div>
+    <div class="confession">Whatever you leave in the barrel was never the number anyone was watching.</div>
+    <button class="close" id="closeLog">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var CAP = 410;
+  var LAMP_NIGHT = 480;
+  var RAIN_NIGHT = 410;
+  var NIGHT_MS = 86400000;
+  var SESSION_NIGHT_S = 120;
+  var lampRate = LAMP_NIGHT / SESSION_NIGHT_S;
+  var rainRate = RAIN_NIGHT / SESSION_NIGHT_S;
+  var drawRate = 6;
+
+  var KEY_LITRES = 'cistern_litres';
+  var KEY_VISIT = 'cistern_lastVisit';
+  var KEY_TOTAL = 'cistern_totalDrawn';
+  var KEY_NIGHTS = 'cistern_nights';
+
+  var storedLitres = localStorage.getItem(KEY_LITRES);
+  var storedVisit = localStorage.getItem(KEY_VISIT);
+  var totalBefore = parseFloat(localStorage.getItem(KEY_TOTAL) || '0');
+  var nights = parseInt(localStorage.getItem(KEY_NIGHTS) || '0', 10) + 1;
+
+  var isFirstEver = (storedLitres === null);
+  var litres, goneNote = null;
+
+  if(isFirstEver){
+    litres = CAP * 0.85;
+  } else {
+    litres = parseFloat(storedLitres);
+    if(storedVisit !== null){
+      var elapsedMs = Date.now() - parseFloat(storedVisit);
+      if(elapsedMs > 0){
+        var days = elapsedMs / NIGHT_MS;
+        var contracted = LAMP_NIGHT * days;
+        var rained = RAIN_NIGHT * days;
+        var net = rained - contracted;
+        litres = Math.max(0, Math.min(CAP, litres + net));
+        if(days > 0.01){
+          goneNote = { days: days, contracted: contracted, rained: rained, net: net };
+        }
+      }
+    }
+  }
+
+  localStorage.setItem(KEY_NIGHTS, nights);
+
+  var drawnTonight = 0;
+  var dipping = false;
+
+  var tankFill = document.getElementById('tankFill');
+  var tank = document.getElementById('tank');
+  var tankReadout = document.getElementById('tankReadout');
+  var drawnReadout = document.getElementById('drawnReadout');
+  var tap = document.getElementById('tap');
+
+  function render(){
+    var pct = Math.max(0, Math.min(100, (litres / CAP) * 100));
+    tankFill.style.height = pct + '%';
+    tank.classList.toggle('dry', pct < 15);
+    tankReadout.textContent = Math.round(litres) + ' / ' + CAP + ' L';
+    drawnReadout.textContent = Math.round(drawnTonight);
+  }
+
+  var lastFrame = 0;
+  var lastSave = 0;
+
+  function save(){
+    localStorage.setItem(KEY_LITRES, litres);
+    localStorage.setItem(KEY_VISIT, Date.now());
+    localStorage.setItem(KEY_TOTAL, totalBefore + drawnTonight);
+  }
+
+  function tick(now){
+    if(!lastFrame) lastFrame = now;
+    var dt = (now - lastFrame) / 1000;
+    lastFrame = now;
+
+    litres -= lampRate * dt;
+    litres += rainRate * dt;
+    if(dipping && litres > 0){
+      var draw = Math.min(litres, drawRate * dt);
+      litres -= draw;
+      drawnTonight += draw;
+    }
+    litres = Math.max(0, Math.min(CAP, litres));
+
+    render();
+
+    if(now - lastSave > 2000){
+      save();
+      lastSave = now;
+    }
+    requestAnimationFrame(tick);
+  }
+
+  tap.addEventListener('pointerdown', function(e){
+    dipping = true;
+    tap.classList.add('active');
+    try{ tap.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  function release(){ dipping = false; tap.classList.remove('active'); }
+  tap.addEventListener('pointerup', release);
+  tap.addEventListener('pointercancel', release);
+  tap.addEventListener('pointerleave', release);
+
+  window.addEventListener('pagehide', save);
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) save(); });
+
+  render();
+  requestAnimationFrame(tick);
+
+  // --- the well ---
+  var overlay = document.getElementById('overlay');
+  var logmark = document.getElementById('logmark');
+  var closeLog = document.getElementById('closeLog');
+
+  function fmtGone(){
+    if(isFirstEver) return 'first night';
+    if(!goneNote) return 'moments';
+    var hrs = goneNote.days * 24;
+    var when = hrs < 36 ? Math.round(hrs) + 'h' : goneNote.days.toFixed(1) + 'd';
+    var netStr = (goneNote.net >= 0 ? '+' : '−') + Math.round(Math.abs(goneNote.net)) + 'L';
+    return when + ' away · lamp took ' + Math.round(goneNote.contracted) + 'L, rain gave ' + Math.round(goneNote.rained) + 'L · net ' + netStr;
+  }
+
+  function renderSheet(){
+    document.getElementById('rNow').textContent = Math.round(litres) + ' / ' + CAP + ' L';
+    document.getElementById('rGone').textContent = fmtGone();
+    document.getElementById('rTonight').textContent = Math.round(drawnTonight) + ' L';
+    document.getElementById('rTotal').textContent = Math.round(totalBefore + drawnTonight) + ' L';
+    document.getElementById('rNights').textContent = nights;
+  }
+  logmark.addEventListener('click', function(){
+    renderSheet();
+    overlay.classList.add('show');
+  });
+  closeLog.addEventListener('click', function(){ overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.classList.remove('show'); });
+})();
+</script>
+</body>
+</html>
