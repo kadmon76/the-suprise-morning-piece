@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Practical</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0908;
+    --card:#17140f;
+    --card-edge:#302a1e;
+    --ink:#cfc6b4;
+    --ink-dim:#7c7364;
+    --wood:#b98a4e;
+    --wood-mend:#c79a5c;
+    --wood-new:#ece0c4;
+    --string:rgba(207,198,180,0.32);
+    --glow:rgba(185,138,78,0.14);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--ink);
+    font-family:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    touch-action:none; user-select:none; -webkit-user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+    padding:calc(20px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+  }
+  .stagelight{
+    position:fixed; left:50%; top:38%; width:70vw; height:70vw; max-width:520px; max-height:520px;
+    transform:translate(-50%,-50%);
+    background:radial-gradient(circle, var(--glow) 0%, rgba(0,0,0,0) 68%);
+    pointer-events:none;
+  }
+  .puppetwrap{ flex:1; width:100%; max-width:380px; display:flex; align-items:center; justify-content:center; min-height:0; }
+  svg#puppet{ width:100%; height:100%; max-height:62vh; overflow:visible; }
+  .partline{ pointer-events:stroke; touch-action:none; }
+  .barhit{ pointer-events:all; touch-action:none; }
+
+  .instruction{
+    width:100%; max-width:340px; font-size:11.5px; color:var(--ink-dim);
+    line-height:1.5; text-align:center; margin-top:6px;
+  }
+
+  .back{
+    position:fixed; top:calc(14px + env(safe-area-inset-top)); left:calc(14px + env(safe-area-inset-left));
+    font-size:11px; color:var(--ink-dim); text-decoration:none; letter-spacing:0.02em; opacity:0.6;
+    z-index:5;
+  }
+  .logmark{
+    position:fixed; bottom:calc(16px + env(safe-area-inset-bottom)); right:calc(16px + env(safe-area-inset-right));
+    font-size:10px; letter-spacing:0.14em; color:var(--ink-dim); opacity:0.5;
+    background:none; border:none; font-family:inherit; padding:8px; cursor:pointer; z-index:5;
+  }
+
+  .picker{
+    position:fixed; left:50%; bottom:calc(64px + env(safe-area-inset-bottom));
+    transform:translateX(-50%) translateY(12px);
+    width:calc(100% - 40px); max-width:320px;
+    background:var(--card); border:1px solid var(--card-edge); border-radius:10px;
+    padding:12px 14px; opacity:0; pointer-events:none; transition:opacity 0.2s ease, transform 0.2s ease;
+    z-index:8;
+  }
+  .picker.show{ opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0); }
+  .picker .pname{ font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--wood); margin-bottom:2px; }
+  .picker .pstate{ font-size:10.5px; color:var(--ink-dim); margin-bottom:10px; }
+  .picker .prow{ display:flex; gap:8px; }
+  .picker button{
+    flex:1; background:none; border:1px solid var(--card-edge); color:var(--ink);
+    font-family:inherit; font-size:10.5px; letter-spacing:0.06em; padding:9px 6px; border-radius:6px;
+  }
+  .picker button:disabled{ opacity:0.3; }
+  .picker button.mend{ color:var(--wood-mend); border-color:#4a3a24; }
+  .picker button.replace{ color:var(--wood-new); border-color:#4a4230; }
+  .picker button.done{ color:var(--ink-dim); }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,4,0.94);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s ease;
+    z-index:10;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:420px; background:var(--card); border:1px solid var(--card-edge);
+    border-radius:14px 14px 0 0; padding:22px 22px calc(26px + env(safe-area-inset-bottom));
+    max-height:80vh; overflow-y:auto;
+  }
+  .sheet h2{
+    font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--wood);
+    margin:0 0 14px; font-weight:600;
+  }
+  .sheet .lrow{
+    display:flex; justify-content:space-between; gap:10px; font-size:11.5px; color:var(--ink);
+    padding:6px 0; border-bottom:1px solid var(--card-edge);
+  }
+  .sheet .lrow span:first-child{ flex-shrink:0; }
+  .sheet .lrow span:last-child{ color:var(--ink-dim); text-align:right; }
+  .sheet .verdict{
+    font-size:12px; color:var(--ink); line-height:1.6; margin-top:14px;
+  }
+  .sheet .confession{
+    font-size:11.5px; color:var(--ink-dim); line-height:1.6; margin-top:10px;
+    font-style:italic;
+  }
+  .sheet .close{
+    display:block; margin:20px auto 0; background:none; border:1px solid var(--card-edge);
+    color:var(--ink-dim); font-family:inherit; font-size:11px; letter-spacing:0.1em;
+    padding:9px 22px; border-radius:4px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .picker, .overlay{ transition:none; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="../../index.html">← cue sheet</a>
+
+<div class="stagelight"></div>
+
+<div class="stage">
+  <div class="puppetwrap">
+    <svg id="puppet" viewBox="0 0 300 460" preserveAspectRatio="xMidYMid meet">
+      <g id="strings">
+        <line id="strHead"></line>
+        <line id="strHandL"></line>
+        <line id="strHandR"></line>
+        <line id="strFootL"></line>
+        <line id="strFootR"></line>
+      </g>
+      <g id="body">
+        <line id="legL" class="partline" stroke-width="22" stroke-linecap="round"></line>
+        <line id="legR" class="partline" stroke-width="22" stroke-linecap="round"></line>
+        <line id="torso" class="partline" stroke-width="26" stroke-linecap="round"></line>
+        <line id="armL" class="partline" stroke-width="18" stroke-linecap="round"></line>
+        <line id="armR" class="partline" stroke-width="18" stroke-linecap="round"></line>
+        <circle id="head" r="19"></circle>
+      </g>
+      <g id="bar">
+        <line id="barLine" stroke="#4a4030" stroke-width="5" stroke-linecap="round"></line>
+        <circle id="barGrip" r="10" fill="#4a4030"></circle>
+        <line id="barHit" class="barhit" stroke="transparent" stroke-width="60" stroke-linecap="round"></line>
+      </g>
+    </svg>
+  </div>
+
+  <div class="instruction">Pull the bar to move him — hold any part to mend it or replace it.</div>
+</div>
+
+<div class="picker" id="picker">
+  <div class="pname" id="pickName">—</div>
+  <div class="pstate" id="pickState">—</div>
+  <div class="prow" id="pickButtons"></div>
+</div>
+
+<button class="logmark" id="logmark">⋯ shop ticket</button>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>Shop ticket</h2>
+    <div class="lrow"><span>Head</span><span>original — untouched</span></div>
+    <div class="lrow" id="rTorso"><span>Torso</span><span>—</span></div>
+    <div class="lrow" id="rArmL"><span>Arm, left</span><span>—</span></div>
+    <div class="lrow" id="rArmR"><span>Arm, right</span><span>—</span></div>
+    <div class="lrow" id="rLegL"><span>Leg, left</span><span>—</span></div>
+    <div class="lrow" id="rLegR"><span>Leg, right</span><span>—</span></div>
+    <div class="lrow"><span>Original lineage</span><span id="rOrig">—</span></div>
+    <div class="lrow"><span>Replaced, permanently</span><span id="rRepl">—</span></div>
+    <div class="verdict" id="rVerdict">—</div>
+    <div class="confession">Nobody ever asked about the face.</div>
+    <button class="close" id="closeLog">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var motionOK = window.matchMedia && window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
+
+  var PARTS = ['torso','armL','armR','legL','legR'];
+  var LABELS = { torso:'Torso', armL:'Arm, left', armR:'Arm, right', legL:'Leg, left', legR:'Leg, right' };
+
+  var state = {};
+  PARTS.forEach(function(p, i){
+    state[p] = {
+      wear: 0.45 + Math.random()*0.4,
+      mended: 0,
+      replaced: false,
+      seedA: Math.random()*6.28,
+      seedB: Math.random()*6.28,
+      angle: 0
+    };
+  });
+
+  var HIP = {x:150, y:262};
+  var TORSO_LEN = 88, NECK = 16, HEAD_R = 19;
+  var ARM_LEN = 92, LEG_LEN = 112;
+  var SHOULDER_HW = 24, HIP_HW = 15;
+  var WOBBLE_AMP = 0.20;
+
+  var tilt = 0, bow = 0;         // -1..1 , 0..1
+  var tiltTarget = 0, bowTarget = 0;
+  var dragging = false, dragStart = null;
+
+  var barHandle = document.getElementById('barHit');
+  var barLine = document.getElementById('barLine');
+  var barGrip = document.getElementById('barGrip');
+  var svg = document.getElementById('puppet');
+
+  function svgPoint(clientX, clientY){
+    var pt = svg.createSVGPoint();
+    pt.x = clientX; pt.y = clientY;
+    var m = svg.getScreenCTM().inverse();
+    return pt.matrixTransform(m);
+  }
+
+  barHandle.addEventListener('pointerdown', function(e){
+    dragging = true;
+    var p = svgPoint(e.clientX, e.clientY);
+    dragStart = { x:p.x, y:p.y, tilt:tiltTarget, bow:bowTarget };
+    try{ barHandle.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  barHandle.addEventListener('pointermove', function(e){
+    if(!dragging) return;
+    var p = svgPoint(e.clientX, e.clientY);
+    var dx = p.x - dragStart.x, dy = p.y - dragStart.y;
+    tiltTarget = Math.max(-1, Math.min(1, dx/70));
+    bowTarget = Math.max(0, Math.min(1, dy/70));
+  });
+  function endDrag(){
+    dragging = false;
+  }
+  barHandle.addEventListener('pointerup', endDrag);
+  barHandle.addEventListener('pointercancel', endDrag);
+
+  // --- part hold-to-select ---
+  var picker = document.getElementById('picker');
+  var pickName = document.getElementById('pickName');
+  var pickState = document.getElementById('pickState');
+  var pickButtons = document.getElementById('pickButtons');
+  var holdTimer = null, holdPart = null, holdStart = null, hideTimer = null;
+
+  function wearPct(p){ return Math.round(state[p].wear*100); }
+
+  function statusText(p){
+    var s = state[p];
+    if(s.replaced) return 'replaced — new, permanent';
+    if(s.mended > 0) return 'mended ×' + s.mended + ', worn ' + wearPct(p) + '%';
+    return 'original, worn ' + wearPct(p) + '%';
+  }
+
+  function openPicker(p){
+    holdPart = p;
+    var s = state[p];
+    pickName.textContent = LABELS[p];
+    pickState.textContent = statusText(p);
+    pickButtons.innerHTML = '';
+    if(s.replaced){
+      var b = document.createElement('button');
+      b.className = 'done'; b.textContent = 'nothing left to fix'; b.disabled = true;
+      pickButtons.appendChild(b);
+    } else {
+      var mend = document.createElement('button');
+      mend.className = 'mend'; mend.textContent = 'mend';
+      mend.disabled = s.wear < 0.03;
+      mend.onclick = function(){ doMend(p); };
+      var repl = document.createElement('button');
+      repl.className = 'replace'; repl.textContent = 'replace';
+      repl.onclick = function(){ doReplace(p); };
+      pickButtons.appendChild(mend);
+      pickButtons.appendChild(repl);
+    }
+    picker.classList.add('show');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(closePicker, 5000);
+  }
+  function closePicker(){
+    picker.classList.remove('show');
+    holdPart = null;
+  }
+
+  function doMend(p){
+    var s = state[p];
+    s.wear = s.wear * 0.35;
+    s.mended += 1;
+    openPicker(p);
+  }
+  function doReplace(p){
+    var s = state[p];
+    s.wear = 0;
+    s.replaced = true;
+    openPicker(p);
+  }
+
+  function attachHold(el, part){
+    el.addEventListener('pointerdown', function(e){
+      holdStart = { x:e.clientX, y:e.clientY };
+      clearTimeout(holdTimer);
+      holdTimer = setTimeout(function(){ openPicker(part); }, 480);
+    });
+    function cancelHold(e){
+      if(holdStart && e && e.clientX !== undefined){
+        var dx = e.clientX - holdStart.x, dy = e.clientY - holdStart.y;
+        if(Math.sqrt(dx*dx+dy*dy) > 14){ clearTimeout(holdTimer); }
+      } else {
+        clearTimeout(holdTimer);
+      }
+    }
+    el.addEventListener('pointermove', cancelHold);
+    el.addEventListener('pointerup', function(){ clearTimeout(holdTimer); });
+    el.addEventListener('pointercancel', function(){ clearTimeout(holdTimer); });
+  }
+  PARTS.forEach(function(p){ attachHold(document.getElementById(p), p); });
+
+  document.body.addEventListener('pointerdown', function(e){
+    if(picker.classList.contains('show') && !picker.contains(e.target)){
+      closePicker();
+    }
+  }, true);
+
+  // --- geometry + render ---
+  var els = {};
+  ['legL','legR','torso','armL','armR','head'].forEach(function(id){ els[id] = document.getElementById(id); });
+  var strEls = {
+    head: document.getElementById('strHead'),
+    handL: document.getElementById('strHandL'),
+    handR: document.getElementById('strHandR'),
+    footL: document.getElementById('strFootL'),
+    footR: document.getElementById('strFootR')
+  };
+
+  function colorFor(p){
+    var s = state[p];
+    if(s.replaced) return 'var(--wood-new)';
+    if(s.mended > 0) return 'var(--wood-mend)';
+    return 'var(--wood)';
+  }
+  function dashFor(p){
+    var s = state[p];
+    return (s.mended > 0 && !s.replaced) ? '6 4' : 'none';
+  }
+
+  function noise(p, t){
+    var s = state[p];
+    return 0.6*Math.sin(t*1.7 + s.seedA) + 0.4*Math.sin(t*3.35 + s.seedB);
+  }
+
+  var t0 = performance.now();
+  function tick(now){
+    var t = (now - t0)/1000;
+
+    tilt += (tiltTarget - tilt) * (dragging ? 0.35 : 0.06);
+    bow  += (bowTarget  - bow ) * (dragging ? 0.35 : 0.06);
+    if(!dragging){ tiltTarget *= 0.985; bowTarget *= 0.985; }
+
+    var torsoAngle = bow * 0.5;
+    var bodySway = tilt;
+
+    var targets = {
+      torso: torsoAngle,
+      armL: 0.16 + bodySway*0.55,
+      armR: 0.16 - bodySway*0.55,
+      legL: 0.04 + bodySway*0.22,
+      legR: 0.04 - bodySway*0.22
+    };
+
+    PARTS.forEach(function(p){
+      var s = state[p];
+      var w = motionOK ? (s.wear * WOBBLE_AMP * noise(p, t)) : 0;
+      var lag = 0.06 + (1 - s.wear) * 0.16;
+      s.angle += ((targets[p] + w) - s.angle) * lag;
+    });
+
+    var torsoDirX = Math.sin(state.torso.angle), torsoDirY = -Math.cos(state.torso.angle);
+    var shoulder = { x: HIP.x + torsoDirX*TORSO_LEN, y: HIP.y + torsoDirY*TORSO_LEN };
+    var headC = { x: shoulder.x + torsoDirX*(NECK+HEAD_R), y: shoulder.y + torsoDirY*(NECK+HEAD_R) };
+    var shoulderL = { x: shoulder.x - SHOULDER_HW, y: shoulder.y };
+    var shoulderR = { x: shoulder.x + SHOULDER_HW, y: shoulder.y };
+    var hipL = { x: HIP.x - HIP_HW, y: HIP.y };
+    var hipR = { x: HIP.x + HIP_HW, y: HIP.y };
+
+    function limb(anchor, angle, len){
+      return { x: anchor.x + Math.sin(angle)*len, y: anchor.y + Math.cos(angle)*len };
+    }
+    var handL = limb(shoulderL, state.armL.angle, ARM_LEN);
+    var handR = limb(shoulderR, state.armR.angle, ARM_LEN);
+    var footL = limb(hipL, state.legL.angle, LEG_LEN);
+    var footR = limb(hipR, state.legR.angle, LEG_LEN);
+
+    setLine(els.legL, hipL, footL, colorFor('legL'), dashFor('legL'));
+    setLine(els.legR, hipR, footR, colorFor('legR'), dashFor('legR'));
+    setLine(els.torso, HIP, shoulder, colorFor('torso'), dashFor('torso'));
+    setLine(els.armL, shoulderL, handL, colorFor('armL'), dashFor('armL'));
+    setLine(els.armR, shoulderR, handR, colorFor('armR'), dashFor('armR'));
+    els.head.setAttribute('cx', headC.x);
+    els.head.setAttribute('cy', headC.y);
+    els.head.setAttribute('fill', 'var(--wood)');
+
+    var barX = 150 + tilt*15;
+    var barY = 55 + bow*22;
+    setBarString(strEls.head, barX, barY, headC.x, headC.y - HEAD_R);
+    setBarString(strEls.handL, barX-22, barY+4, handL.x, handL.y);
+    setBarString(strEls.handR, barX+22, barY+4, handR.x, handR.y);
+    setBarString(strEls.footL, barX-38, barY+2, footL.x, footL.y);
+    setBarString(strEls.footR, barX+38, barY+2, footR.x, footR.y);
+
+    barLine.setAttribute('x1', barX-40); barLine.setAttribute('y1', barY);
+    barLine.setAttribute('x2', barX+40); barLine.setAttribute('y2', barY);
+    barGrip.setAttribute('cx', barX); barGrip.setAttribute('cy', barY);
+    barHandle.setAttribute('x1', barX-40); barHandle.setAttribute('y1', barY);
+    barHandle.setAttribute('x2', barX+40); barHandle.setAttribute('y2', barY);
+
+    requestAnimationFrame(tick);
+  }
+  function setLine(el, a, b, color, dash){
+    el.setAttribute('x1', a.x); el.setAttribute('y1', a.y);
+    el.setAttribute('x2', b.x); el.setAttribute('y2', b.y);
+    el.setAttribute('stroke', color);
+    el.setAttribute('stroke-dasharray', dash);
+  }
+  function setBarString(el, ax, ay, bx, by){
+    el.setAttribute('x1', ax); el.setAttribute('y1', ay);
+    el.setAttribute('x2', bx); el.setAttribute('y2', by);
+    el.setAttribute('stroke', 'var(--string)');
+    el.setAttribute('stroke-width', '1');
+  }
+
+  requestAnimationFrame(tick);
+
+  // --- shop ticket ---
+  var overlay = document.getElementById('overlay');
+  var logmark = document.getElementById('logmark');
+  var closeLog = document.getElementById('closeLog');
+
+  function renderSheet(){
+    ['torso','armL','armR','legL','legR'].forEach(function(p){
+      var idMap = { torso:'rTorso', armL:'rArmL', armR:'rArmR', legL:'rLegL', legR:'rLegR' };
+      document.getElementById(idMap[p]).querySelector('span:last-child').textContent = statusText(p);
+    });
+    var replacedCount = PARTS.filter(function(p){ return state[p].replaced; }).length;
+    var origCount = PARTS.length - replacedCount;
+    document.getElementById('rOrig').textContent = origCount + ' / ' + PARTS.length + ' parts';
+    document.getElementById('rRepl').textContent = replacedCount + ' / ' + PARTS.length + ' parts';
+
+    var verdict;
+    if(replacedCount === 0){
+      verdict = 'As built. Worn how it has always been worn.';
+    } else if(replacedCount < PARTS.length){
+      verdict = 'Some of what moves was never here on opening night.';
+    } else {
+      verdict = 'Every part moves exactly the way it is supposed to. None of it remembers opening night.';
+    }
+    document.getElementById('rVerdict').textContent = verdict;
+  }
+  logmark.addEventListener('click', function(){
+    renderSheet();
+    overlay.classList.add('show');
+  });
+  closeLog.addEventListener('click', function(){ overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.classList.remove('show'); });
+})();
+</script>
+</body>
+</html>

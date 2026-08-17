@@ -195,6 +195,13 @@
       "kind": "question",
       "note": "A cistern backstage, a tap, and a lamp with first claim on all of it. Hold on — somebody upstream already knows how this ends.",
       "path": "projects/2026-08-16-vital-local-water-resources/index.html"
+    },
+    {
+      "date": "2026-08-17",
+      "title": "Practical",
+      "kind": "seed",
+      "note": "Mostly the same puppet he's always been. Some parts more than others.",
+      "path": "projects/2026-08-17-practical/index.html"
     }
   ]
 }
