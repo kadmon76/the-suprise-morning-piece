@@ -195,6 +195,13 @@
       "kind": "question",
       "note": "A cistern backstage, a tap, and a lamp with first claim on all of it. Hold on — somebody upstream already knows how this ends.",
       "path": "projects/2026-08-16-vital-local-water-resources/index.html"
+    },
+    {
+      "date": "2026-08-18",
+      "title": "Restrung",
+      "kind": "seed",
+      "note": "A marionette on five strings — mend what frays. It never once stops dancing the same dance.",
+      "path": "projects/2026-08-18-restrung/index.html"
     }
   ]
 }

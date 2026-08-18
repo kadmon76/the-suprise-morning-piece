@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Restrung</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0908;
+    --card:#17140f;
+    --card-edge:#302a1e;
+    --ink:#cfc6b4;
+    --ink-dim:#7c7364;
+    --gold:#e7c069;
+    --fray:#d9944a;
+    --snap:#8a4d40;
+    --ghost:#8fd0e0;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--ink);
+    font-family:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    touch-action:none; user-select:none; -webkit-user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center;
+    padding:calc(56px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+  }
+  .top{
+    width:100%; max-width:420px; display:flex; justify-content:flex-end;
+    margin-bottom:2px;
+  }
+  .origtag{ text-align:right; font-size:9.5px; letter-spacing:0.12em; color:var(--ink-dim); line-height:1.5; opacity:0.85;}
+  .origtag .label{ text-transform:uppercase; display:block; font-size:9px; letter-spacing:0.16em;}
+  .origtag .val{ color:var(--ink); font-variant-numeric:tabular-nums; letter-spacing:0.04em;}
+
+  .puppetwrap{
+    flex:1; width:100%; max-width:340px;
+    display:flex; align-items:center; justify-content:center;
+    min-height:0; position:relative;
+  }
+  svg{ width:100%; height:100%; max-height:60vh; }
+
+  .instruction{
+    width:100%; max-width:420px; text-align:center;
+    font-size:11.5px; color:var(--ink-dim); line-height:1.5;
+    padding:10px 6px 4px; opacity:0.85;
+  }
+
+  .bottomrow{
+    width:100%; max-width:420px; display:flex; justify-content:space-between; align-items:center;
+    padding-top:6px;
+  }
+  .pill{
+    background:none; border:1px solid var(--card-edge); color:var(--ink-dim);
+    font-family:inherit; font-size:10.5px; letter-spacing:0.1em;
+    padding:9px 14px; border-radius:20px;
+  }
+  .pill.active{ color:var(--ghost); border-color:var(--ghost); }
+
+  .back{
+    position:fixed; top:calc(14px + env(safe-area-inset-top)); left:calc(14px + env(safe-area-inset-left));
+    font-size:11px; color:var(--ink-dim); text-decoration:none; letter-spacing:0.02em; opacity:0.6;
+  }
+  .logmark{
+    background:none; border:none; color:var(--ink-dim); font-family:inherit;
+    font-size:10px; letter-spacing:0.14em; opacity:0.6; padding:9px 4px; cursor:pointer;
+  }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,4,0.94);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s ease;
+    z-index:10;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:420px; background:var(--card); border:1px solid var(--card-edge);
+    border-radius:14px 14px 0 0; padding:22px 22px calc(26px + env(safe-area-inset-bottom));
+    max-height:78vh; overflow-y:auto;
+  }
+  .sheet h2{
+    font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold);
+    margin:0 0 14px; font-weight:600;
+  }
+  .sheet .row{
+    display:flex; justify-content:space-between; font-size:11.5px; color:var(--ink);
+    padding:6px 0; border-bottom:1px solid var(--card-edge);
+  }
+  .sheet .row span:last-child{ color:var(--ink-dim); font-variant-numeric:tabular-nums; }
+  .sheet .sub{ font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-dim); margin-top:16px; margin-bottom:2px; }
+  .sheet .confession{
+    font-size:11.5px; color:var(--ink-dim); line-height:1.6; margin-top:16px; font-style:italic;
+  }
+  .sheet .close{
+    display:block; margin:20px auto 0; background:none; border:1px solid var(--card-edge);
+    color:var(--ink-dim); font-family:inherit; font-size:11px; letter-spacing:0.1em;
+    padding:9px 22px; border-radius:4px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .overlay{ transition:none; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="../../index.html">← cue sheet</a>
+
+<div class="stage">
+  <div class="top">
+    <div class="origtag">
+      <span class="label">Strung</span>
+      <span class="val" id="origReadout">5 / 5 original</span>
+    </div>
+  </div>
+
+  <div class="puppetwrap">
+    <svg viewBox="0 0 300 340" id="svg">
+      <rect x="98" y="26" width="104" height="7" rx="2" fill="#3a3226"></rect>
+
+      <g id="gGhostHead" opacity="0" style="mix-blend-mode:screen">
+        <line x1="150" y1="33" x2="150" y2="60" stroke="var(--ghost)" stroke-width="1"></line>
+        <line x1="150" y1="88" x2="150" y2="192" stroke="var(--ghost)" stroke-width="11" stroke-linecap="round"></line>
+        <circle cx="150" cy="72" r="15" fill="none" stroke="var(--ghost)" stroke-width="1.4"></circle>
+      </g>
+      <g id="gGhostArmL" opacity="0" style="mix-blend-mode:screen">
+        <line x1="118" y1="33" x2="118" y2="102" stroke="var(--ghost)" stroke-width="1"></line>
+        <line x1="118" y1="102" x2="98" y2="162" stroke="var(--ghost)" stroke-width="7" stroke-linecap="round"></line>
+      </g>
+      <g id="gGhostArmR" opacity="0" style="mix-blend-mode:screen">
+        <line x1="182" y1="33" x2="182" y2="102" stroke="var(--ghost)" stroke-width="1"></line>
+        <line x1="182" y1="102" x2="202" y2="162" stroke="var(--ghost)" stroke-width="7" stroke-linecap="round"></line>
+      </g>
+      <g id="gGhostLegL" opacity="0" style="mix-blend-mode:screen">
+        <line x1="136" y1="33" x2="136" y2="190" stroke="var(--ghost)" stroke-width="1"></line>
+        <line x1="136" y1="190" x2="122" y2="266" stroke="var(--ghost)" stroke-width="8" stroke-linecap="round"></line>
+      </g>
+      <g id="gGhostLegR" opacity="0" style="mix-blend-mode:screen">
+        <line x1="164" y1="33" x2="164" y2="190" stroke="var(--ghost)" stroke-width="1"></line>
+        <line x1="164" y1="190" x2="178" y2="266" stroke="var(--ghost)" stroke-width="8" stroke-linecap="round"></line>
+      </g>
+
+      <g id="gLegL">
+        <line id="strLegL" x1="136" y1="33" x2="136" y2="190" stroke="var(--gold)" stroke-width="1.4"></line>
+        <line x1="136" y1="190" x2="122" y2="266" stroke="#141210" stroke-width="8" stroke-linecap="round"></line>
+      </g>
+      <g id="gLegR">
+        <line id="strLegR" x1="164" y1="33" x2="164" y2="190" stroke="var(--gold)" stroke-width="1.4"></line>
+        <line x1="164" y1="190" x2="178" y2="266" stroke="#141210" stroke-width="8" stroke-linecap="round"></line>
+      </g>
+      <g id="gArmL">
+        <line id="strArmL" x1="118" y1="33" x2="118" y2="102" stroke="var(--gold)" stroke-width="1.4"></line>
+        <line x1="118" y1="102" x2="98" y2="162" stroke="#141210" stroke-width="7" stroke-linecap="round"></line>
+      </g>
+      <g id="gArmR">
+        <line id="strArmR" x1="182" y1="33" x2="182" y2="102" stroke="var(--gold)" stroke-width="1.4"></line>
+        <line x1="182" y1="102" x2="202" y2="162" stroke="#141210" stroke-width="7" stroke-linecap="round"></line>
+      </g>
+      <g id="gHead">
+        <line id="strHead" x1="150" y1="33" x2="150" y2="60" stroke="var(--gold)" stroke-width="1.6"></line>
+        <line x1="150" y1="88" x2="150" y2="192" stroke="#141210" stroke-width="12" stroke-linecap="round"></line>
+        <circle cx="150" cy="72" r="16" fill="#1c1712" stroke="#3a3226" stroke-width="1"></circle>
+      </g>
+    </svg>
+  </div>
+
+  <div class="instruction" id="instruction">Drag to teach it — then just watch.</div>
+
+  <div class="bottomrow">
+    <button class="pill" id="worklight">⟲ first take</button>
+    <button class="logmark" id="logmark">⋯ sheet</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>Call sheet</h2>
+    <div class="row"><span>Loops danced</span><span id="rLoops">0</span></div>
+    <div class="row"><span>Repairs made</span><span id="rRepairs">0</span></div>
+    <div class="row"><span>Original parts remaining</span><span id="rOriginal">5 / 5</span></div>
+    <div class="row"><span>Average drift</span><span id="rDrift">0%</span></div>
+    <div class="sub">Per string</div>
+    <div class="row"><span>Head</span><span id="rHead">0 repairs</span></div>
+    <div class="row"><span>Left arm</span><span id="rArmL">0 repairs</span></div>
+    <div class="row"><span>Right arm</span><span id="rArmR">0 repairs</span></div>
+    <div class="row"><span>Left leg</span><span id="rLegL">0 repairs</span></div>
+    <div class="row"><span>Right leg</span><span id="rLegR">0 repairs</span></div>
+    <div class="confession" id="confession">Nothing has been taught twice. Only ever mended.</div>
+    <button class="close" id="closeLog">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var PARTS = ['head','armL','armR','legL','legR'];
+  var LABELS = {head:'Head', armL:'Left arm', armR:'Right arm', legL:'Left leg', legR:'Right leg'};
+  var state = {};
+  PARTS.forEach(function(p){
+    state[p] = {
+      amp: 1, phase: 0,
+      wear: 0,
+      frayAt: 4 + Math.random()*3,
+      snapAt: 0,
+      repairs: 0,
+      seed1: Math.random()*1000,
+      seed2: Math.random()*1000
+    };
+    state[p].snapAt = state[p].frayAt + 2 + Math.random()*2;
+  });
+
+  var taught = false;
+  var samples = [];
+  var recStart = 0;
+  var T = 0;
+  var loopStartTime = 0;
+  var lastLoopIndex = 0;
+  var loopsDanced = 0;
+  var idleT0 = 0;
+
+  var svg = document.getElementById('svg');
+  var instruction = document.getElementById('instruction');
+  var origReadout = document.getElementById('origReadout');
+
+  var els = {
+    head: { g: document.getElementById('gHead'), str: document.getElementById('strHead'),
+      pivot:[150,33], tip:[150,72], ghost: document.getElementById('gGhostHead') },
+    armL: { g: document.getElementById('gArmL'), str: document.getElementById('strArmL'),
+      pivot:[118,33], tip:[98,162], ghost: document.getElementById('gGhostArmL') },
+    armR: { g: document.getElementById('gArmR'), str: document.getElementById('strArmR'),
+      pivot:[182,33], tip:[202,162], ghost: document.getElementById('gGhostArmR') },
+    legL: { g: document.getElementById('gLegL'), str: document.getElementById('strLegL'),
+      pivot:[136,33], tip:[122,266], ghost: document.getElementById('gGhostLegL') },
+    legR: { g: document.getElementById('gLegR'), str: document.getElementById('strLegR'),
+      pivot:[164,33], tip:[178,266], ghost: document.getElementById('gGhostLegR') }
+  };
+
+  var livePos = {};
+
+  function rotatePoint(px, py, ex, ey, angleDeg){
+    var a = angleDeg * Math.PI / 180;
+    var cos = Math.cos(a), sin = Math.sin(a);
+    var dx = ex - px, dy = ey - py;
+    return [ px + dx*cos - dy*sin, py + dx*sin + dy*cos ];
+  }
+
+  // --- teach: record a drag phrase ---
+  var recording = false;
+  var svgRect = null;
+
+  function normFromClient(clientX, clientY){
+    var x = ((clientX - svgRect.left) / svgRect.width) * 2 - 1;
+    var y = ((clientY - svgRect.top) / svgRect.height) * 2 - 1;
+    return [ Math.max(-1,Math.min(1,x)), Math.max(-1,Math.min(1,y)) ];
+  }
+
+  function beginTeach(clientX, clientY){
+    recording = true;
+    svgRect = document.querySelector('.puppetwrap').getBoundingClientRect();
+    recStart = performance.now();
+    samples = [];
+    var n = normFromClient(clientX, clientY);
+    samples.push({ t:0, x:n[0], y:n[1] });
+  }
+  function continueTeach(clientX, clientY){
+    if(!recording) return;
+    var now = performance.now();
+    var n = normFromClient(clientX, clientY);
+    samples.push({ t: now - recStart, x:n[0], y:n[1] });
+    if(now - recStart > 12000){ commitTeach(); }
+  }
+  function commitTeach(){
+    if(!recording) return;
+    recording = false;
+    var dur = samples.length ? samples[samples.length-1].t : 0;
+    if(dur < 800 || samples.length < 4){ samples = []; return; }
+    T = dur;
+    taught = true;
+    loopStartTime = performance.now();
+    lastLoopIndex = 0;
+    instruction.style.opacity = '0.35';
+  }
+
+  function sampleAt(targetT){
+    if(samples.length === 0) return [0,0];
+    if(targetT <= 0) return [samples[0].x, samples[0].y];
+    if(targetT >= T) return [samples[samples.length-1].x, samples[samples.length-1].y];
+    var lo = 0, hi = samples.length - 1;
+    while(hi - lo > 1){
+      var mid = (lo+hi) >> 1;
+      if(samples[mid].t < targetT) lo = mid; else hi = mid;
+    }
+    var a = samples[lo], b = samples[hi];
+    var span = b.t - a.t;
+    var f = span > 0 ? (targetT - a.t) / span : 0;
+    return [ a.x + (b.x-a.x)*f, a.y + (b.y-a.y)*f ];
+  }
+
+  // --- repair: tap nearest worn part ---
+  function repairPart(name){
+    var s = state[name];
+    if(s.wear < s.frayAt) return false;
+    s.wear = 0;
+    s.repairs += 1;
+    s.amp = clamp(s.amp * (1 + (Math.random()-0.5)*0.12), 0.55, 1.7);
+    s.phase = s.phase + (Math.random()-0.5)*0.10*Math.max(T,1);
+    return true;
+  }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+  function toSvgPoint(clientX, clientY){
+    var pt = svg.createSVGPoint();
+    pt.x = clientX; pt.y = clientY;
+    var ctm = svg.getScreenCTM();
+    if(!ctm) return null;
+    var p = pt.matrixTransform(ctm.inverse());
+    return [p.x, p.y];
+  }
+
+  function tryRepairAt(clientX, clientY){
+    var p = toSvgPoint(clientX, clientY);
+    if(!p) return;
+    var best = null, bestD = 60;
+    PARTS.forEach(function(name){
+      var lp = livePos[name];
+      if(!lp) return;
+      var d = Math.hypot(p[0]-lp[0], p[1]-lp[1]);
+      if(d < bestD){ bestD = d; best = name; }
+    });
+    if(best) repairPart(best);
+  }
+
+  // --- pointer routing ---
+  var downX=0, downY=0, downT=0, moved=false;
+  document.addEventListener('pointerdown', function(e){
+    downX=e.clientX; downY=e.clientY; downT=performance.now(); moved=false;
+    if(!taught){
+      beginTeach(e.clientX, e.clientY);
+    }
+  });
+  document.addEventListener('pointermove', function(e){
+    if(!taught){
+      continueTeach(e.clientX, e.clientY);
+    } else {
+      if(Math.hypot(e.clientX-downX, e.clientY-downY) > 8) moved = true;
+    }
+  });
+  document.addEventListener('pointerup', function(e){
+    if(!taught){
+      commitTeach();
+    } else {
+      var dt = performance.now() - downT;
+      if(!moved && dt < 400){
+        tryRepairAt(e.clientX, e.clientY);
+      }
+    }
+  });
+
+  // --- worklight (hold to see original take) ---
+  var worklight = document.getElementById('worklight');
+  var ghostOn = false;
+  function setGhost(on){
+    ghostOn = on;
+    worklight.classList.toggle('active', on);
+    PARTS.forEach(function(name){ els[name].ghost.style.opacity = on ? '0.75' : '0'; });
+  }
+  worklight.addEventListener('pointerdown', function(e){ e.stopPropagation(); setGhost(true); });
+  worklight.addEventListener('pointerup', function(e){ e.stopPropagation(); setGhost(false); });
+  worklight.addEventListener('pointerleave', function(){ setGhost(false); });
+  worklight.addEventListener('pointercancel', function(){ setGhost(false); });
+
+  // --- render ---
+  var TILT_MAX = 13, ARM_AMP = 26, LEG_AMP = 16, BOB_MAX = 6;
+  var ARM_REST_L = -18, ARM_REST_R = 18, LEG_REST_L = -6, LEG_REST_R = 6;
+
+  function jitterFor(s, now){
+    if(s.wear < s.frayAt) return 0;
+    var sev = clamp((s.wear - s.frayAt) / (s.snapAt - s.frayAt), 0, 1);
+    if(reduceMotion) sev *= 0.25;
+    return Math.sin(now*0.021 + s.seed1) * Math.cos(now*0.037 + s.seed2) * sev * 9;
+  }
+
+  function partAngle(name, x, y, now){
+    var s = state[name];
+    if(s.wear >= s.snapAt){
+      var sway = reduceMotion ? 0 : Math.sin(now*0.0009 + s.seed1) * 2.5;
+      var rest = { head:0, armL:ARM_REST_L, armR:ARM_REST_R, legL:LEG_REST_L, legR:LEG_REST_R }[name];
+      return rest + sway;
+    }
+    var jig = jitterFor(s, now);
+    if(name === 'head') return x * TILT_MAX * s.amp + jig;
+    if(name === 'armL') return ARM_REST_L + (-x) * ARM_AMP * s.amp + jig;
+    if(name === 'armR') return ARM_REST_R + (x) * ARM_AMP * s.amp + jig;
+    if(name === 'legL') return LEG_REST_L + y * LEG_AMP * s.amp + Math.sin((now-loopStartTime)/Math.max(T,1)*Math.PI*4) * 4 * s.amp + jig;
+    if(name === 'legR') return LEG_REST_R + y * LEG_AMP * s.amp + Math.sin((now-loopStartTime)/Math.max(T,1)*Math.PI*4 + Math.PI) * 4 * s.amp + jig;
+    return jig;
+  }
+
+  function onLoopComplete(){
+    loopsDanced++;
+    PARTS.forEach(function(name){ state[name].wear += 1; });
+  }
+
+  function render(now){
+    // idle sway before teaching
+    if(!taught){
+      var t = (now - idleT0) * 0.0011;
+      var sway = reduceMotion ? 0 : Math.sin(t) * 3;
+      PARTS.forEach(function(name){
+        var el = els[name];
+        var ang = name === 'head' ? sway : sway * 0.5 * (name.indexOf('L') >= 0 ? 1 : -1);
+        el.g.setAttribute('transform', 'rotate(' + ang.toFixed(2) + ',' + el.pivot[0] + ',' + el.pivot[1] + ')');
+        var tip = rotatePoint(el.pivot[0], el.pivot[1], el.tip[0], el.tip[1], ang);
+        livePos[name] = tip;
+      });
+      requestAnimationFrame(render);
+      return;
+    }
+
+    var elapsed = now - loopStartTime;
+    var loopIndex = Math.floor(elapsed / T);
+    var guard = 0;
+    while(loopIndex > lastLoopIndex && guard < 50){
+      lastLoopIndex++;
+      onLoopComplete();
+      guard++;
+    }
+    var tLocal = ((elapsed % T) + T) % T;
+
+    PARTS.forEach(function(name){
+      var s = state[name];
+      var el = els[name];
+      var phT = ((tLocal + s.phase) % T + T) % T;
+      var xy = sampleAt(phT);
+      var ang = partAngle(name, xy[0], xy[1], now);
+      var bob = 0;
+      if(name === 'head'){
+        bob = xy[1] * BOB_MAX * s.amp;
+      }
+      el.g.setAttribute('transform', 'translate(0,' + bob.toFixed(2) + ') rotate(' + ang.toFixed(2) + ',' + el.pivot[0] + ',' + el.pivot[1] + ')');
+      var tip = rotatePoint(el.pivot[0], el.pivot[1] , el.tip[0], el.tip[1], ang);
+      tip[1] += bob;
+      livePos[name] = tip;
+
+      // ghost: original, undrifted
+      var gxy = sampleAt(tLocal);
+      var ghostRest = { head:0, armL:ARM_REST_L, armR:ARM_REST_R, legL:LEG_REST_L, legR:LEG_REST_R }[name];
+      var gAng = ghostRest;
+      if(name === 'head') gAng = gxy[0] * TILT_MAX;
+      if(name === 'armL') gAng = ARM_REST_L + (-gxy[0]) * ARM_AMP;
+      if(name === 'armR') gAng = ARM_REST_R + (gxy[0]) * ARM_AMP;
+      if(name === 'legL') gAng = LEG_REST_L + gxy[1]*LEG_AMP + Math.sin(tLocal/T*Math.PI*4)*4;
+      if(name === 'legR') gAng = LEG_REST_R + gxy[1]*LEG_AMP + Math.sin(tLocal/T*Math.PI*4+Math.PI)*4;
+      var gBob = name === 'head' ? gxy[1]*BOB_MAX : 0;
+      el.ghost.setAttribute('transform', 'translate(0,' + gBob.toFixed(2) + ') rotate(' + gAng.toFixed(2) + ',' + el.pivot[0] + ',' + el.pivot[1] + ')');
+
+      // string color by wear state
+      var color = 'var(--gold)';
+      if(s.wear >= s.snapAt) color = 'var(--snap)';
+      else if(s.wear >= s.frayAt) color = 'var(--fray)';
+      el.str.setAttribute('stroke', color);
+      el.str.setAttribute('stroke-dasharray', s.wear >= s.snapAt ? '3,3' : 'none');
+    });
+
+    var origRemaining = PARTS.filter(function(p){ return state[p].repairs === 0; }).length;
+    origReadout.textContent = origRemaining + ' / 5 original';
+
+    requestAnimationFrame(render);
+  }
+
+  idleT0 = performance.now();
+  requestAnimationFrame(render);
+
+  // --- call sheet ---
+  var overlay = document.getElementById('overlay');
+  var logmark = document.getElementById('logmark');
+  function renderSheet(){
+    var totalRepairs = 0, driftSum = 0;
+    PARTS.forEach(function(p){ totalRepairs += state[p].repairs; driftSum += Math.abs(state[p].amp - 1); });
+    var origRemaining = PARTS.filter(function(p){ return state[p].repairs === 0; }).length;
+    document.getElementById('rLoops').textContent = loopsDanced;
+    document.getElementById('rRepairs').textContent = totalRepairs;
+    document.getElementById('rOriginal').textContent = origRemaining + ' / 5';
+    document.getElementById('rDrift').textContent = Math.round(driftSum/5*100) + '%';
+    document.getElementById('rHead').textContent = state.head.repairs + ' repairs';
+    document.getElementById('rArmL').textContent = state.armL.repairs + ' repairs';
+    document.getElementById('rArmR').textContent = state.armR.repairs + ' repairs';
+    document.getElementById('rLegL').textContent = state.legL.repairs + ' repairs';
+    document.getElementById('rLegR').textContent = state.legR.repairs + ' repairs';
+    document.getElementById('confession').textContent = origRemaining === 0
+      ? 'Every string on this puppet has been replaced at least once. It has never missed a beat — not quite the same one, either.'
+      : 'Not everything here is original. It still looks like it started.';
+  }
+  logmark.addEventListener('click', function(e){ e.stopPropagation(); renderSheet(); overlay.classList.add('show'); });
+  document.getElementById('closeLog').addEventListener('click', function(e){ e.stopPropagation(); overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.classList.remove('show'); });
+})();
+</script>
+</body>
+</html>
