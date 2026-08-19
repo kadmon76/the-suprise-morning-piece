@@ -202,6 +202,13 @@
       "kind": "seed",
       "note": "A marionette on five strings — mend what frays. It never once stops dancing the same dance.",
       "path": "projects/2026-08-18-restrung/index.html"
+    },
+    {
+      "date": "2026-08-19",
+      "title": "(Advisory Only.)",
+      "kind": "question",
+      "note": "A hook, a work light, a name that keeps getting replaced. Hold on as long as you like — nobody said what that buys you.",
+      "path": "projects/2026-08-19-advisory-only/index.html"
     }
   ]
 }
