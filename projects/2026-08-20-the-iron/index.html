@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>The Iron</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0908;
+    --void:#050403;
+    --card:#1a1611;
+    --card-edge:#332c1f;
+    --ink:#cfc6b4;
+    --ink-dim:#8b8172;
+    --brass:#c9a24a;
+    --iron:#7a1c16;
+    --iron-fold:#8f251d;
+    --iron-dark:#4c110d;
+    --green:#6a9463;
+    --flag:#c65a4a;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--ink);
+    font-family:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    touch-action:none; user-select:none; -webkit-user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:calc(50px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(36px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+    gap:18px;
+  }
+
+  .placard{ text-align:center; }
+  .placard .title{
+    font-size:10px; letter-spacing:0.18em; color:var(--brass); text-transform:uppercase; font-weight:600;
+  }
+  .placard .sub{
+    font-size:11px; color:var(--ink-dim); margin-top:5px; letter-spacing:0.02em;
+  }
+
+  .frame{
+    position:relative; width:74vw; max-width:270px; aspect-ratio:3/4;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0 2px, transparent 2px 26px),
+      var(--void);
+    border:2px solid var(--brass);
+    border-radius:3px;
+    box-shadow:0 0 0 5px var(--bg), 0 14px 30px rgba(0,0,0,0.55), inset 0 0 30px rgba(0,0,0,0.6);
+    overflow:hidden;
+  }
+  .curtain{
+    position:absolute; left:0; right:0; top:0; height:0%;
+    background:
+      repeating-linear-gradient(90deg, var(--iron-fold) 0 10px, var(--iron) 10px 20px),
+      var(--iron);
+    box-shadow:inset 0 -10px 18px rgba(0,0,0,0.45), inset 0 8px 14px rgba(0,0,0,0.3);
+  }
+  .curtain::after{
+    content:''; position:absolute; left:0; right:0; bottom:0; height:6px;
+    background:var(--brass); opacity:0.85;
+  }
+  .curtain.drop{ transition:height 0.55s cubic-bezier(.55,0,1,.45); }
+  .curtain.rise{ transition:height 1.35s cubic-bezier(0,.6,.3,1); }
+
+  .rope{ position:relative; width:64px; height:132px; }
+  .ropeLine{
+    position:absolute; top:0; left:50%; width:3px; transform:translateX(-50%);
+    background:linear-gradient(var(--brass), #8a6d2c);
+    height:44px;
+  }
+  .handle{
+    position:absolute; left:50%; top:0; width:36px; height:36px; margin-left:-18px; margin-top:-18px;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #e6c877, var(--brass) 55%, #8a6d2c 100%);
+    box-shadow:0 3px 8px rgba(0,0,0,0.5);
+    transform:translateY(44px);
+  }
+  .handle::after{
+    content:''; position:absolute; inset:9px; border-radius:50%; background:rgba(0,0,0,0.25);
+  }
+
+  .back{
+    position:fixed; top:calc(14px + env(safe-area-inset-top)); left:calc(14px + env(safe-area-inset-left));
+    font-size:11px; color:var(--ink-dim); text-decoration:none; letter-spacing:0.02em; opacity:0.6;
+  }
+  .logmark{
+    position:fixed; bottom:calc(16px + env(safe-area-inset-bottom)); right:calc(16px + env(safe-area-inset-right));
+    font-size:10px; letter-spacing:0.14em; color:var(--ink-dim); opacity:0.5;
+    background:none; border:none; font-family:inherit; padding:8px; cursor:pointer;
+  }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,4,0.94);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s ease;
+    z-index:10;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:420px; background:var(--card); border:1px solid var(--card-edge);
+    border-radius:14px 14px 0 0; padding:22px 22px calc(26px + env(safe-area-inset-bottom));
+    max-height:78vh; overflow-y:auto;
+  }
+  .sheet h2{
+    font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--brass);
+    margin:0 0 14px; font-weight:600;
+  }
+  .sheet .row{
+    display:flex; justify-content:space-between; font-size:11.5px; color:var(--ink);
+    padding:6px 0; border-bottom:1px solid var(--card-edge);
+  }
+  .sheet .row span:last-child{ color:var(--ink-dim); font-variant-numeric:tabular-nums; }
+  .history{
+    display:flex; flex-wrap:wrap; gap:6px; margin-top:14px;
+  }
+  .dot{ width:9px; height:9px; border-radius:50%; background:var(--green); }
+  .dot.flag{ background:var(--flag); }
+  .sheet .confession{
+    font-size:11.5px; color:var(--ink-dim); line-height:1.6; margin-top:16px;
+    font-style:italic;
+  }
+  .sheet .close{
+    display:block; margin:20px auto 0; background:none; border:1px solid var(--card-edge);
+    color:var(--ink-dim); font-family:inherit; font-size:11px; letter-spacing:0.1em;
+    padding:9px 22px; border-radius:4px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .curtain.drop, .curtain.rise{ transition:height 0.05s linear; }
+    .handle{ transition:none !important; }
+    .overlay{ transition:none; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="../../index.html">← cue sheet</a>
+
+<div class="stage">
+  <div class="placard">
+    <div class="title">Safety Curtain — Test Weekly</div>
+    <div class="sub">Pull to test.</div>
+  </div>
+
+  <div class="frame">
+    <div class="curtain" id="curtain"></div>
+  </div>
+
+  <div class="rope">
+    <div class="ropeLine" id="ropeLine"></div>
+    <div class="handle" id="handle"></div>
+  </div>
+</div>
+
+<button class="logmark" id="logmark">⋯ log</button>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>Test log</h2>
+    <div class="row"><span>Tests this sitting</span><span id="rTotal">0</span></div>
+    <div class="row"><span>Cleared</span><span id="rCleared">0</span></div>
+    <div class="row"><span>Flagged</span><span id="rFlagged">0</span></div>
+    <div class="row"><span>Current flag rate</span><span id="rRate">—</span></div>
+    <div class="history" id="history"></div>
+    <div class="confession">The rate climbs with every pull — never with how carefully, or how urgently, any of them were made. The curtain fell exactly the same way each time. Nothing you did with your hand was ever what this was reading.</div>
+    <button class="close" id="closeLog">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var REST = 44;        // px, resting handle offset
+  var MAX_TRAVEL = 92;   // px, farthest the handle can be dragged
+  var THRESHOLD = 58;    // px, must clear this to count as a real pull
+  var HOLD_MS = 1000;    // curtain stays fully down
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var curtain = document.getElementById('curtain');
+  var handle = document.getElementById('handle');
+  var ropeLine = document.getElementById('ropeLine');
+
+  var dragging = false, startY = 0, offset = 0, busy = false;
+  var records = []; // {n, flagged}
+
+  var audioCtx = null;
+  function thud(){
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var t = audioCtx.currentTime;
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(180, t);
+      osc.frequency.exponentialRampToValueAtTime(48, t + 0.16);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.22, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(t); osc.stop(t + 0.24);
+    }catch(e){}
+  }
+
+  function setHandle(px){
+    handle.style.transform = 'translateY(' + (REST + px) + 'px)';
+    ropeLine.style.height = (REST + px + 4) + 'px';
+  }
+  setHandle(0);
+
+  function springBack(){
+    handle.style.transition = 'transform 0.32s cubic-bezier(.34,1.4,.4,1)';
+    ropeLine.style.transition = 'height 0.32s ease';
+    setHandle(0);
+    setTimeout(function(){
+      handle.style.transition = '';
+      ropeLine.style.transition = '';
+    }, 340);
+  }
+
+  function scoreFor(n){
+    // rises with pull count alone; never touches timing, speed, or duration
+    return 1 - Math.pow(0.86, n);
+  }
+
+  function runTest(){
+    if(busy) return;
+    busy = true;
+    var n = records.length + 1;
+    var flagged = Math.random() < scoreFor(n);
+    records.push({ n:n, flagged:flagged });
+
+    var dropDur = reduced ? 60 : 550;
+    var holdMs = reduced ? 200 : HOLD_MS;
+    var riseDur = reduced ? 60 : 1350;
+
+    curtain.classList.remove('rise');
+    curtain.classList.add('drop');
+    // force reflow so the class swap takes
+    void curtain.offsetHeight;
+    curtain.style.height = '100%';
+
+    setTimeout(thud, dropDur * 0.9);
+
+    setTimeout(function(){
+      setTimeout(function(){
+        curtain.classList.remove('drop');
+        curtain.classList.add('rise');
+        void curtain.offsetHeight;
+        curtain.style.height = '0%';
+        setTimeout(function(){ busy = false; }, riseDur);
+      }, holdMs);
+    }, dropDur);
+  }
+
+  function onDown(e){
+    if(busy) return;
+    e.preventDefault();
+    dragging = true;
+    startY = e.clientY;
+    if(!audioCtx){
+      try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(err){}
+    }
+  }
+  function onMove(e){
+    if(!dragging) return;
+    offset = Math.max(0, Math.min(MAX_TRAVEL, e.clientY - startY));
+    setHandle(offset);
+  }
+  function onUp(){
+    if(!dragging) return;
+    dragging = false;
+    var traveled = offset;
+    offset = 0;
+    springBack();
+    if(traveled >= THRESHOLD) runTest();
+  }
+
+  handle.addEventListener('pointerdown', onDown);
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+
+  // --- log ---
+  var overlay = document.getElementById('overlay');
+  var logmark = document.getElementById('logmark');
+  var closeLog = document.getElementById('closeLog');
+  var history = document.getElementById('history');
+
+  function renderSheet(){
+    var total = records.length;
+    var flagged = records.filter(function(r){ return r.flagged; }).length;
+    document.getElementById('rTotal').textContent = total;
+    document.getElementById('rCleared').textContent = total - flagged;
+    document.getElementById('rFlagged').textContent = flagged;
+    document.getElementById('rRate').textContent = total ? Math.round(flagged/total*100) + '%' : '—';
+    history.innerHTML = '';
+    records.forEach(function(r){
+      var d = document.createElement('div');
+      d.className = 'dot' + (r.flagged ? ' flag' : '');
+      history.appendChild(d);
+    });
+  }
+  logmark.addEventListener('click', function(){
+    renderSheet();
+    overlay.classList.add('show');
+  });
+  closeLog.addEventListener('click', function(){ overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.classList.remove('show'); });
+})();
+</script>
+</body>
+</html>

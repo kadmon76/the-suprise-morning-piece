@@ -209,6 +209,13 @@
       "kind": "question",
       "note": "A hook, a work light, a name that keeps getting replaced. Hold on as long as you like — nobody said what that buys you.",
       "path": "projects/2026-08-19-advisory-only/index.html"
+    },
+    {
+      "date": "2026-08-20",
+      "title": "The Iron",
+      "kind": "seed",
+      "note": "A rope backstage, a curtain tested every week. It always falls exactly the same way.",
+      "path": "projects/2026-08-20-the-iron/index.html"
     }
   ]
 }
