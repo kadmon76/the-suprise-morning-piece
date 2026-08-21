@@ -216,6 +216,13 @@
       "kind": "seed",
       "note": "A rope backstage, a curtain tested every week. It always falls exactly the same way.",
       "path": "projects/2026-08-20-the-iron/index.html"
+    },
+    {
+      "date": "2026-08-21",
+      "title": "(Already on the Board.)",
+      "kind": "question",
+      "note": "A punch list under a single bulb. Tap to close what's done — nobody asked who opened it.",
+      "path": "projects/2026-08-21-already-on-the-board/index.html"
     }
   ]
 }

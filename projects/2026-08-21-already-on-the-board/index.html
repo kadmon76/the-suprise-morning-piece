@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Already on the Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0a08;
+    --bulb:#1a1712;
+    --card:#e9e2d2;
+    --card-shade:#d8cfb9;
+    --card-edge:#b7ab8e;
+    --ink:#2a2417;
+    --ink-human:#5a3a1f;
+    --ink-machine:#28536b;
+    --clip:#8c8378;
+    --dim:#948a72;
+    --ledger-bg:#161310;
+    --ledger-card:#211d17;
+    --ledger-edge:#3a3325;
+    --paper:#cfc6b4;
+    --paper-dim:#8b8172;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--ink);
+    font-family:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    -webkit-user-select:none; user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:calc(36px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(30px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 8%, rgba(255,238,190,0.10), transparent 60%),
+      var(--bg);
+  }
+
+  .placard{ text-align:center; margin-bottom:16px; }
+  .placard .title{
+    font-size:10px; letter-spacing:0.18em; color:#c9a24a; text-transform:uppercase; font-weight:600;
+  }
+  .placard .sub{
+    font-size:11px; color:var(--dim); margin-top:5px; letter-spacing:0.02em;
+  }
+
+  .board{
+    position:relative;
+    width:min(88vw, 340px);
+    background:var(--card);
+    border-radius:4px;
+    box-shadow:0 18px 36px rgba(0,0,0,0.5), inset 0 0 0 1px var(--card-edge);
+    padding:22px 16px 14px;
+  }
+  .clipbar{
+    position:absolute; top:-10px; left:50%; transform:translateX(-50%);
+    width:74px; height:20px; background:var(--clip);
+    border-radius:4px; box-shadow:0 3px 6px rgba(0,0,0,0.4);
+  }
+  .clipbar::after{
+    content:''; position:absolute; left:50%; top:50%; width:34px; height:8px;
+    transform:translate(-50%,-50%); background:var(--bulb); border-radius:2px;
+  }
+
+  .list{
+    list-style:none; margin:0; padding:2px 2px 4px;
+    max-height:46vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    touch-action:pan-y;
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .row{
+    position:relative;
+    background:var(--card-shade);
+    border-bottom:1px dashed var(--card-edge);
+    padding:12px 10px 12px 30px;
+    font-size:12.5px; line-height:1.4;
+    cursor:pointer;
+    min-height:22px;
+    transition:opacity 0.3s ease, transform 0.3s ease;
+  }
+  .row.human{ color:var(--ink-human); }
+  .row.auto{ color:var(--ink-machine); }
+  .row::before{
+    content:''; position:absolute; left:10px; top:50%; width:11px; height:11px;
+    margin-top:-5.5px; border:1.4px solid currentColor; border-radius:2px; opacity:0.6;
+  }
+  .row.closing{ opacity:0; transform:translateX(14px) scale(0.98); }
+  .row.closing .strike{ width:100%; }
+  .strike{
+    position:absolute; left:30px; right:10px; top:50%; height:1.4px;
+    background:currentColor; width:0%; transition:width 0.3s ease;
+  }
+  .row.entering{ animation:stick 0.36s ease both; }
+  @keyframes stick{
+    from{ opacity:0; transform:translateY(-8px) rotate(-1deg); }
+    to{ opacity:1; transform:translateY(0) rotate(0deg); }
+  }
+
+  .footline{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:10px 4px 2px; font-size:9.5px; letter-spacing:0.08em; color:var(--paper-dim);
+  }
+  .footline .closed{ color:#7a6f57; }
+
+  .back{
+    position:fixed; top:calc(14px + env(safe-area-inset-top)); left:calc(14px + env(safe-area-inset-left));
+    font-size:11px; color:var(--dim); text-decoration:none; letter-spacing:0.02em; opacity:0.55;
+  }
+  .mark{
+    position:fixed; bottom:calc(16px + env(safe-area-inset-bottom)); right:calc(16px + env(safe-area-inset-right));
+    font-size:10px; letter-spacing:0.14em; color:var(--dim); opacity:0.55;
+    background:none; border:none; font-family:inherit; padding:8px; cursor:pointer;
+  }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,4,0.94);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s ease;
+    z-index:10;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:420px; background:var(--ledger-card); border:1px solid var(--ledger-edge);
+    border-radius:14px 14px 0 0; padding:22px 22px calc(26px + env(safe-area-inset-bottom));
+    max-height:80vh; overflow-y:auto; color:var(--paper);
+  }
+  .sheet h2{
+    font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:#c9a24a;
+    margin:0 0 14px; font-weight:600;
+  }
+  .sheet .row2{
+    display:flex; justify-content:space-between; font-size:11.5px;
+    padding:6px 0; border-bottom:1px solid var(--ledger-edge);
+  }
+  .sheet .row2 span:last-child{ color:var(--paper-dim); font-variant-numeric:tabular-nums; }
+  .sheet .bar{
+    margin-top:14px; height:10px; border-radius:5px; overflow:hidden; background:var(--ink-human);
+    display:flex;
+  }
+  .sheet .bar .m{ background:var(--ink-machine); height:100%; }
+  .sheet .barlabel{ display:flex; justify-content:space-between; font-size:9.5px; color:var(--paper-dim); margin-top:6px; letter-spacing:0.04em; }
+  .sheet .confession{
+    font-size:11.5px; color:var(--paper-dim); line-height:1.6; margin-top:16px;
+    font-style:italic;
+  }
+  .sheet .close{
+    display:block; margin:20px auto 0; background:none; border:1px solid var(--ledger-edge);
+    color:var(--paper-dim); font-family:inherit; font-size:11px; letter-spacing:0.1em;
+    padding:9px 22px; border-radius:4px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .row, .strike, .overlay{ transition:none !important; }
+    .row.entering{ animation:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="../../index.html">← cue sheet</a>
+
+<div class="stage">
+  <div class="placard">
+    <div class="title">Punch List — Pre-Opening</div>
+    <div class="sub">Tap a line to close it.</div>
+  </div>
+
+  <div class="board">
+    <div class="clipbar"></div>
+    <ul class="list" id="list"></ul>
+    <div class="footline"><span>backstage, before house opens</span><span class="closed" id="closedCount">closed 0</span></div>
+  </div>
+</div>
+
+<button class="mark" id="mark">⋯ board</button>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>The board</h2>
+    <div class="row2"><span>Closed by you, this sitting</span><span id="rClosed">0</span></div>
+    <div class="row2"><span>On the list when you arrived</span><span id="rHuman">5</span></div>
+    <div class="row2"><span>Added since, on its own</span><span id="rAuto">0</span></div>
+    <div class="row2"><span>Share of everything ever posted, added on its own</span><span id="rShare">—</span></div>
+    <div class="bar"><div class="m" id="barM" style="width:0%"></div></div>
+    <div class="barlabel"><span>arrived with</span><span>added on its own</span></div>
+    <div class="confession" id="confession"></div>
+    <button class="close" id="closeSheet">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var HUMAN_LINES = [
+    "SR caster still squeaks — oil before half hour",
+    "Gel 34 gone pink, swap before Act II",
+    "Loose pin, batten 6 — check the shackle",
+    "Velcro's shot on the quick-change rig",
+    "House left aisle light out again"
+  ];
+  var MACHINE_LINES = [
+    "Flag: irregular pacing detected, Act II",
+    "Redundant cue window, SL run",
+    "Efficiency note: repeated blackout, scene 4",
+    "Anomaly logged: cue 12 timing variance",
+    "Optimization flagged: crossfade overlap",
+    "Pattern detected: recurring delay, USR",
+    "Advisory: unscheduled pause, intermission",
+    "Note: duplicate instruction, prop table",
+    "Flag: inconsistent spacing, curtain calls",
+    "Review suggested: blocking drift, Act I"
+  ];
+
+  var listEl = document.getElementById('list');
+  var closedCountEl = document.getElementById('closedCount');
+
+  var humanPosted = HUMAN_LINES.length; // fixed — nothing more is ever seeded
+  var autoPosted = 0;
+  var closedCount = 0;
+  var idSeq = 0;
+  var machinePool = MACHINE_LINES.slice();
+
+  function shuffle(arr){
+    for(var i=arr.length-1;i>0;i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var t = arr[i]; arr[i]=arr[j]; arr[j]=t;
+    }
+    return arr;
+  }
+  shuffle(machinePool);
+  var machinePoolIdx = 0;
+
+  function addRow(text, origin, atTop){
+    var li = document.createElement('li');
+    li.className = 'row ' + origin + (reduced ? '' : ' entering');
+    li.dataset.id = ++idSeq;
+    var strike = document.createElement('div');
+    strike.className = 'strike';
+    var span = document.createElement('span');
+    span.textContent = text;
+    li.appendChild(strike);
+    li.appendChild(span);
+    if(atTop && listEl.firstChild){
+      listEl.insertBefore(li, listEl.firstChild);
+    } else {
+      listEl.appendChild(li);
+    }
+  }
+
+  HUMAN_LINES.forEach(function(t){ addRow(t, 'human', false); });
+
+  function nextMachineLine(){
+    if(machinePoolIdx >= machinePool.length){
+      shuffle(machinePool);
+      machinePoolIdx = 0;
+    }
+    return machinePool[machinePoolIdx++];
+  }
+
+  function scheduleNext(){
+    var delay = 4000 + Math.random() * 3500;
+    setTimeout(function(){
+      autoPosted++;
+      addRow(nextMachineLine(), 'auto', true);
+      scheduleNext();
+    }, delay);
+  }
+  scheduleNext();
+
+  listEl.addEventListener('click', function(e){
+    var row = e.target.closest('.row');
+    if(!row || row.classList.contains('closing')) return;
+    row.classList.add('closing');
+    closedCount++;
+    closedCountEl.textContent = 'closed ' + closedCount;
+    setTimeout(function(){
+      if(row.parentNode) row.parentNode.removeChild(row);
+    }, reduced ? 20 : 300);
+  });
+
+  // --- ledger ---
+  var overlay = document.getElementById('overlay');
+  var mark = document.getElementById('mark');
+  var closeSheet = document.getElementById('closeSheet');
+
+  function renderSheet(){
+    var total = humanPosted + autoPosted;
+    var sharePct = total ? Math.round((autoPosted/total)*100) : 0;
+    document.getElementById('rClosed').textContent = closedCount;
+    document.getElementById('rHuman').textContent = humanPosted;
+    document.getElementById('rAuto').textContent = autoPosted;
+    document.getElementById('rShare').textContent = total ? sharePct + '%' : '—';
+    document.getElementById('barM').style.width = sharePct + '%';
+
+    var conf;
+    if(autoPosted === 0){
+      conf = "So far, every line on this list was already here when you arrived. Give it a minute.";
+    } else if(sharePct < 50){
+      conf = "Closing one doesn't slow the next. The count above only tracks what got posted — not what you did about it.";
+    } else {
+      conf = "More than half of what's ever been on this board named itself. Nothing you closed changed that number — it was never yours to move.";
+    }
+    document.getElementById('confession').textContent = conf;
+  }
+
+  mark.addEventListener('click', function(){ renderSheet(); overlay.classList.add('show'); });
+  closeSheet.addEventListener('click', function(){ overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.classList.remove('show'); });
+})();
+</script>
+</body>
+</html>
