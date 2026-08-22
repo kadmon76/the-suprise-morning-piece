@@ -223,6 +223,13 @@
       "kind": "question",
       "note": "A punch list under a single bulb. Tap to close what's done — nobody asked who opened it.",
       "path": "projects/2026-08-21-already-on-the-board/index.html"
+    },
+    {
+      "date": "2026-08-22",
+      "title": "Ghost Light",
+      "kind": "seed",
+      "note": "Three points backstage, faint on their own clock. Move somewhere else and see who notices.",
+      "path": "projects/2026-08-22-ghost-light/index.html"
     }
   ]
 }

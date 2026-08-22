@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Ghost Light</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0a08;
+    --dim:#948a72;
+    --gold:#c9a24a;
+    --node:#8c7a4a;
+    --ledger-bg:#161310;
+    --ledger-card:#211d17;
+    --ledger-edge:#3a3325;
+    --paper:#cfc6b4;
+    --paper-dim:#8b8172;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden; overscroll-behavior:none;
+    background:var(--bg); color:var(--paper);
+    font-family:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    -webkit-user-select:none; user-select:none;
+  }
+  #stage{
+    position:fixed; inset:0; display:block; touch-action:none;
+  }
+  .back{
+    position:fixed; top:calc(14px + env(safe-area-inset-top)); left:calc(14px + env(safe-area-inset-left));
+    font-size:11px; color:var(--dim); text-decoration:none; letter-spacing:0.02em; opacity:0.5;
+    z-index:5;
+  }
+  .mark{
+    position:fixed; bottom:calc(16px + env(safe-area-inset-bottom)); right:calc(16px + env(safe-area-inset-right));
+    font-size:10px; letter-spacing:0.14em; color:var(--dim); opacity:0.5;
+    background:none; border:none; font-family:inherit; padding:8px; cursor:pointer;
+    z-index:5;
+  }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,4,0.94);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s ease;
+    z-index:10;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:420px; background:var(--ledger-card); border:1px solid var(--ledger-edge);
+    border-radius:14px 14px 0 0; padding:22px 22px calc(26px + env(safe-area-inset-bottom));
+    max-height:80vh; overflow-y:auto; color:var(--paper);
+  }
+  .sheet h2{
+    font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold);
+    margin:0 0 14px; font-weight:600;
+  }
+  .sheet .row2{
+    display:flex; justify-content:space-between; gap:12px; font-size:11.5px;
+    padding:6px 0; border-bottom:1px solid var(--ledger-edge);
+  }
+  .sheet .row2 span:last-child{ color:var(--paper-dim); font-variant-numeric:tabular-nums; text-align:right; }
+  .sheet .confession{
+    font-size:11.5px; color:var(--paper-dim); line-height:1.6; margin-top:16px;
+    font-style:italic;
+  }
+  .sheet .close{
+    display:block; margin:20px auto 0; background:none; border:1px solid var(--ledger-edge);
+    color:var(--paper-dim); font-family:inherit; font-size:11px; letter-spacing:0.1em;
+    padding:9px 22px; border-radius:4px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .overlay{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="../../index.html">← cue sheet</a>
+
+<canvas id="stage" role="img" aria-label="A dark stage. Move a finger across it."></canvas>
+
+<button class="mark" id="mark">⋯ rig log</button>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>Rig log</h2>
+    <div class="row2"><span>Sensing method</span><span>signal disturbance only</span></div>
+    <div class="row2"><span>Camera used</span><span>none</span></div>
+    <div class="row2"><span>Device required</span><span>none</span></div>
+    <div class="row2"><span>Nodes reporting</span><span id="rNodes">0 / 3</span></div>
+    <div class="row2"><span>Confidence</span><span id="rConf">0%</span></div>
+    <div class="row2"><span>First disturbance</span><span id="rFirst">—</span></div>
+    <div class="row2"><span>In contact now</span><span id="rNow">no</span></div>
+    <div class="confession" id="confession"></div>
+    <button class="close" id="closeSheet">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var canvas = document.getElementById('stage');
+  var ctx = canvas.getContext('2d');
+  var W = 0, H = 0, dpr = 1;
+
+  function resize(){
+    dpr = window.devicePixelRatio || 1;
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', resize);
+
+  // three fixed relay points — never move, sense the room whether touched or not
+  var NODES = [
+    { xf: 0.16, yf: 0.20, phase: Math.random() * 10 },
+    { xf: 0.84, yf: 0.17, phase: Math.random() * 10 },
+    { xf: 0.50, yf: 0.87, phase: Math.random() * 10 }
+  ];
+
+  var startTime = performance.now();
+  var everTouched = false;
+  var firstContactElapsed = null;
+  var pointerActive = false;
+  var activePointerId = null;
+  var px = 0, py = 0; // last known finger position (not drawn directly)
+
+  var confidence = 0;      // 0..1, how tight the estimate is
+  var FLOOR = 0.12;        // never fully drops once triggered
+  var estX = 0, estY = 0;  // triangulated estimate
+  var haveEstimate = false;
+  var dispX = 0, dispY = 0; // eased/displayed ghost position
+
+  function pos(el){
+    var r = canvas.getBoundingClientRect();
+    return { x: el.clientX - r.left, y: el.clientY - r.top };
+  }
+
+  canvas.addEventListener('pointerdown', function(e){
+    if (activePointerId !== null) return;
+    activePointerId = e.pointerId;
+    canvas.setPointerCapture(e.pointerId);
+    pointerActive = true;
+    var p = pos(e);
+    px = p.x; py = p.y;
+    if (!everTouched){
+      everTouched = true;
+      firstContactElapsed = (performance.now() - startTime) / 1000;
+    }
+    e.preventDefault();
+  }, { passive: false });
+
+  canvas.addEventListener('pointermove', function(e){
+    if (e.pointerId !== activePointerId) return;
+    var p = pos(e);
+    px = p.x; py = p.y;
+    e.preventDefault();
+  }, { passive: false });
+
+  function endContact(e){
+    if (e.pointerId !== activePointerId) return;
+    activePointerId = null;
+    pointerActive = false;
+  }
+  canvas.addEventListener('pointerup', endContact);
+  canvas.addEventListener('pointercancel', endContact);
+  canvas.addEventListener('pointerleave', function(e){
+    if (e.pointerId === activePointerId){ /* keep tracking off-canvas via capture */ }
+  });
+
+  var lastFrame = performance.now();
+
+  function draw(t){
+    var dt = Math.min(0.05, (t - lastFrame) / 1000);
+    lastFrame = t;
+    var elapsed = (t - startTime) / 1000;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0b0a08';
+    ctx.fillRect(0, 0, W, H);
+    var floor = ctx.createRadialGradient(W*0.5, H*0.15, 0, W*0.5, H*0.15, Math.max(W,H)*0.8);
+    floor.addColorStop(0, 'rgba(255,238,190,0.05)');
+    floor.addColorStop(1, 'rgba(255,238,190,0)');
+    ctx.fillStyle = floor;
+    ctx.fillRect(0, 0, W, H);
+
+    // node readings
+    var readings = [];
+    var maxDist = Math.sqrt(W*W + H*H) * 0.55;
+    var sumW = 0, wx = 0, wy = 0;
+    var nodesReporting = 0;
+
+    for (var i = 0; i < NODES.length; i++){
+      var n = NODES[i];
+      var nx = n.xf * W, ny = n.yf * H;
+      var reading = 0;
+      if (pointerActive){
+        var d = Math.hypot(px - nx, py - ny);
+        var r = Math.max(0, 1 - d / maxDist);
+        r = Math.pow(r, 1.6);
+        r += (Math.random() - 0.5) * 0.04;
+        reading = Math.max(0, Math.min(1, r));
+      }
+      readings.push(reading);
+      if (reading > 0.08) nodesReporting++;
+      if (reading > 0.001){
+        sumW += reading; wx += nx * reading; wy += ny * reading;
+      }
+
+      // ambient idle pulse — always present, touched or not
+      n.phase += dt * (reduced ? 0 : (0.35 + reading * 5));
+      var ambient = (Math.sin(elapsed * 0.6 + i * 2.1) * 0.5 + 0.5) * 0.14;
+      var intensity = Math.min(1, ambient + reading * 0.9);
+
+      // node dot
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(217,181,104,' + (0.25 + intensity * 0.6).toFixed(3) + ')';
+      ctx.arc(nx, ny, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // ripple ring
+      if (!reduced){
+        var frac = n.phase % 1;
+        var ringR = 6 + frac * 46 * (0.4 + reading);
+        var ringA = intensity * (1 - frac) * 0.5;
+        if (ringA > 0.01){
+          ctx.beginPath();
+          ctx.strokeStyle = 'rgba(217,181,104,' + ringA.toFixed(3) + ')';
+          ctx.lineWidth = 1.2;
+          ctx.arc(nx, ny, ringR, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      } else if (intensity > 0.1){
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(217,181,104,' + (intensity * 0.35).toFixed(3) + ')';
+        ctx.lineWidth = 1.2;
+        ctx.arc(nx, ny, 16, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    document.getElementById && null; // no-op guard (kept minimal)
+
+    // confidence
+    if (everTouched){
+      if (pointerActive){
+        confidence = Math.min(1, confidence + dt * 0.12);
+      } else {
+        var target = FLOOR;
+        confidence += (target - confidence) * Math.min(1, dt * 0.35);
+        if (confidence < FLOOR) confidence = FLOOR;
+      }
+    }
+
+    // triangulated estimate
+    if (sumW > 0.06){
+      estX = wx / sumW; estY = wy / sumW;
+      haveEstimate = true;
+    }
+    // if no live estimate this frame, hold the last one (residual read)
+
+    var targetX, targetY;
+    if (!everTouched){
+      // idle wander before any contact at all
+      var cx = W * 0.5, cy = H * 0.46;
+      targetX = cx + Math.sin(t * 0.00013) * W * 0.11;
+      targetY = cy + Math.cos(t * 0.00017) * H * 0.08;
+    } else if (haveEstimate){
+      targetX = estX; targetY = estY;
+    } else {
+      targetX = dispX; targetY = dispY;
+    }
+
+    var easeAmt = reduced ? 1 : Math.max(0.05, Math.min(0.4, 0.05 + confidence * 0.3));
+    if (dispX === 0 && dispY === 0 && everTouched === false){ dispX = targetX; dispY = targetY; }
+    dispX += (targetX - dispX) * Math.min(1, dt * (easeAmt * 12));
+    dispY += (targetY - dispY) * Math.min(1, dt * (easeAmt * 12));
+
+    var jitterAmp = reduced ? 0 : (1 - confidence) * (pointerActive ? 10 : 4);
+    var gx = dispX + (Math.random() - 0.5) * jitterAmp;
+    var gy = dispY + (Math.random() - 0.5) * jitterAmp;
+
+    // ghost light glow
+    var glowR = 70 + confidence * 40;
+    var glow = ctx.createRadialGradient(gx, gy, 0, gx, gy, glowR);
+    var core = everTouched ? (0.55 + confidence * 0.35) : 0.5;
+    glow.addColorStop(0, 'rgba(255,227,171,' + core.toFixed(3) + ')');
+    glow.addColorStop(0.35, 'rgba(232,171,82,' + (core * 0.4).toFixed(3) + ')');
+    glow.addColorStop(1, 'rgba(232,171,82,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(gx, gy, glowR, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(255,240,210,0.9)';
+    ctx.arc(gx, gy, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    window.__ghostState = {
+      confidence: confidence,
+      everTouched: everTouched,
+      firstContactElapsed: firstContactElapsed,
+      pointerActive: pointerActive,
+      nodesReporting: nodesReporting
+    };
+
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+
+  // --- rig log ---
+  var overlay = document.getElementById('overlay');
+  var mark = document.getElementById('mark');
+  var closeSheet = document.getElementById('closeSheet');
+
+  function renderSheet(){
+    var s = window.__ghostState || {};
+    document.getElementById('rNodes').textContent = (s.nodesReporting || 0) + ' / 3';
+    document.getElementById('rConf').textContent = Math.round((s.confidence || 0) * 100) + '%';
+    document.getElementById('rFirst').textContent = s.everTouched ? (s.firstContactElapsed.toFixed(1) + 's in') : '—';
+    document.getElementById('rNow').textContent = s.pointerActive ? 'yes' : 'no';
+
+    var conf;
+    if (!s.everTouched){
+      conf = 'Three points are already faint-pulsing, on their own clock. Touch hasn’t changed that yet.';
+    } else if (s.pointerActive){
+      conf = 'Nothing here is tracking your finger. Three points nearby are — this is only what they agree on.';
+    } else if (s.confidence > FLOOR + 0.02){
+      conf = 'Contact ended. The estimate is still cooling, not gone.';
+    } else {
+      conf = 'Reading has not reached zero. It won’t, as long as this stays open.';
+    }
+    document.getElementById('confession').textContent = conf;
+  }
+
+  mark.addEventListener('click', function(){ renderSheet(); overlay.classList.add('show'); });
+  closeSheet.addEventListener('click', function(){ overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.classList.remove('show'); });
+})();
+</script>
+</body>
+</html>
