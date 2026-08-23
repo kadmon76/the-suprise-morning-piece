@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Human Confirmed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0a08;
+    --bulb:#1a1712;
+    --card:#e9e2d2;
+    --card-shade:#ddd4c0;
+    --card-edge:#b7ab8e;
+    --ink:#2a2417;
+    --ink-human:#5a3a1f;
+    --ink-machine:#28536b;
+    --clip:#8c8378;
+    --dim:#948a72;
+    --gold:#c9a24a;
+    --ledger-bg:#161310;
+    --ledger-card:#211d17;
+    --ledger-edge:#3a3325;
+    --paper:#cfc6b4;
+    --paper-dim:#8b8172;
+    --stamp-red:#7a2b2b;
+    --stamp-green:#2c5a3c;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--ink);
+    font-family:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    -webkit-user-select:none; user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:calc(30px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(26px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 6%, rgba(255,238,190,0.10), transparent 60%),
+      var(--bg);
+  }
+
+  .placard{ text-align:center; margin-bottom:14px; }
+  .placard .title{
+    font-size:10px; letter-spacing:0.16em; color:var(--gold); text-transform:uppercase; font-weight:600;
+  }
+  .placard .sub{
+    font-size:11px; color:var(--dim); margin-top:5px; letter-spacing:0.02em;
+  }
+
+  .board{
+    position:relative;
+    width:min(88vw, 340px);
+    background:var(--card);
+    border-radius:4px;
+    box-shadow:0 18px 36px rgba(0,0,0,0.5), inset 0 0 0 1px var(--card-edge);
+    padding:24px 16px 16px;
+    max-height:76vh;
+    display:flex; flex-direction:column;
+  }
+  .clipbar{
+    position:absolute; top:-10px; left:50%; transform:translateX(-50%);
+    width:74px; height:20px; background:var(--clip);
+    border-radius:4px; box-shadow:0 3px 6px rgba(0,0,0,0.4);
+  }
+  .clipbar::after{
+    content:''; position:absolute; left:50%; top:50%; width:34px; height:8px;
+    transform:translate(-50%,-50%); background:var(--bulb); border-radius:2px;
+  }
+
+  .nameplate{
+    text-align:center; padding:2px 0 12px; border-bottom:1px dashed var(--card-edge);
+  }
+  .nameplate .hook{ font-size:9px; letter-spacing:0.14em; color:var(--dim); text-transform:uppercase; }
+  .nameplate .name{ font-size:17px; font-weight:700; margin-top:4px; letter-spacing:0.01em; }
+
+  .rec{
+    margin-top:12px; padding:9px 10px; background:rgba(40,83,107,0.08);
+    border-left:2px solid var(--ink-machine); color:var(--ink-machine);
+    font-size:10.5px; line-height:1.55; letter-spacing:0.01em;
+  }
+
+  .filewrap{ margin-top:10px; }
+  .filebtn{
+    width:100%; text-align:left; background:var(--card-shade); border:1px solid var(--card-edge);
+    border-radius:3px; padding:8px 10px; font-family:inherit; font-size:10.5px; letter-spacing:0.06em;
+    color:var(--ink); text-transform:uppercase;
+  }
+  .fileentries{
+    max-height:0; overflow:hidden; transition:max-height 0.35s ease;
+  }
+  .fileentries.open{ max-height:220px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .fileentries ul{ list-style:none; margin:0; padding:8px 2px 2px; }
+  .fileentries li{
+    font-size:11px; line-height:1.5; color:var(--ink-human); padding:6px 4px;
+    border-bottom:1px dashed var(--card-edge);
+  }
+
+  .stamps{ display:flex; gap:10px; margin-top:14px; }
+  .stampbtn{
+    flex:1; font-family:inherit; font-size:11.5px; letter-spacing:0.1em; font-weight:700;
+    padding:13px 6px; border-radius:3px; border:2px solid; background:transparent;
+    text-transform:uppercase;
+  }
+  .stampbtn.release{ color:var(--stamp-red); border-color:var(--stamp-red); }
+  .stampbtn.retain{ color:var(--stamp-green); border-color:var(--stamp-green); }
+  .stampbtn:active{ opacity:0.6; }
+
+  .cert{
+    margin-top:14px; padding:12px 12px; border:1.5px solid var(--ink); border-radius:3px;
+    font-size:10.5px; line-height:1.7; letter-spacing:0.02em;
+    opacity:0; transform:scale(1.3) rotate(-3deg); transition:opacity 0.2s ease, transform 0.2s ease;
+    display:none;
+  }
+  .cert.show{ display:block; opacity:1; transform:scale(1) rotate(-2deg); }
+  .cert .word{ font-weight:700; }
+  .cert .word.release{ color:var(--stamp-red); }
+  .cert .word.retain{ color:var(--stamp-green); }
+
+  .nextbtn{
+    display:none; margin-top:12px; width:100%; background:none; border:1px solid var(--card-edge);
+    color:var(--dim); font-family:inherit; font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase;
+    padding:10px; border-radius:3px;
+  }
+  .nextbtn.show{ display:block; }
+
+  .back{
+    position:fixed; top:calc(14px + env(safe-area-inset-top)); left:calc(14px + env(safe-area-inset-left));
+    font-size:11px; color:var(--dim); text-decoration:none; letter-spacing:0.02em; opacity:0.55;
+  }
+  .mark{
+    position:fixed; bottom:calc(16px + env(safe-area-inset-bottom)); right:calc(16px + env(safe-area-inset-right));
+    font-size:10px; letter-spacing:0.14em; color:var(--dim); opacity:0.55;
+    background:none; border:none; font-family:inherit; padding:8px; cursor:pointer;
+  }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,4,0.94);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s ease;
+    z-index:10;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:420px; background:var(--ledger-card); border:1px solid var(--ledger-edge);
+    border-radius:14px 14px 0 0; padding:22px 22px calc(26px + env(safe-area-inset-bottom));
+    max-height:80vh; overflow-y:auto; color:var(--paper);
+  }
+  .sheet h2{
+    font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold);
+    margin:0 0 14px; font-weight:600;
+  }
+  .sheet .row2{
+    display:flex; justify-content:space-between; font-size:11.5px;
+    padding:6px 0; border-bottom:1px solid var(--ledger-edge);
+  }
+  .sheet .row2 span:last-child{ color:var(--paper-dim); font-variant-numeric:tabular-nums; }
+  .sheet .confession{
+    font-size:11.5px; color:var(--paper-dim); line-height:1.6; margin-top:16px;
+    font-style:italic;
+  }
+  .sheet .close{
+    display:block; margin:20px auto 0; background:none; border:1px solid var(--ledger-edge);
+    color:var(--paper-dim); font-family:inherit; font-size:11px; letter-spacing:0.1em;
+    padding:9px 22px; border-radius:4px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .fileentries, .cert, .overlay{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="../../index.html">← cue sheet</a>
+
+<div class="stage">
+  <div class="placard">
+    <div class="title">Cast Release — Review Required</div>
+    <div class="sub">Certify the name on the hook.</div>
+  </div>
+
+  <div class="board">
+    <div class="clipbar"></div>
+
+    <div class="nameplate">
+      <div class="hook">on the hook</div>
+      <div class="name" id="nameEl">—</div>
+    </div>
+
+    <div class="rec" id="recEl"></div>
+
+    <div class="filewrap">
+      <button class="filebtn" id="fileBtn">Case file ▸ closed</button>
+      <div class="fileentries" id="fileEntries"><ul id="fileList"></ul></div>
+    </div>
+
+    <div class="stamps" id="stamps">
+      <button class="stampbtn release" data-decision="release">Release</button>
+      <button class="stampbtn retain" data-decision="retain">Retain</button>
+    </div>
+
+    <div class="cert" id="cert"></div>
+    <button class="nextbtn" id="nextBtn">Next case</button>
+  </div>
+</div>
+
+<button class="mark" id="mark">⋯ ledger</button>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>The ledger</h2>
+    <div class="row2"><span>Cases reviewed, this sitting</span><span id="rReviewed">0</span></div>
+    <div class="row2"><span>Released / Retained</span><span id="rSplit">0 / 0</span></div>
+    <div class="row2"><span>Fastest review</span><span id="rFast">—</span></div>
+    <div class="row2"><span>Slowest review</span><span id="rSlow">—</span></div>
+    <div class="row2"><span>Average time under review</span><span id="rAvg">—</span></div>
+    <div class="row2"><span>Case files actually opened</span><span id="rOpened">0 of 0</span></div>
+    <div class="confession" id="confession"></div>
+    <button class="close" id="closeSheet">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var CASES = [
+    { name: "Mara Voss", entries: [
+      "Missed Tuesday call — hospital with her mother. Texted ahead.",
+      "Late 4 min, Thursday, no note.",
+      "Covered Jonah's put-in with two hours' notice, unpaid.",
+      "Two commendations this quarter, both from the stage manager."
+    ]},
+    { name: "Dwight Okafor", entries: [
+      "No-showed dress rehearsal, no call, no text.",
+      "Reinstated after appeal — bus strike that week, verified.",
+      "Consistently first in, last out.",
+      "One warning on file, eight months old, never repeated."
+    ]},
+    { name: "Priya Suresh", entries: [
+      "Requested a schedule change for a custody hearing — granted.",
+      "Flagged twice for 'irregular availability.' Same custody hearing.",
+      "Understudy called her 'the reason the second act works.'",
+      "No unexcused absence on record, ever."
+    ]},
+    { name: "Lonnie Basch", entries: [
+      "Walked off mid-tech over a pay dispute, later resolved in his favor.",
+      "Two directors have requested him by name for the next show.",
+      "Filed a formal complaint about unpaid tech hours — complaint upheld.",
+      "The system flags the walk-off. Nothing flags the complaint being upheld."
+    ]},
+    { name: "Etta Ruiz", entries: [
+      "Out six weeks, medical leave, fully documented.",
+      "Her understudy's reviews were warmer than hers — first time in three seasons.",
+      "Asked, in writing, when she could expect to return to her role.",
+      "No answer on file."
+    ]}
+  ];
+
+  function shuffle(arr){
+    for(var i=arr.length-1;i>0;i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var t = arr[i]; arr[i]=arr[j]; arr[j]=t;
+    }
+    return arr;
+  }
+
+  var order = shuffle(CASES.slice());
+  var orderIdx = 0;
+  var current = null;
+  var caseLoadedAt = 0;
+  var fileOpened = false;
+  var fileOpenEver = false;
+
+  var reviewed = 0, released = 0, retained = 0, filesOpenedCount = 0;
+  var times = [];
+
+  var nameEl = document.getElementById('nameEl');
+  var recEl = document.getElementById('recEl');
+  var fileBtn = document.getElementById('fileBtn');
+  var fileEntries = document.getElementById('fileEntries');
+  var fileList = document.getElementById('fileList');
+  var stamps = document.getElementById('stamps');
+  var cert = document.getElementById('cert');
+  var nextBtn = document.getElementById('nextBtn');
+
+  function nextCase(){
+    if(orderIdx >= order.length){
+      order = shuffle(CASES.slice());
+      orderIdx = 0;
+    }
+    return order[orderIdx++];
+  }
+
+  function loadCase(){
+    current = nextCase();
+    caseLoadedAt = Date.now();
+    fileOpened = false;
+    fileOpenEver = false;
+
+    nameEl.textContent = current.name;
+    recEl.textContent = current.name + ": pattern consistent with release criteria. Flags on file: 3. Human confirmation requested before this proceeds.";
+
+    fileList.innerHTML = '';
+    current.entries.forEach(function(t){
+      var li = document.createElement('li');
+      li.textContent = t;
+      fileList.appendChild(li);
+    });
+    fileEntries.classList.remove('open');
+    fileBtn.textContent = 'Case file ▸ closed';
+
+    stamps.style.display = 'flex';
+    cert.classList.remove('show');
+    cert.textContent = '';
+    nextBtn.classList.remove('show');
+  }
+
+  fileBtn.addEventListener('click', function(){
+    fileOpened = !fileOpened;
+    if(fileOpened) fileOpenEver = true;
+    fileEntries.classList.toggle('open', fileOpened);
+    fileBtn.textContent = 'Case file ▸ ' + (fileOpened ? 'open' : 'closed');
+  });
+
+  stamps.addEventListener('click', function(e){
+    var btn = e.target.closest('.stampbtn');
+    if(!btn) return;
+    var decision = btn.dataset.decision;
+    var elapsed = (Date.now() - caseLoadedAt) / 1000;
+
+    reviewed++;
+    if(decision === 'release') released++; else retained++;
+    if(fileOpenEver) filesOpenedCount++;
+    times.push(elapsed);
+
+    var word = decision === 'release' ? 'RELEASE' : 'RETAIN';
+    cert.innerHTML =
+      'REVIEWED. DECISION: <span class="word ' + decision + '">' + word + '</span>.<br>' +
+      'TIME UNDER REVIEW: ' + elapsed.toFixed(1) + 's.<br>' +
+      'STATUS: COMPLIES WITH REVIEW REQUIREMENT.';
+    cert.classList.add('show');
+    stamps.style.display = 'none';
+    nextBtn.classList.add('show');
+  });
+
+  nextBtn.addEventListener('click', loadCase);
+
+  loadCase();
+
+  // --- ledger ---
+  var overlay = document.getElementById('overlay');
+  var mark = document.getElementById('mark');
+  var closeSheet = document.getElementById('closeSheet');
+
+  function renderSheet(){
+    document.getElementById('rReviewed').textContent = reviewed;
+    document.getElementById('rSplit').textContent = released + ' / ' + retained;
+    document.getElementById('rOpened').textContent = filesOpenedCount + ' of ' + reviewed;
+
+    if(times.length){
+      var fastest = Math.min.apply(null, times);
+      var slowest = Math.max.apply(null, times);
+      var avg = times.reduce(function(a,b){return a+b;},0) / times.length;
+      document.getElementById('rFast').textContent = fastest.toFixed(1) + 's';
+      document.getElementById('rSlow').textContent = slowest.toFixed(1) + 's';
+      document.getElementById('rAvg').textContent = avg.toFixed(1) + 's';
+    } else {
+      document.getElementById('rFast').textContent = '—';
+      document.getElementById('rSlow').textContent = '—';
+      document.getElementById('rAvg').textContent = '—';
+    }
+
+    var conf;
+    if(reviewed === 0){
+      conf = "Nothing certified yet. The recommendation above never waits for you to read anything before it's ready.";
+    } else if(times.length && Math.min.apply(null, times) < 1){
+      conf = "At least one of those reviews took under a second. Its certificate reads no differently than the slowest one. Neither one was rejected — there is no minimum here, and nothing on this board has ever asked for one.";
+    } else if(filesOpenedCount < reviewed){
+      conf = (reviewed - filesOpenedCount) + " of " + reviewed + " were certified without the file ever being opened. Reviewed exactly as validly as the ones that were.";
+    } else {
+      conf = "Every file was opened this time. It didn't change a single certificate — the wording was never conditional on that.";
+    }
+    document.getElementById('confession').textContent = conf;
+  }
+
+  mark.addEventListener('click', function(){ renderSheet(); overlay.classList.add('show'); });
+  closeSheet.addEventListener('click', function(){ overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.classList.remove('show'); });
+})();
+</script>
+</body>
+</html>
