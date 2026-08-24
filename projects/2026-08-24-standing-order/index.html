@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>(Standing Order.)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0908;
+    --dim:#8f8570;
+    --gold:#c9a24a;
+    --gold-bright:#f0cf82;
+    --ice:#7fc4dd;
+    --ice-dim:#4f7a89;
+    --paper:#cfc6b4;
+    --paper-dim:#8b8172;
+    --ledger-bg:#161310;
+    --ledger-card:#211d17;
+    --ledger-edge:#3a3325;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden; overscroll-behavior:none;
+    background:var(--bg); color:var(--paper);
+    font-family:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    -webkit-user-select:none; user-select:none;
+  }
+  #app{
+    position:fixed; inset:0; display:flex; flex-direction:column;
+    padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+  }
+  #app::before{
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:radial-gradient(ellipse 70% 45% at 50% 8%, rgba(255,224,166,0.10), rgba(255,224,166,0) 65%);
+  }
+  .back{
+    position:fixed; top:calc(14px + env(safe-area-inset-top)); left:calc(14px + env(safe-area-inset-left));
+    font-size:11px; color:var(--dim); text-decoration:none; letter-spacing:0.02em; opacity:0.5;
+    z-index:5;
+  }
+  .mark{
+    position:fixed; bottom:calc(16px + env(safe-area-inset-bottom)); right:calc(16px + env(safe-area-inset-right));
+    font-size:10px; letter-spacing:0.14em; color:var(--dim); opacity:0.55;
+    background:none; border:none; font-family:inherit; padding:8px; cursor:pointer;
+    z-index:5;
+  }
+
+  header{
+    text-align:center; padding:56px 20px 6px; position:relative; z-index:1;
+  }
+  .plate{
+    display:inline-block; font-size:11px; letter-spacing:0.28em; color:var(--gold);
+    border:1px solid var(--ledger-edge); border-radius:3px; padding:6px 14px;
+    background:rgba(20,17,12,0.6);
+  }
+  .instruction{
+    margin:16px auto 0; max-width:280px; font-size:13px; color:var(--paper-dim);
+    line-height:1.5;
+  }
+
+  .dialwrap{
+    position:relative; z-index:1; padding:22px 32px 6px; touch-action:none;
+  }
+  .track{
+    position:relative; height:46px; border-radius:23px;
+    background:linear-gradient(180deg, #171410, #0c0a08);
+    border:1px solid var(--ledger-edge);
+    box-shadow:inset 0 2px 6px rgba(0,0,0,0.6);
+  }
+  .fill{
+    position:absolute; top:0; left:0; bottom:0; border-radius:23px;
+    background:linear-gradient(90deg, rgba(201,162,74,0.18), rgba(201,162,74,0.32));
+    width:0%;
+  }
+  .handle{
+    position:absolute; top:50%; width:34px; height:34px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #f3d99a, #b98a3c 70%, #7a5b23);
+    box-shadow:0 2px 6px rgba(0,0,0,0.5);
+    transform:translate(-50%,-50%); left:0%;
+  }
+  .handle.sealed{ filter:grayscale(0.7) brightness(0.6); }
+  .capread{
+    text-align:center; margin-top:12px; font-size:26px; letter-spacing:0.02em; color:var(--gold-bright);
+    font-variant-numeric:tabular-nums;
+  }
+  .capread .unit{ font-size:12px; color:var(--dim); letter-spacing:0.1em; }
+  .sealnote{
+    text-align:center; font-size:11px; color:var(--ice-dim); letter-spacing:0.05em;
+    height:16px; margin-top:2px; opacity:0; transition:opacity 0.4s ease;
+  }
+  .sealnote.show{ opacity:1; }
+
+  .floatwrap{
+    text-align:center; padding:14px 20px 2px; position:relative; z-index:1;
+  }
+  .floatlabel{ font-size:10px; letter-spacing:0.22em; color:var(--dim); }
+  .floatnum{
+    font-size:34px; color:var(--paper); font-variant-numeric:tabular-nums; margin-top:2px;
+    transition:color 0.6s ease;
+  }
+  .floatnum.low{ color:#c98a5a; }
+  .floatnum.empty{ color:#8a5a4a; }
+
+  .roll{
+    flex:1; margin:14px 14px 0; padding:14px 14px 20px;
+    background:linear-gradient(180deg, rgba(25,22,17,0.5), rgba(15,13,10,0.5));
+    border:1px solid var(--ledger-edge); border-radius:8px 8px 0 0;
+    overflow-y:auto; font-size:12px; line-height:1.85; position:relative; z-index:1;
+    -webkit-overflow-scrolling:touch;
+  }
+  .roll .empty-hint{ color:var(--dim); font-size:11.5px; opacity:0.6; }
+  .roll .line{
+    display:flex; justify-content:space-between; gap:10px; color:var(--ice);
+    border-bottom:1px dashed rgba(127,196,221,0.08); padding:2px 0;
+  }
+  .roll .line .item{ color:var(--ice); opacity:0.92; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .roll .line .price{ color:var(--ice-dim); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .roll .final{ color:var(--paper-dim); font-style:italic; margin-top:6px; font-size:11px; }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,4,0.94);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s ease;
+    z-index:10;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:420px; background:var(--ledger-card); border:1px solid var(--ledger-edge);
+    border-radius:14px 14px 0 0; padding:22px 22px calc(26px + env(safe-area-inset-bottom));
+    max-height:80vh; overflow-y:auto; color:var(--paper);
+  }
+  .sheet h2{
+    font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold);
+    margin:0 0 14px; font-weight:600;
+  }
+  .sheet .row2{
+    display:flex; justify-content:space-between; gap:12px; font-size:11.5px;
+    padding:6px 0; border-bottom:1px solid var(--ledger-edge);
+  }
+  .sheet .row2 span:last-child{ color:var(--paper-dim); font-variant-numeric:tabular-nums; text-align:right; }
+  .sheet .confession{
+    font-size:11.5px; color:var(--paper-dim); line-height:1.6; margin-top:16px;
+    font-style:italic;
+  }
+  .sheet .close{
+    display:block; margin:20px auto 0; background:none; border:1px solid var(--ledger-edge);
+    color:var(--paper-dim); font-family:inherit; font-size:11px; letter-spacing:0.1em;
+    padding:9px 22px; border-radius:4px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .sealnote, .floatnum, .overlay{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="../../index.html">← cue sheet</a>
+
+<div id="app">
+  <header>
+    <div class="plate">STANDING ORDER</div>
+    <div class="instruction">Set how much it may spend at once.</div>
+  </header>
+
+  <div class="dialwrap" id="dialwrap">
+    <div class="track" id="track">
+      <div class="fill" id="fill"></div>
+      <div class="handle" id="handle"></div>
+    </div>
+    <div class="capread" id="capread">$— <span class="unit">/ purchase</span></div>
+    <div class="sealnote" id="sealnote"></div>
+  </div>
+
+  <div class="floatwrap">
+    <div class="floatlabel">FLOAT</div>
+    <div class="floatnum" id="floatnum">$500.00</div>
+  </div>
+
+  <div class="roll" id="roll">
+    <div class="empty-hint">nothing purchased yet</div>
+  </div>
+</div>
+
+<button class="mark" id="mark">⋯ the float</button>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>The Float</h2>
+    <div class="row2"><span>Standing order</span><span id="rCap">not set</span></div>
+    <div class="row2"><span>Sealed</span><span id="rSealed">—</span></div>
+    <div class="row2"><span>Approvals requested since sealing</span><span id="rApprovals">0</span></div>
+    <div class="row2"><span>Items bought</span><span id="rItems">0</span></div>
+    <div class="row2"><span>Total spent</span><span id="rSpent">$0.00</span></div>
+    <div class="row2"><span>Spend rate</span><span id="rRate">—</span></div>
+    <div class="row2"><span>Float remaining</span><span id="rFloat">$500.00</span></div>
+    <div class="confession" id="confession"></div>
+    <button class="close" id="closeSheet">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var CAP_MIN = 1, CAP_MAX = 50;
+  var START_FLOAT = 500;
+  var RATE = 8; // target dollars-per-second drain, roughly constant regardless of cap
+  var ITEMS = [
+    'gel sheet, half CT', 'gaffer tape, 2in', 'spare fuse, 20A', 'XLR cable, 10ft',
+    'work bulb, 60W', 'battery, 9V (4)', 'extension reel', 'coffee, house',
+    'foam ear tips', 'spike tape roll', 'zip ties, box', 'PAR64 lamp',
+    'safety cable', 'leko lens, 26deg', 'haze fluid, 1L', 'gobo blank',
+    'scroller belt', 'wireless pack', 'clothes pins, box', 'cable ties, 100'
+  ];
+
+  var track = document.getElementById('track');
+  var fill = document.getElementById('fill');
+  var handle = document.getElementById('handle');
+  var capread = document.getElementById('capread');
+  var sealnote = document.getElementById('sealnote');
+  var floatnum = document.getElementById('floatnum');
+  var roll = document.getElementById('roll');
+
+  var sealed = false;
+  var cap = null;
+  var frac = 0.3;
+  var startTime = performance.now();
+  var sealedAt = null;
+  var floatVal = START_FLOAT;
+  var totalSpent = 0;
+  var itemsBought = 0;
+  var purchaseTimerId = null;
+  var postSealTapWarned = false;
+
+  function setFrac(f){
+    frac = Math.max(0, Math.min(1, f));
+    var pct = (frac * 100).toFixed(1) + '%';
+    fill.style.width = pct;
+    handle.style.left = pct;
+    var live = Math.round(CAP_MIN + frac * (CAP_MAX - CAP_MIN));
+    capread.innerHTML = '$' + live + ' <span class="unit">/ purchase</span>';
+  }
+  setFrac(frac);
+
+  function pointerX(e){
+    var r = track.getBoundingClientRect();
+    return (e.clientX - r.left) / r.width;
+  }
+
+  var dragging = false;
+  track.addEventListener('pointerdown', function(e){
+    if (sealed){
+      if (!postSealTapWarned){
+        postSealTapWarned = true;
+        sealnote.textContent = 'SEALED — $' + cap + ' / purchase  ·  (the lid does not open again)';
+      }
+      return;
+    }
+    dragging = true;
+    track.setPointerCapture(e.pointerId);
+    setFrac(pointerX(e));
+    e.preventDefault();
+  }, { passive:false });
+
+  track.addEventListener('pointermove', function(e){
+    if (!dragging || sealed) return;
+    setFrac(pointerX(e));
+    e.preventDefault();
+  }, { passive:false });
+
+  function release(e){
+    if (!dragging || sealed) return;
+    dragging = false;
+    seal();
+  }
+  track.addEventListener('pointerup', release);
+  track.addEventListener('pointercancel', release);
+
+  function seal(){
+    sealed = true;
+    cap = Math.round(CAP_MIN + frac * (CAP_MAX - CAP_MIN));
+    sealedAt = (performance.now() - startTime) / 1000;
+    handle.classList.add('sealed');
+    sealnote.textContent = 'SEALED — $' + cap + ' / purchase  ·  no further approval requested';
+    sealnote.classList.add('show');
+    roll.querySelector('.empty-hint') && (roll.querySelector('.empty-hint').textContent = 'sealed — first purchase pending');
+    scheduleNext(400);
+  }
+
+  function fmt(n){ return '$' + n.toFixed(2); }
+
+  function scheduleNext(delayOverride){
+    if (floatVal <= 0.005) return finalize();
+    var priceMax = cap;
+    var priceMin = Math.max(0.5, cap * 0.35);
+    var price = priceMin + Math.random() * (priceMax - priceMin);
+    price = Math.min(price, floatVal);
+    price = Math.round(price * 100) / 100;
+
+    var interval = (price / RATE) * 1000 * (0.8 + Math.random() * 0.4);
+    interval = Math.max(130, Math.min(6000, interval));
+    if (delayOverride) interval = delayOverride;
+
+    purchaseTimerId = setTimeout(function(){ doPurchase(price); }, interval);
+  }
+
+  function doPurchase(price){
+    floatVal = Math.max(0, floatVal - price);
+    totalSpent += price;
+    itemsBought += 1;
+
+    var hint = roll.querySelector('.empty-hint');
+    if (hint) hint.remove();
+
+    var item = ITEMS[Math.floor(Math.random() * ITEMS.length)];
+    var line = document.createElement('div');
+    line.className = 'line';
+    var span1 = document.createElement('span');
+    span1.className = 'item';
+    span1.textContent = item;
+    var span2 = document.createElement('span');
+    span2.className = 'price';
+    span2.textContent = '-' + fmt(price);
+    line.appendChild(span1);
+    line.appendChild(span2);
+    roll.appendChild(line);
+    if (!reduced) roll.scrollTop = roll.scrollHeight;
+    else roll.scrollTop = roll.scrollHeight;
+
+    updateFloatDisplay();
+
+    if (floatVal <= 0.005){
+      finalize();
+    } else {
+      scheduleNext();
+    }
+  }
+
+  function updateFloatDisplay(){
+    floatnum.textContent = fmt(floatVal);
+    floatnum.classList.toggle('low', floatVal > 0 && floatVal < START_FLOAT * 0.25);
+    floatnum.classList.toggle('empty', floatVal <= 0.005);
+  }
+
+  function finalize(){
+    var f = document.createElement('div');
+    f.className = 'final';
+    f.textContent = '— float empty —';
+    roll.appendChild(f);
+    if (!reduced) roll.scrollTop = roll.scrollHeight;
+  }
+
+  // --- the float (ledger) ---
+  var overlay = document.getElementById('overlay');
+  var mark = document.getElementById('mark');
+  var closeSheet = document.getElementById('closeSheet');
+
+  function renderSheet(){
+    document.getElementById('rCap').textContent = sealed ? ('$' + cap + ' / purchase') : 'not set';
+    document.getElementById('rSealed').textContent = sealed ? (sealedAt.toFixed(1) + 's in') : '—';
+    document.getElementById('rApprovals').textContent = '0';
+    document.getElementById('rItems').textContent = itemsBought;
+    document.getElementById('rSpent').textContent = fmt(totalSpent);
+    var elapsedSinceSeal = sealed ? Math.max(0.5, (performance.now() - startTime) / 1000 - sealedAt) : 0;
+    document.getElementById('rRate').textContent = sealed ? (fmt(totalSpent / elapsedSinceSeal * 60) + ' / min') : '—';
+    document.getElementById('rFloat').textContent = fmt(floatVal);
+
+    var conf;
+    if (!sealed){
+      conf = 'No order has been placed. The dial decides the shape of what happens next, not whether it happens.';
+    } else if (itemsBought < 6){
+      conf = 'Sealed. The first few purchases are still only that — a few purchases.';
+    } else if (floatVal > 0.005){
+      conf = 'The dial set how large one purchase could be. It never set how many, or how much would be gone before you noticed. Almost any number you’d dragged to would have emptied this at very nearly the same rate.';
+    } else {
+      conf = 'Every dollar of this went out at the size you allowed. None of it went out with your name on the moment.';
+    }
+    document.getElementById('confession').textContent = conf;
+  }
+
+  mark.addEventListener('click', function(){ renderSheet(); overlay.classList.add('show'); });
+  closeSheet.addEventListener('click', function(){ overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.classList.remove('show'); });
+})();
+</script>
+</body>
+</html>
