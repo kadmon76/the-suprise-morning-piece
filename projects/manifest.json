@@ -237,6 +237,13 @@
       "kind": "question",
       "note": "A dial under a work light. Set it once, then watch what it decided you meant.",
       "path": "projects/2026-08-24-standing-order/index.html"
+    },
+    {
+      "date": "2026-08-25",
+      "title": "Patch",
+      "kind": "seed",
+      "note": "A board backstage. Patch it however you like — it only ever asks if it's clear.",
+      "path": "projects/2026-08-25-patch/index.html"
     }
   ]
 }

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Patch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0908;
+    --dim:#8f8570;
+    --gold:#c9a24a;
+    --gold-bright:#f0cf82;
+    --ice:#7fc4dd;
+    --ice-dim:#4f7a89;
+    --green:#7fd99a;
+    --paper:#cfc6b4;
+    --paper-dim:#8b8172;
+    --ledger-bg:#161310;
+    --ledger-card:#211d17;
+    --ledger-edge:#3a3325;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden; overscroll-behavior:none;
+    background:var(--bg); color:var(--paper);
+    font-family:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    -webkit-user-select:none; user-select:none;
+  }
+  #app{
+    position:fixed; inset:0; display:flex; flex-direction:column;
+    padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+  }
+  #app::before{
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:radial-gradient(ellipse 70% 40% at 50% 6%, rgba(255,224,166,0.09), rgba(255,224,166,0) 65%);
+  }
+  .back{
+    position:fixed; top:calc(14px + env(safe-area-inset-top)); left:calc(14px + env(safe-area-inset-left));
+    font-size:11px; color:var(--dim); text-decoration:none; letter-spacing:0.02em; opacity:0.5;
+    z-index:5;
+  }
+  .mark{
+    position:fixed; bottom:calc(16px + env(safe-area-inset-bottom)); right:calc(16px + env(safe-area-inset-right));
+    font-size:10px; letter-spacing:0.14em; color:var(--dim); opacity:0.55;
+    background:none; border:none; font-family:inherit; padding:8px; cursor:pointer;
+    z-index:5;
+  }
+
+  header{ text-align:center; padding:50px 20px 4px; position:relative; z-index:1; }
+  .plate{
+    display:inline-block; font-size:11px; letter-spacing:0.28em; color:var(--gold);
+    border:1px solid var(--ledger-edge); border-radius:3px; padding:6px 14px;
+    background:rgba(20,17,12,0.6);
+  }
+  .instruction{
+    margin:14px auto 0; max-width:260px; font-size:13px; color:var(--paper-dim); line-height:1.5;
+  }
+  .led{
+    display:inline-flex; align-items:center; gap:6px; margin-top:10px;
+    font-size:10px; letter-spacing:0.2em; color:var(--dim);
+  }
+  .led .dot{
+    width:8px; height:8px; border-radius:50%; background:#3a2f22;
+    box-shadow:inset 0 0 2px rgba(0,0,0,0.6);
+  }
+  .led.clear{ color:var(--green); }
+  .led.clear .dot{ background:var(--green); box-shadow:0 0 8px rgba(127,217,154,0.7); }
+
+  .boardwrap{ flex:0 0 auto; position:relative; z-index:1; padding:4px 10px 0; touch-action:none; }
+  svg{ display:block; width:100%; height:auto; overflow:visible; }
+  .cable{ fill:none; stroke-width:3.2; stroke-linecap:round; }
+  .cable.hand{ stroke:var(--gold); opacity:0.85; }
+  .cable.machine{ stroke:var(--ice); opacity:0.85; }
+  .ghostcable{ fill:none; stroke:var(--ice); stroke-width:2.4; opacity:0.5; stroke-dasharray:2 5; }
+  .dragline{ fill:none; stroke:var(--gold-bright); stroke-width:3; stroke-linecap:round; opacity:0.9; }
+  .unplug{ fill:#0e0c0a; stroke:var(--ledger-edge); stroke-width:1; opacity:0.9; }
+  .unplug.hand{ stroke:var(--gold); }
+  .unplug.machine{ stroke:var(--ice); }
+  .jack{ cursor:pointer; }
+  .jack circle.ring{ fill:#141210; stroke:var(--ledger-edge); stroke-width:2; }
+  .jack circle.hole{ fill:#050403; }
+  .jack.active circle.ring{ stroke:var(--gold); }
+  .jack.cleared circle.ring{ stroke:var(--green); }
+  .jack text{ fill:var(--dim); font-size:11px; font-family:'IBM Plex Mono', monospace; }
+
+  .certwrap{
+    flex:1; margin:10px 14px 0; padding:12px 14px 18px;
+    background:linear-gradient(180deg, rgba(25,22,17,0.5), rgba(15,13,10,0.5));
+    border:1px solid var(--ledger-edge); border-radius:8px 8px 0 0;
+    overflow-y:auto; font-size:11.5px; line-height:1.8; position:relative; z-index:1;
+    -webkit-overflow-scrolling:touch;
+  }
+  .certwrap .hint{ color:var(--dim); font-size:11px; opacity:0.55; }
+  .certwrap .line{ color:var(--paper-dim); }
+  .certwrap .line .ok{ color:var(--green); }
+  .certwrap .final{ color:var(--gold-bright); font-weight:600; margin-top:8px; letter-spacing:0.05em; }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,4,0.94);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s ease;
+    z-index:10;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:420px; background:var(--ledger-card); border:1px solid var(--ledger-edge);
+    border-radius:14px 14px 0 0; padding:22px 22px calc(26px + env(safe-area-inset-bottom));
+    max-height:80vh; overflow-y:auto; color:var(--paper);
+  }
+  .sheet h2{
+    font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold);
+    margin:0 0 14px; font-weight:600;
+  }
+  .sheet .row2{
+    display:flex; justify-content:space-between; gap:12px; font-size:11.5px;
+    padding:6px 0; border-bottom:1px solid var(--ledger-edge);
+  }
+  .sheet .row2 span:last-child{ color:var(--paper-dim); font-variant-numeric:tabular-nums; text-align:right; }
+  .sheet .confession{
+    font-size:11.5px; color:var(--paper-dim); line-height:1.6; margin-top:16px; font-style:italic;
+  }
+  .sheet .close{
+    display:block; margin:20px auto 0; background:none; border:1px solid var(--ledger-edge);
+    color:var(--paper-dim); font-family:inherit; font-size:11px; letter-spacing:0.1em;
+    padding:9px 22px; border-radius:4px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .cable, .ghostcable, .led .dot, .overlay{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="../../index.html">← cue sheet</a>
+
+<div id="app">
+  <header>
+    <div class="plate">PATCH BAY</div>
+    <div class="instruction">Patch it until the board reads clear.</div>
+    <div class="led" id="led"><span class="dot"></span><span id="ledText">TESTING</span></div>
+  </header>
+
+  <div class="boardwrap">
+    <svg id="svg" viewBox="0 0 320 470" preserveAspectRatio="xMidYMid meet">
+      <g id="cables"></g>
+      <g id="ghostlayer"></g>
+      <g id="draglayer"></g>
+      <g id="jacks"></g>
+      <g id="unplugs"></g>
+    </svg>
+  </div>
+
+  <div class="certwrap" id="cert">
+    <div class="hint">no continuity yet</div>
+  </div>
+</div>
+
+<button class="mark" id="mark">⋯ the log</button>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>The Log</h2>
+    <div class="row2"><span>Tonight — by hand</span><span id="rHand">0</span></div>
+    <div class="row2"><span>Tonight — by machine</span><span id="rMachine">0</span></div>
+    <div class="row2"><span>Board cleared</span><span id="rCleared">not yet</span></div>
+    <div class="row2"><span>All-time boards cleared</span><span id="rAllBoards">0</span></div>
+    <div class="row2"><span>All-time hand / machine</span><span id="rAllSplit">0 / 0</span></div>
+    <div class="row2"><span>Nights on file</span><span id="rNights">0</span></div>
+    <div class="confession" id="confession">The certificate has never once said which was which.</div>
+    <button class="close" id="closeSheet">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var NODES = [
+    { id:1, x:90,  y:70  },
+    { id:2, x:90,  y:220 },
+    { id:3, x:90,  y:370 },
+    { id:4, x:230, y:70  },
+    { id:5, x:230, y:220 },
+    { id:6, x:230, y:370 }
+  ];
+  var byId = {};
+  NODES.forEach(function(n){ byId[n.id] = n; });
+
+  var svg = document.getElementById('svg');
+  var cablesG = document.getElementById('cables');
+  var ghostG = document.getElementById('ghostlayer');
+  var dragG = document.getElementById('draglayer');
+  var jacksG = document.getElementById('jacks');
+  var unplugsG = document.getElementById('unplugs');
+  var certwrap = document.getElementById('cert');
+  var led = document.getElementById('led');
+  var ledText = document.getElementById('ledText');
+
+  var edges = [];        // {a,b,by:'hand'|'machine', el, dot}
+  var cleared = false;
+  var lastActivity = performance.now();
+  var lastGhostMove = performance.now();
+  var GHOST_IDLE_MS = 2500;
+  var GHOST_COOLDOWN_MS = 1800;
+
+  // --- union-find over 1..6 ---
+  function find(parent, x){ while(parent[x]!==x){ parent[x]=parent[parent[x]]; x=parent[x]; } return x; }
+  function isConnected(){
+    var parent = {1:1,2:2,3:3,4:4,5:5,6:6};
+    edges.forEach(function(e){
+      var ra = find(parent, e.a), rb = find(parent, e.b);
+      if (ra !== rb) parent[ra] = rb;
+    });
+    var root = find(parent, 1);
+    for (var i=2;i<=6;i++){ if (find(parent, i) !== root) return false; }
+    return true;
+  }
+
+  function degreeOf(id){
+    var d = 0;
+    edges.forEach(function(e){ if (e.a===id || e.b===id) d++; });
+    return d;
+  }
+
+  function pairKey(a,b){ return a<b ? (a+'-'+b) : (b+'-'+a); }
+  function hasEdge(a,b){
+    var k = pairKey(a,b);
+    return edges.some(function(e){ return pairKey(e.a,e.b)===k; });
+  }
+
+  function bezierPoints(a, b){
+    var x1=a.x, y1=a.y, x2=b.x, y2=b.y;
+    var mx=(x1+x2)/2, my=(y1+y2)/2;
+    var dx=x2-x1, dy=y2-y1;
+    var len = Math.max(1, Math.hypot(dx,dy));
+    var nx = -dy/len, ny = dx/len;
+    var h = pairKey(a.id,b.id).split('-').reduce(function(s,c){ return s + parseInt(c,10); }, 0);
+    var bulge = 26 + (h % 3) * 16;
+    var sign = (h % 2 === 0) ? 1 : -1;
+    var cx = mx + nx*bulge*sign, cy = my + ny*bulge*sign;
+    var midx = 0.25*x1 + 0.5*cx + 0.25*x2;
+    var midy = 0.25*y1 + 0.5*cy + 0.25*y2;
+    return { x1:x1,y1:y1,cx:cx,cy:cy,x2:x2,y2:y2, midx:midx, midy:midy };
+  }
+
+  function renderJacks(){
+    jacksG.innerHTML = '';
+    NODES.forEach(function(n){
+      var g = document.createElementNS('http://www.w3.org/2000/svg','g');
+      g.setAttribute('class','jack' + (degreeOf(n.id)>0 ? ' active' : '') + (cleared ? ' cleared' : ''));
+      g.setAttribute('data-id', n.id);
+      var ring = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      ring.setAttribute('class','ring'); ring.setAttribute('cx',n.x); ring.setAttribute('cy',n.y); ring.setAttribute('r',24);
+      var hole = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      hole.setAttribute('class','hole'); hole.setAttribute('cx',n.x); hole.setAttribute('cy',n.y); hole.setAttribute('r',9);
+      var label = document.createElementNS('http://www.w3.org/2000/svg','text');
+      label.setAttribute('x', n.x); label.setAttribute('y', n.y - 32);
+      label.setAttribute('text-anchor','middle');
+      label.textContent = 'J' + n.id;
+      g.appendChild(ring); g.appendChild(hole); g.appendChild(label);
+      jacksG.appendChild(g);
+    });
+  }
+
+  function renderCables(){
+    cablesG.innerHTML = '';
+    unplugsG.innerHTML = '';
+    edges.forEach(function(e, idx){
+      var p = bezierPoints(byId[e.a], byId[e.b]);
+      var path = document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('class', 'cable ' + e.by);
+      path.setAttribute('d', 'M'+p.x1+','+p.y1+' Q'+p.cx+','+p.cy+' '+p.x2+','+p.y2);
+      cablesG.appendChild(path);
+      if (!cleared){
+        var dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        dot.setAttribute('class','unplug ' + e.by);
+        dot.setAttribute('cx', p.midx); dot.setAttribute('cy', p.midy); dot.setAttribute('r', 7);
+        dot.setAttribute('data-idx', idx);
+        unplugsG.appendChild(dot);
+      }
+    });
+  }
+
+  function renderAll(){
+    renderJacks();
+    renderCables();
+  }
+
+  function markActivity(){ lastActivity = performance.now(); }
+
+  function addEdge(a, b, by){
+    if (a === b || hasEdge(a,b) || cleared) return false;
+    edges.push({ a:a, b:b, by:by });
+    renderAll();
+    if (isConnected()) doClear();
+    return true;
+  }
+
+  function removeEdgeAt(idx){
+    if (cleared) return;
+    edges.splice(idx, 1);
+    renderAll();
+    markActivity();
+  }
+
+  // --- drag to patch ---
+  var dragFrom = null;
+  var dragLine = null;
+
+  function svgPoint(evt){
+    var rect = svg.getBoundingClientRect();
+    var vb = svg.viewBox.baseVal;
+    var x = (evt.clientX - rect.left) / rect.width * vb.width;
+    var y = (evt.clientY - rect.top) / rect.height * vb.height;
+    return { x:x, y:y };
+  }
+
+  function nodeAtPoint(pt){
+    var best = null, bestD = 30*30;
+    NODES.forEach(function(n){
+      var d = (n.x-pt.x)*(n.x-pt.x) + (n.y-pt.y)*(n.y-pt.y);
+      if (d < bestD){ bestD = d; best = n; }
+    });
+    return best;
+  }
+
+  function unplugAtPoint(pt){
+    var best = -1, bestD = 14*14;
+    edges.forEach(function(e, idx){
+      var p = bezierPoints(byId[e.a], byId[e.b]);
+      var d = (p.midx-pt.x)*(p.midx-pt.x) + (p.midy-pt.y)*(p.midy-pt.y);
+      if (d < bestD){ bestD = d; best = idx; }
+    });
+    return best;
+  }
+
+  svg.addEventListener('pointerdown', function(e){
+    if (cleared) return;
+    var pt = svgPoint(e);
+    var upIdx = unplugAtPoint(pt);
+    if (upIdx >= 0){
+      removeEdgeAt(upIdx);
+      return;
+    }
+    var n = nodeAtPoint(pt);
+    if (!n) return;
+    dragFrom = n;
+    svg.setPointerCapture(e.pointerId);
+    dragLine = document.createElementNS('http://www.w3.org/2000/svg','path');
+    dragLine.setAttribute('class','dragline');
+    dragG.appendChild(dragLine);
+    updateDrag(pt);
+    markActivity();
+    e.preventDefault();
+  }, { passive:false });
+
+  function updateDrag(pt){
+    if (!dragFrom || !dragLine) return;
+    dragLine.setAttribute('d', 'M'+dragFrom.x+','+dragFrom.y+' L'+pt.x+','+pt.y);
+  }
+
+  svg.addEventListener('pointermove', function(e){
+    if (!dragFrom || cleared) return;
+    updateDrag(svgPoint(e));
+    e.preventDefault();
+  }, { passive:false });
+
+  function endDrag(e){
+    if (!dragFrom) return;
+    var pt = svgPoint(e);
+    var target = nodeAtPoint(pt);
+    if (target && target.id !== dragFrom.id){
+      addEdge(dragFrom.id, target.id, 'hand');
+    }
+    if (dragLine){ dragG.removeChild(dragLine); dragLine = null; }
+    dragFrom = null;
+    markActivity();
+  }
+  svg.addEventListener('pointerup', endDrag);
+  svg.addEventListener('pointercancel', endDrag);
+
+  // --- ghost / machine patcher ---
+  function ghostTick(){
+    if (cleared) return;
+    var now = performance.now();
+    if (now - lastActivity < GHOST_IDLE_MS) return;
+    if (now - lastGhostMove < GHOST_COOLDOWN_MS) return;
+
+    var parent = {1:1,2:2,3:3,4:4,5:5,6:6};
+    edges.forEach(function(e){
+      var ra = find(parent, e.a), rb = find(parent, e.b);
+      if (ra !== rb) parent[ra] = rb;
+    });
+    var comps = {};
+    for (var i=1;i<=6;i++){
+      var r = find(parent, i);
+      (comps[r] = comps[r] || []).push(i);
+    }
+    var keys = Object.keys(comps);
+    if (keys.length < 2) return;
+    keys.sort(function(k1,k2){ return comps[k1].length - comps[k2].length; });
+    var small = comps[keys[0]];
+    var other = comps[keys[1]];
+    var a = small[Math.floor(Math.random()*small.length)];
+    var b = other[Math.floor(Math.random()*other.length)];
+    if (addEdge(a, b, 'machine')){
+      lastGhostMove = now;
+    }
+  }
+  setInterval(ghostTick, 350);
+
+  // --- clear / certificate ---
+  var totalHand = 0, totalMachine = 0;
+  var clearedAtMs = null;
+  var startMs = performance.now();
+
+  function doClear(){
+    cleared = true;
+    clearedAtMs = performance.now() - startMs;
+    led.classList.add('clear');
+    ledText.textContent = 'VERIFIED';
+    renderAll();
+    printCertificate();
+    saveLog();
+  }
+
+  function printCertificate(){
+    certwrap.innerHTML = '';
+    edges.forEach(function(e){
+      var line = document.createElement('div');
+      line.className = 'line';
+      line.innerHTML = 'JACK ' + e.a + ' &rarr; JACK ' + e.b + ' &middot; continuity <span class="ok">&#10003;</span>';
+      certwrap.appendChild(line);
+      if (e.by === 'hand') totalHand++; else totalMachine++;
+    });
+    var final = document.createElement('div');
+    final.className = 'final';
+    final.textContent = 'BOARD CLEAR.';
+    certwrap.appendChild(final);
+  }
+
+  // --- persistence: the log only ---
+  var LOG_KEY = 'patchLogV1';
+  function loadLog(){
+    try {
+      var raw = localStorage.getItem(LOG_KEY);
+      if (!raw) return { boards:0, hand:0, machine:0, sessions:0 };
+      var v = JSON.parse(raw);
+      return { boards:v.boards||0, hand:v.hand||0, machine:v.machine||0, sessions:v.sessions||0 };
+    } catch(err){ return { boards:0, hand:0, machine:0, sessions:0 }; }
+  }
+  function storeLog(v){
+    try { localStorage.setItem(LOG_KEY, JSON.stringify(v)); } catch(err){}
+  }
+  var allTime = loadLog();
+  allTime.sessions += 1;
+  storeLog(allTime);
+
+  function saveLog(){
+    allTime.boards += 1;
+    allTime.hand += totalHand;
+    allTime.machine += totalMachine;
+    storeLog(allTime);
+  }
+
+  // --- the log overlay ---
+  var overlay = document.getElementById('overlay');
+  var mark = document.getElementById('mark');
+  var closeSheet = document.getElementById('closeSheet');
+
+  function renderSheet(){
+    var handNow = edges.filter(function(e){ return e.by==='hand'; }).length;
+    var machineNow = edges.filter(function(e){ return e.by==='machine'; }).length;
+    document.getElementById('rHand').textContent = handNow;
+    document.getElementById('rMachine').textContent = machineNow;
+    document.getElementById('rCleared').textContent = cleared ? ((clearedAtMs/1000).toFixed(1) + 's in') : 'not yet';
+    document.getElementById('rAllBoards').textContent = allTime.boards;
+    document.getElementById('rAllSplit').textContent = allTime.hand + ' / ' + allTime.machine;
+    document.getElementById('rNights').textContent = allTime.sessions;
+
+    var conf;
+    if (!cleared){
+      conf = 'Testing. Continuity does not care yet whose hand is on the cable.';
+    } else if (machineNow === 0){
+      conf = 'Every cable on this board was yours. The certificate above would read no differently if it hadn’t been.';
+    } else if (handNow === 0){
+      conf = 'You never touched a cable. The board still reads VERIFIED — it was never testing you.';
+    } else {
+      conf = 'The certificate has never once said which was which.';
+    }
+    document.getElementById('confession').textContent = conf;
+  }
+
+  mark.addEventListener('click', function(){ renderSheet(); overlay.classList.add('show'); });
+  closeSheet.addEventListener('click', function(){ overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.classList.remove('show'); });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
