@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#08080a">
+<title>(No Further Notes.) · The Surprise Morning Piece</title>
+<style>
+  * { box-sizing: border-box; }
+  html,body{margin:0;height:100%;background:#08080a;overflow:hidden;
+    -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none;
+    -webkit-tap-highlight-color:transparent;}
+  body{font-family:Georgia,'Times New Roman',serif;color:#e9dfce;}
+
+  a.back{
+    position:fixed;top:14px;left:14px;z-index:30;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7c7264;text-decoration:none;
+    padding:6px 10px;border:1px solid rgba(233,223,206,.14);border-radius:99px;
+    background:rgba(7,7,10,.5);backdrop-filter:blur(4px);
+  }
+
+  .mark{
+    position:fixed;bottom:14px;right:14px;z-index:30;
+    width:30px;height:30px;border-radius:50%;
+    border:1px solid rgba(233,223,206,.14);background:rgba(7,7,10,.5);
+    color:#5c5448;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;
+    display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);
+    touch-action:manipulation;
+  }
+
+  .house{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 30%, rgba(30,26,20,.5), rgba(4,4,5,0) 62%);}
+
+  .stage{
+    position:fixed;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;
+    padding:64px 18px 90px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  }
+
+  .card{
+    width:100%;max-width:420px;
+    border:1px solid rgba(233,223,206,.16);border-radius:4px;
+    background:linear-gradient(180deg, rgba(20,18,15,.55), rgba(10,9,8,.55));
+    padding:26px 24px 22px;
+    box-shadow:0 30px 70px rgba(0,0,0,.5);
+  }
+
+  .kicker{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;
+    letter-spacing:.22em;text-transform:uppercase;color:#5c5448;text-align:center;}
+  .role{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
+    letter-spacing:.18em;text-transform:uppercase;color:#8c8272;text-align:center;margin-top:6px;}
+  .name{font-size:25px;text-align:center;color:#f0cf9a;letter-spacing:.02em;
+    margin:10px 0 18px;font-variant:small-caps;}
+
+  .meterWrap{margin:0 0 20px;}
+  .meterLabel{display:flex;justify-content:space-between;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;
+    letter-spacing:.14em;text-transform:uppercase;color:#5c5448;margin-bottom:6px;}
+  .meterLabel span#meterPct{color:#a89e8c;font-variant-numeric:tabular-nums;}
+  .meterTrack{height:3px;background:rgba(233,223,206,.1);border-radius:2px;overflow:hidden;}
+  .meterFill{height:100%;width:0%;background:#f0cf9a;
+    transition:width .5s ease;}
+
+  .quote{margin:0 0 18px;padding:12px 14px;border-left:2px solid rgba(233,223,206,.18);
+    position:relative;cursor:pointer;}
+  .qtext{display:block;font-style:italic;font-size:15px;line-height:1.5;color:#c9bda3;
+    transition:color .4s ease;}
+  .qsource{display:block;margin-top:6px;font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:10px;letter-spacing:.08em;color:#5c5448;}
+  .quote.polished .qtext{color:#e9dfce;}
+
+  .bio{font-size:15.5px;line-height:1.75;color:#a89e8c;margin:0;}
+  .seg{cursor:pointer;transition:color .4s ease;position:relative;}
+  .seg.polished{color:#e9dfce;}
+  .seg.flash{color:#f0cf9a !important;}
+
+  .flag{
+    display:none;margin-left:6px;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:9.5px;
+    letter-spacing:.1em;text-transform:uppercase;color:#c96a5a;
+    border:1px solid rgba(201,106,90,.4);border-radius:99px;
+    padding:1px 7px;vertical-align:2px;white-space:nowrap;
+  }
+  body.checking .flag{display:inline-block;}
+  body.checking .quote{border-left-color:rgba(201,106,90,.55);}
+  body.checking .seg.claim{box-shadow:inset 0 -1.5px 0 rgba(201,106,90,.55);}
+
+  .hint{position:fixed;left:0;right:0;top:12%;z-index:6;text-align:center;
+    font-style:italic;color:#7c7264;font-size:13.5px;opacity:0;
+    transition:opacity .8s ease;pointer-events:none;padding:0 20px;}
+  .hint.show{opacity:1;}
+
+  .worklight{position:fixed;left:50%;bottom:7%;transform:translate(-50%,0);z-index:20;
+    padding:11px 22px;border-radius:7px;border:1px solid rgba(233,223,206,.22);
+    background:rgba(9,9,12,.6);backdrop-filter:blur(3px);text-align:center;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;
+    letter-spacing:.14em;text-transform:uppercase;color:#8c8272;
+    transition:background .2s ease, border-color .2s ease, color .2s ease, box-shadow .3s ease;
+    touch-action:none;}
+  .worklight.on{border-color:rgba(201,106,90,.55);color:#d98b6b;
+    background:rgba(30,14,12,.4);box-shadow:0 0 20px rgba(201,106,90,.16);}
+
+  .drawer{position:fixed;left:0;right:0;bottom:0;z-index:40;
+    background:rgba(10,10,13,.97);border-top:1px solid rgba(233,223,206,.14);
+    padding:16px 20px 24px;transform:translateY(100%);transition:transform .35s ease;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;color:#a89e8c;
+    line-height:1.7;max-height:72vh;overflow-y:auto;}
+  .drawer.open{transform:translateY(0);}
+  .drawer .h{color:#5c5448;text-transform:uppercase;letter-spacing:.16em;font-size:10px;margin-bottom:8px;}
+  .drawer .row2{display:flex;justify-content:space-between;gap:10px;padding:3px 0;
+    border-bottom:1px solid rgba(233,223,206,.06);}
+  .drawer .row2 .v{font-variant-numeric:tabular-nums;color:#c9bda3;}
+  .drawer .line{font-style:italic;color:#7c7264;margin-top:14px;font-family:Georgia,serif;font-size:12.5px;}
+
+  @media (prefers-reduced-motion: reduce){
+    .hint,.worklight,.drawer,.meterFill,.qtext,.seg,.flag{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">&larr; cue sheet</a>
+<div class="mark" id="mark">&#9679;</div>
+
+<div class="house"></div>
+
+<div class="hint" id="hint">smooth it out before the house opens.</div>
+
+<div class="stage">
+  <div class="card">
+    <div class="kicker">Tonight's Programme</div>
+    <div class="role">Guest Critic</div>
+    <div class="name">Elena Marchetti</div>
+
+    <div class="meterWrap">
+      <div class="meterLabel"><span>Credibility</span><span id="meterPct">0%</span></div>
+      <div class="meterTrack"><div class="meterFill" id="meterFill"></div></div>
+    </div>
+
+    <blockquote class="quote" id="quote" data-i="0">
+      <span class="qtext" id="qtext">&ldquo;She has a good eye for the stage and gives much insight to readers.&rdquo;</span>
+      <span class="qsource">&mdash; Herald-Tribune, Arts Desk <span class="flag" id="qflag">not on record</span></span>
+    </blockquote>
+
+    <p class="bio">
+      <span class="seg" id="seg1" data-i="1">She is writing on theater for very long time, with true love of the work. </span><span class="seg" id="seg2" data-i="2">Her pieces is published in many good places around the world, always well received. </span><span class="seg claim" id="seg3" data-i="3">She was serve three decade like senior critic for the Herald-Tribune before coming freelance.<span class="flag" id="seg3flag">not on record</span> </span><span class="seg" id="seg4" data-i="4">Tonight she is joining us special, and is grateful and honor for the invitation.</span>
+    </p>
+  </div>
+</div>
+
+<div class="worklight" id="worklight">worklight</div>
+
+<div class="drawer" id="drawer">
+  <div class="h">house file</div>
+  <div class="row2"><span>lines polished</span><span class="v" id="dPolished">0 / 5</span></div>
+  <div class="row2"><span>credibility</span><span class="v" id="dCred">0%</span></div>
+  <div class="row2"><span>claims in this bio</span><span class="v">2</span></div>
+  <div class="row2"><span>claims cleared</span><span class="v">0 &mdash; always</span></div>
+  <div class="row2"><span>checked under worklight</span><span class="v" id="dChecks">0 times</span></div>
+  <div class="line">Nothing here got any truer for sounding sure of itself.</div>
+</div>
+
+<script>
+(function(){
+  var hint = document.getElementById('hint');
+  var mark = document.getElementById('mark');
+  var drawer = document.getElementById('drawer');
+  var worklight = document.getElementById('worklight');
+  var meterFill = document.getElementById('meterFill');
+  var meterPct = document.getElementById('meterPct');
+  var dPolished = document.getElementById('dPolished');
+  var dCred = document.getElementById('dCred');
+  var dChecks = document.getElementById('dChecks');
+
+  var TOTAL = 5;
+  var polishedCount = 0;
+  var checks = 0;
+  var everTouched = false;
+
+  var polish = {
+    quote: '&ldquo;A rare, exacting eye for stagecraft.&rdquo;',
+    seg1: 'She has written on theater for more than twenty years, with an abiding love of the work. ',
+    seg2: 'Her writing appears widely and is consistently well received. ',
+    seg3: 'She spent three decades as senior critic at the Herald-Tribune before going independent. ',
+    seg4: 'Tonight she joins us as a special guest, and is honored by the invitation.'
+  };
+
+  function updateMeter(){
+    var pct = Math.round((polishedCount/TOTAL)*100);
+    meterFill.style.width = pct + '%';
+    meterPct.textContent = pct + '%';
+    dPolished.textContent = polishedCount + ' / ' + TOTAL;
+    dCred.textContent = pct + '%';
+  }
+
+  function polishOne(el, textId, html){
+    if (el.classList.contains('polished')) return;
+    el.classList.add('polished');
+    if (textId){
+      document.getElementById(textId).innerHTML = html;
+    } else {
+      var flag = el.querySelector('.flag');
+      el.innerHTML = html + (flag ? flag.outerHTML + ' ' : '');
+    }
+    el.classList.add('flash');
+    setTimeout(function(){ el.classList.remove('flash'); }, 420);
+    polishedCount++;
+    updateMeter();
+    if (!everTouched){
+      everTouched = true;
+      hint.classList.remove('show');
+    }
+  }
+
+  document.getElementById('quote').addEventListener('pointerdown', function(e){
+    e.stopPropagation();
+    polishOne(this, 'qtext', polish.quote);
+  });
+  document.getElementById('seg1').addEventListener('pointerdown', function(e){
+    e.stopPropagation();
+    polishOne(this, null, polish.seg1);
+  });
+  document.getElementById('seg2').addEventListener('pointerdown', function(e){
+    e.stopPropagation();
+    polishOne(this, null, polish.seg2);
+  });
+  document.getElementById('seg3').addEventListener('pointerdown', function(e){
+    e.stopPropagation();
+    polishOne(this, null, polish.seg3);
+  });
+  document.getElementById('seg4').addEventListener('pointerdown', function(e){
+    e.stopPropagation();
+    polishOne(this, null, polish.seg4);
+  });
+
+  function setChecking(v){
+    document.body.classList.toggle('checking', v);
+    worklight.classList.toggle('on', v);
+    if (v){ checks++; dChecks.textContent = checks + (checks===1?' time':' times'); }
+  }
+  worklight.addEventListener('pointerdown', function(e){ e.preventDefault(); e.stopPropagation(); setChecking(true); }, {passive:false});
+  worklight.addEventListener('pointerup', function(){ setChecking(false); });
+  worklight.addEventListener('pointercancel', function(){ setChecking(false); });
+  window.addEventListener('blur', function(){ setChecking(false); });
+
+  mark.addEventListener('pointerdown', function(e){
+    e.stopPropagation();
+    drawer.classList.toggle('open');
+  });
+
+  updateMeter();
+  setTimeout(function(){ if (!everTouched) hint.classList.add('show'); }, 700);
+})();
+</script>
+</body>
+</html>

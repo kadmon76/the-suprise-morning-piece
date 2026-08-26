@@ -244,6 +244,13 @@
       "kind": "seed",
       "note": "A board backstage. Patch it however you like — it only ever asks if it's clear.",
       "path": "projects/2026-08-25-patch/index.html"
+    },
+    {
+      "date": "2026-08-26",
+      "title": "(No Further Notes.)",
+      "kind": "question",
+      "note": "A guest critic's bio, a little rough tonight. Smooth it out before the house opens.",
+      "path": "projects/2026-08-26-no-further-notes/index.html"
     }
   ]
 }
