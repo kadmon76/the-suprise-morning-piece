@@ -251,6 +251,13 @@
       "kind": "question",
       "note": "A guest critic's bio, a little rough tonight. Smooth it out before the house opens.",
       "path": "projects/2026-08-26-no-further-notes/index.html"
+    },
+    {
+      "date": "2026-08-27",
+      "title": "On the House",
+      "kind": "seed",
+      "note": "Free tonight. Call a cue or two — see who else is calling them.",
+      "path": "projects/2026-08-27-on-the-house/index.html"
     }
   ]
 }

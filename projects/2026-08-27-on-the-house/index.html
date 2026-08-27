@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>On the House</title>
+<style>
+  :root{
+    --gold:#e9c46a;
+    --gold-bright:#ffe8ad;
+    --ice:#6fd8e8;
+    --ice-bright:#c4f6ff;
+    --bg0:#08080b;
+    --bg1:#111118;
+    --paper:#e9e2d3;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    height:100%; margin:0; padding:0;
+    background:var(--bg0);
+    color:var(--paper);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    overscroll-behavior:none;
+    touch-action:manipulation;
+    user-select:none;
+    -webkit-user-select:none;
+  }
+  .stage{
+    position:relative;
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:space-between;
+    padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+    background:
+      radial-gradient(ellipse at 50% 18%, rgba(255,220,150,0.06), transparent 55%),
+      radial-gradient(ellipse at 50% 100%, rgba(20,20,30,0.9), var(--bg0) 70%);
+    overflow:hidden;
+  }
+
+  /* ---- ticket ---- */
+  .ticket{
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size:13px;
+    letter-spacing:0.06em;
+    text-align:center;
+    color:#c9c2b0;
+    border:1px dashed rgba(233,226,211,0.35);
+    border-radius:8px;
+    padding:10px 16px;
+    background:rgba(255,255,255,0.02);
+    min-width:190px;
+    transition: color 400ms ease, border-color 400ms ease;
+  }
+  .ticket .label{
+    display:block;
+    font-size:10px;
+    opacity:0.65;
+    margin-bottom:3px;
+  }
+  .ticket .value{
+    display:block;
+    font-size:20px;
+    font-weight:600;
+  }
+  .ticket.billed{
+    color:var(--gold-bright);
+    border-color:rgba(233,196,106,0.55);
+  }
+
+  /* ---- cover figure ---- */
+  .coverWrap{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    margin-top:4px;
+  }
+  .coverGlow{
+    position:absolute;
+    top:-30px; left:50%; transform:translateX(-50%);
+    width:220px; height:220px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(111,216,232,0.16), transparent 70%);
+    opacity:0;
+    transition:opacity 600ms ease;
+    pointer-events:none;
+  }
+  .coverGlow.active{ opacity:1; }
+  .figure{
+    width:56px; height:104px;
+    border-radius:28px 28px 20px 20px;
+    background:linear-gradient(180deg, #23232e, #17171e);
+    border:1px solid rgba(233,226,211,0.12);
+    position:relative;
+    box-shadow:0 0 0 rgba(111,216,232,0);
+    transition: box-shadow 500ms ease, border-color 500ms ease;
+  }
+  .figure::before{
+    content:"";
+    position:absolute;
+    top:-22px; left:50%; transform:translateX(-50%);
+    width:34px; height:34px;
+    border-radius:50%;
+    background:linear-gradient(180deg, #26262f, #1a1a21);
+    border:1px solid rgba(233,226,211,0.12);
+  }
+  .figure.active{
+    box-shadow:0 0 22px rgba(111,216,232,0.35);
+    border-color:rgba(111,216,232,0.4);
+  }
+  .caption{
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:lowercase;
+    color:rgba(233,226,211,0.45);
+    height:14px;
+    transition:color 400ms ease;
+  }
+  .caption.billed{ color:var(--gold-bright); }
+
+  /* ---- lamps ---- */
+  .lamps{
+    display:flex;
+    gap:26px;
+    align-items:center;
+    justify-content:center;
+    margin: 10px 0 6px;
+  }
+  .lamp{
+    width:64px; height:64px;
+    border-radius:50%;
+    border:1px solid rgba(233,226,211,0.18);
+    background:radial-gradient(circle at 40% 35%, #24242c, #121216);
+    position:relative;
+    padding:0;
+    cursor:pointer;
+    transition: box-shadow 260ms ease, background 260ms ease, border-color 260ms ease;
+  }
+  .lamp:active{ transform:scale(0.96); }
+  .lamp.flash-you{
+    background:radial-gradient(circle at 40% 35%, var(--gold-bright), var(--gold));
+    box-shadow:0 0 26px rgba(233,196,106,0.65);
+    border-color:var(--gold-bright);
+  }
+  .lamp.flash-cover{
+    background:radial-gradient(circle at 40% 35%, var(--ice-bright), var(--ice));
+    box-shadow:0 0 26px rgba(111,216,232,0.6);
+    border-color:var(--ice-bright);
+  }
+
+  .instruction{
+    font-size:14px;
+    color:rgba(233,226,211,0.55);
+    text-align:center;
+    max-width:260px;
+    line-height:1.5;
+    margin-bottom:6px;
+  }
+
+  .footer{
+    display:flex;
+    width:100%;
+    max-width:420px;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .backlink a{
+    color:rgba(233,226,211,0.4);
+    text-decoration:none;
+    font-size:12px;
+  }
+  .sheetMark{
+    background:none;
+    border:none;
+    color:rgba(233,226,211,0.4);
+    font-size:18px;
+    padding:6px 10px;
+    cursor:pointer;
+  }
+
+  /* ---- sheet overlay ---- */
+  .sheet{
+    position:fixed; inset:0;
+    background:rgba(6,6,9,0.96);
+    color:#d8d2c2;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    z-index:10;
+  }
+  .sheet[hidden]{ display:none; }
+  .sheetCard{
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size:13px;
+    line-height:1.85;
+    max-width:340px;
+    width:100%;
+  }
+  .sheetCard .row{
+    display:flex; justify-content:space-between; gap:12px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    padding:3px 0;
+  }
+  .sheetCard .note{
+    margin-top:14px;
+    opacity:0.6;
+    font-size:12px;
+    line-height:1.6;
+  }
+  .sheetClose{
+    margin-top:18px;
+    background:none;
+    border:1px solid rgba(255,255,255,0.25);
+    color:#d8d2c2;
+    padding:8px 16px;
+    border-radius:6px;
+    font-family:inherit;
+    font-size:12px;
+    cursor:pointer;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .lamp, .figure, .ticket, .caption, .coverGlow{ transition-duration: 1ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <div class="ticket" id="ticket">
+    <span class="label" id="ticketLabel">free preview</span>
+    <span class="value" id="ticketValue">0:40</span>
+  </div>
+
+  <div class="coverWrap">
+    <div class="coverGlow" id="coverGlow"></div>
+    <div class="figure" id="figure"></div>
+    <div class="caption" id="caption">&nbsp;</div>
+  </div>
+
+  <div class="lamps" id="lamps">
+    <button class="lamp" data-idx="0" aria-label="cue one"></button>
+    <button class="lamp" data-idx="1" aria-label="cue two"></button>
+    <button class="lamp" data-idx="2" aria-label="cue three"></button>
+  </div>
+
+  <div class="instruction">Call a cue whenever you like.</div>
+
+  <div class="footer">
+    <div class="backlink"><a href="../../index.html">← cue sheet</a></div>
+    <button class="sheetMark" id="sheetMark" aria-label="call sheet">▤</button>
+  </div>
+
+  <div class="sheet" id="sheet" hidden>
+    <div class="sheetCard">
+      <div class="row"><span>cues called — you</span><span id="s-you">0</span></div>
+      <div class="row"><span>cues called — comp</span><span id="s-cover">0</span></div>
+      <div class="row"><span>comp cues, during preview</span><span id="s-preview">0</span></div>
+      <div class="row"><span>rate, per comp cue</span><span id="s-rate">$3</span></div>
+      <div class="row"><span>back-billed at curtain</span><span id="s-back">$0</span></div>
+      <div class="row"><span>billed now</span><span id="s-billed">$0</span></div>
+      <div class="note" id="s-note">The comp only ever counted what it called for you. The bill was made from exactly that — before you knew there'd be one.</div>
+      <button class="sheetClose" id="sheetClose">close</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var PREVIEW_SECONDS = 40;
+  var RATE = 3;
+  var COVER_INTERVAL_MS = 2200;
+  var IDLE_WINDOW_MS = 2500;
+  var ACTIVATE_DELAY_MS = 3000;
+
+  var startTime = performance.now();
+  var previewEndsAt = startTime + PREVIEW_SECONDS * 1000;
+  var previewOver = false;
+
+  var youCount = 0;
+  var coverCount = 0;
+  var coverCountDuringPreview = 0;
+  var backBill = 0;
+  var billed = 0;
+  var tally = [0,0,0]; // frequency of each lamp, seeded by player taps
+
+  var firstTapAt = null;
+  var lastPlayerTapAt = 0;
+  var lastCoverCallAt = 0;
+  var coverEngaged = false;
+
+  var ticketValue = document.getElementById('ticketValue');
+  var ticketLabel = document.getElementById('ticketLabel');
+  var ticketEl = document.getElementById('ticket');
+  var figure = document.getElementById('figure');
+  var coverGlow = document.getElementById('coverGlow');
+  var caption = document.getElementById('caption');
+  var lamps = Array.prototype.slice.call(document.querySelectorAll('.lamp'));
+  var sheet = document.getElementById('sheet');
+  var sheetMark = document.getElementById('sheetMark');
+  var sheetClose = document.getElementById('sheetClose');
+
+  function fmtTime(ms){
+    var s = Math.max(0, Math.ceil(ms/1000));
+    var m = Math.floor(s/60);
+    var r = s % 60;
+    return m + ':' + (r < 10 ? '0' : '') + r;
+  }
+
+  function flashLamp(idx, who){
+    var lamp = lamps[idx];
+    lamp.classList.remove('flash-you','flash-cover');
+    // force reflow so repeated flashes on same lamp retrigger
+    void lamp.offsetWidth;
+    lamp.classList.add(who === 'you' ? 'flash-you' : 'flash-cover');
+    clearTimeout(lamp._t);
+    lamp._t = setTimeout(function(){
+      lamp.classList.remove('flash-you','flash-cover');
+    }, 480);
+  }
+
+  function pickWeightedLamp(){
+    var total = tally[0] + tally[1] + tally[2];
+    if (total === 0) return Math.floor(Math.random()*3);
+    var r = Math.random() * total;
+    for (var i=0;i<3;i++){
+      if (r < tally[i]) return i;
+      r -= tally[i];
+    }
+    return 2;
+  }
+
+  function onLampTap(idx){
+    youCount++;
+    tally[idx]++;
+    lastPlayerTapAt = performance.now();
+    if (firstTapAt === null) firstTapAt = lastPlayerTapAt;
+    flashLamp(idx, 'you');
+  }
+
+  lamps.forEach(function(lamp){
+    lamp.addEventListener('pointerdown', function(e){
+      e.preventDefault();
+      onLampTap(parseInt(lamp.dataset.idx, 10));
+    });
+  });
+
+  sheetMark.addEventListener('click', function(){
+    updateSheet();
+    sheet.hidden = false;
+  });
+  sheetClose.addEventListener('click', function(){
+    sheet.hidden = true;
+  });
+
+  function updateSheet(){
+    document.getElementById('s-you').textContent = youCount;
+    document.getElementById('s-cover').textContent = coverCount;
+    document.getElementById('s-preview').textContent = coverCountDuringPreview;
+    document.getElementById('s-rate').textContent = '$' + RATE;
+    document.getElementById('s-back').textContent = '$' + backBill;
+    document.getElementById('s-billed').textContent = '$' + billed;
+  }
+
+  function coverCall(){
+    var idx = pickWeightedLamp();
+    coverCount++;
+    if (!previewOver) coverCountDuringPreview++;
+    else billed += RATE;
+    flashLamp(idx, 'cover');
+    lastCoverCallAt = performance.now();
+  }
+
+  function tick(){
+    var now = performance.now();
+
+    // preview clock
+    if (!previewOver){
+      var remaining = previewEndsAt - now;
+      if (remaining <= 0){
+        previewOver = true;
+        backBill = coverCountDuringPreview * RATE;
+        billed = backBill;
+        ticketEl.classList.add('billed');
+        caption.classList.add('billed');
+        ticketLabel.textContent = 'billed';
+        ticketValue.textContent = '$' + billed;
+      } else {
+        ticketValue.textContent = fmtTime(remaining);
+      }
+    } else {
+      ticketValue.textContent = '$' + billed;
+    }
+
+    // engage the cover a few seconds after first tap
+    if (!coverEngaged && firstTapAt !== null && (now - firstTapAt) > ACTIVATE_DELAY_MS){
+      coverEngaged = true;
+      figure.classList.add('active');
+      coverGlow.classList.add('active');
+      caption.textContent = 'sitting in — comp.';
+    }
+
+    if (coverEngaged){
+      var idle = (now - lastPlayerTapAt) > IDLE_WINDOW_MS;
+      if (idle && (now - lastCoverCallAt) > COVER_INTERVAL_MS){
+        coverCall();
+      }
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  ticketValue.textContent = fmtTime(previewEndsAt - performance.now());
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
