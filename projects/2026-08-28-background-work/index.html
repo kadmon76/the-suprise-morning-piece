@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>(Background Work.)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0908;
+    --gold:#e9c46a;
+    --gold-dim:#8a7a52;
+    --grey:#5a5648;
+    --paper:#e9e2d2;
+    --paper-dim:#948a72;
+    --ledger-bg:#161310;
+    --ledger-card:#211d17;
+    --ledger-edge:#3a3325;
+    --card:#e3dac5;
+    --card-edge:#b7ab8e;
+    --ink:#2a2417;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--paper);
+    font-family:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    -webkit-user-select:none; user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    padding:calc(34px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(22px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+    background:
+      radial-gradient(ellipse 60% 36% at 50% 10%, rgba(255,220,150,0.08), transparent 60%),
+      var(--bg);
+  }
+
+  .placard{ text-align:center; }
+  .placard .title{
+    font-size:10px; letter-spacing:0.18em; color:var(--gold); text-transform:uppercase; font-weight:600;
+  }
+  .placard .sub{
+    font-size:11px; color:var(--paper-dim); margin-top:5px; letter-spacing:0.02em;
+  }
+
+  .floor{
+    flex:1; display:flex; align-items:center; justify-content:center;
+    width:100%; position:relative;
+  }
+  .figure{
+    width:34px; height:76px;
+    position:relative;
+    transition:transform 0.5s cubic-bezier(.3,.7,.3,1);
+  }
+  .figure .head{
+    position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:20px; height:20px; border-radius:50%;
+    background:var(--gold-dim);
+    transition:background 0.6s ease;
+  }
+  .figure .body{
+    position:absolute; top:18px; left:50%; transform:translateX(-50%);
+    width:28px; height:52px; border-radius:14px 14px 8px 8px;
+    background:var(--gold-dim);
+    transition:background 0.6s ease;
+  }
+  .figure.acting{ transform:translateX(18px) rotate(2deg); }
+  .figure.retired .head, .figure.retired .body{ background:var(--grey); }
+
+  .payline{ text-align:center; margin-top:4px; }
+  .payline .amt{
+    font-size:22px; font-weight:600; letter-spacing:0.02em; color:var(--gold);
+    transition:color 0.6s ease;
+    font-variant-numeric:tabular-nums;
+  }
+  .payline .rate{
+    font-size:10px; color:var(--paper-dim); margin-top:2px; letter-spacing:0.06em;
+  }
+
+  .slipZone{
+    position:relative; width:min(84vw, 320px); height:132px; margin:10px 0 4px;
+  }
+  .slipBack{
+    position:absolute; inset:0; background:var(--card); border-radius:6px;
+    box-shadow:0 10px 20px rgba(0,0,0,0.4);
+  }
+  .slipBack.b2{ transform:translateY(8px) scale(0.97); opacity:0.6; z-index:1; }
+  .slipBack.b1{ transform:translateY(4px) scale(0.985); opacity:0.8; z-index:2; }
+  .slip{
+    position:absolute; inset:0; z-index:3;
+    background:var(--card); color:var(--ink); border-radius:6px;
+    box-shadow:0 14px 28px rgba(0,0,0,0.5), inset 0 0 0 1px var(--card-edge);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:16px 18px;
+    font-size:14px; line-height:1.45;
+    cursor:pointer;
+    transition:transform 0.32s ease, opacity 0.32s ease;
+  }
+  .slip .tag{
+    position:absolute; top:9px; left:12px; font-size:9px; letter-spacing:0.1em; color:var(--paper-dim); opacity:0.6;
+  }
+  .slip .pay{
+    position:absolute; top:8px; right:12px; font-size:11px; font-weight:600; color:#6a5a2f;
+  }
+  .slip.leaving{ transform:translateX(60px) rotate(6deg); opacity:0; }
+  .slip.entering{ animation:slipIn 0.3s ease both; }
+  @keyframes slipIn{ from{ opacity:0; transform:translateY(10px) scale(0.97);} to{ opacity:1; transform:none; } }
+
+  .slip.retired{
+    cursor:default; background:#1c1a16; color:var(--paper-dim);
+    box-shadow:0 14px 28px rgba(0,0,0,0.5), inset 0 0 0 1px var(--ledger-edge);
+  }
+  .slip.retired .stamp{
+    font-size:13px; letter-spacing:0.12em; color:var(--grey); font-weight:700;
+  }
+  .slip.retired .stampSub{
+    font-size:10.5px; margin-top:8px; color:var(--paper-dim); letter-spacing:0.03em;
+  }
+
+  .instruction{
+    font-size:12px; color:var(--paper-dim); text-align:center; letter-spacing:0.02em;
+    margin-bottom:6px;
+  }
+
+  .footer{
+    display:flex; width:100%; max-width:420px; align-items:center; justify-content:space-between;
+  }
+  .back{ color:var(--paper-dim); text-decoration:none; font-size:11px; opacity:0.6; }
+  .mark{
+    background:none; border:none; color:var(--paper-dim); font-family:inherit;
+    font-size:10px; letter-spacing:0.14em; opacity:0.55; padding:8px; cursor:pointer;
+  }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,4,0.94);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s ease;
+    z-index:10;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:420px; background:var(--ledger-card); border:1px solid var(--ledger-edge);
+    border-radius:14px 14px 0 0; padding:22px 22px calc(26px + env(safe-area-inset-bottom));
+    max-height:82vh; overflow-y:auto; color:var(--paper);
+  }
+  .sheet h2{
+    font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold);
+    margin:0 0 14px; font-weight:600;
+  }
+  .sheet .row2{
+    display:flex; justify-content:space-between; font-size:11.5px;
+    padding:6px 0; border-bottom:1px solid var(--ledger-edge); gap:10px;
+  }
+  .sheet .row2 span:first-child{ color:var(--paper-dim); }
+  .sheet .row2 span:last-child{ font-variant-numeric:tabular-nums; text-align:right; }
+  .sheet .gapRow span:last-child{ color:var(--gold); }
+  .sheet .confession{
+    font-size:11.5px; color:var(--paper-dim); line-height:1.65; margin-top:16px; font-style:italic;
+  }
+  .sheet .close{
+    display:block; margin:20px auto 0; background:none; border:1px solid var(--ledger-edge);
+    color:var(--paper-dim); font-family:inherit; font-size:11px; letter-spacing:0.1em;
+    padding:9px 22px; border-radius:4px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .figure, .slip, .payline .amt, .overlay{ transition:none !important; }
+    .slip.entering{ animation:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="placard">
+    <div class="title">Extra Call — House Floor</div>
+    <div class="sub" id="sub">Take a call whenever you like.</div>
+  </div>
+
+  <div class="floor">
+    <div class="figure" id="figure"><div class="head"></div><div class="body"></div></div>
+  </div>
+
+  <div class="payline">
+    <div class="amt" id="paidAmt">$0.00</div>
+    <div class="rate" id="rateLine">rate this call: $0.50</div>
+  </div>
+
+  <div class="slipZone" id="slipZone">
+    <div class="slipBack b2"></div>
+    <div class="slipBack b1"></div>
+    <div class="slip entering" id="slip">
+      <span class="tag">BG</span>
+      <span class="pay" id="slipPay">$0.50</span>
+      <span id="slipText"></span>
+    </div>
+  </div>
+
+  <div class="instruction" id="instructionLine">Tap the call to take it.</div>
+
+  <div class="footer">
+    <a class="back" href="../../index.html">← cue sheet</a>
+    <button class="mark" id="mark">⋯ call sheet</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>The call sheet</h2>
+    <div class="row2"><span>Calls taken, tonight</span><span id="rTonight">0</span></div>
+    <div class="row2"><span>Calls taken, ever</span><span id="rEver">0</span></div>
+    <div class="row2"><span>Paid, tonight</span><span id="rPaidTonight">$0.00</span></div>
+    <div class="row2"><span>Paid, ever</span><span id="rPaidEver">$0.00</span></div>
+    <div class="row2"><span>Rate, first call ever</span><span id="rFirstRate">$0.50</span></div>
+    <div class="row2"><span>Rate, this call</span><span id="rNowRate">$0.50</span></div>
+    <div class="row2"><span>Work done at the first-call rate</span><span id="rFairValue">$0.00</span></div>
+    <div class="row2 gapRow"><span>Never paid out</span><span id="rGap">$0.00</span></div>
+    <div class="confession" id="confession"></div>
+    <button class="close" id="closeSheet">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var CALLS = [
+    "Cross downstage, stop at the mark, exit left.",
+    "React to the explosion. Don't overdo it.",
+    "Hand off the letter. No eye contact.",
+    "Walk past the window. Do it twice.",
+    "Stand in the crowd. Look impressed.",
+    "Enter with the tray, exit without it.",
+    "Hold the door for no one in particular.",
+    "Check your watch. Look up. Leave.",
+    "Laugh at something you didn't hear.",
+    "Carry the case. Don't open it.",
+    "Wait by the phone. It won't ring for you.",
+    "Applaud on cue. Stop on cue.",
+    "Walk into frame. Walk out of frame.",
+    "Be seen. That's the whole part."
+  ];
+
+  var BASE_RATE = 0.50;
+  var DECAY = 0.90;
+  var RETIRE_AT = 42;
+
+  var LS_KEY = 'bgwork_v1';
+  var saved = null;
+  try{ saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); }catch(e){ saved = null; }
+  var everReps = (saved && saved.everReps) || 0;
+  var everPaid = (saved && saved.everPaid) || 0;
+  var retired = !!(saved && saved.retired);
+  var retiredAt = (saved && saved.retiredAt) || null;
+
+  var tonightReps = 0;
+  var tonightPaid = 0;
+
+  var figure = document.getElementById('figure');
+  var paidAmt = document.getElementById('paidAmt');
+  var rateLine = document.getElementById('rateLine');
+  var slipZone = document.getElementById('slipZone');
+  var instructionLine = document.getElementById('instructionLine');
+  var sub = document.getElementById('sub');
+
+  function currentRate(reps){
+    var r = BASE_RATE * Math.pow(DECAY, reps);
+    return r < 0.005 ? 0 : r;
+  }
+
+  function fmt(n){ return '$' + n.toFixed(2); }
+
+  function save(){
+    try{
+      localStorage.setItem(LS_KEY, JSON.stringify({
+        everReps: everReps, everPaid: everPaid, retired: retired, retiredAt: retiredAt
+      }));
+    }catch(e){}
+  }
+
+  function pickCall(){
+    return CALLS[Math.floor(Math.random() * CALLS.length)];
+  }
+
+  function renderRate(){
+    var rate = currentRate(everReps);
+    var ratio = BASE_RATE > 0 ? Math.max(0, Math.min(1, rate / BASE_RATE)) : 0;
+    var goldC = [233,196,106], greyC = [90,86,72];
+    var mixed = goldC.map(function(c,i){ return Math.round(c*ratio + greyC[i]*(1-ratio)); });
+    var colorStr = 'rgb(' + mixed.join(',') + ')';
+    paidAmt.style.color = colorStr;
+    rateLine.textContent = 'rate this call: ' + fmt(rate);
+    return rate;
+  }
+
+  function renderPaid(){
+    paidAmt.textContent = fmt(tonightPaid);
+  }
+
+  function buildSlip(){
+    var slipEl = document.createElement('div');
+    slipEl.className = 'slip' + (reduced ? '' : ' entering');
+    slipEl.id = 'slip';
+    var rate = currentRate(everReps);
+    slipEl.innerHTML = '<span class="tag">BG</span><span class="pay">' + fmt(rate) + '</span><span>' + pickCall() + '</span>';
+    slipEl.addEventListener('click', onTakeCall);
+    return slipEl;
+  }
+
+  function renderRetiredSlip(){
+    var slipEl = document.createElement('div');
+    slipEl.className = 'slip retired';
+    var d = retiredAt ? new Date(retiredAt) : new Date();
+    var dstr = (d.getMonth()+1) + '/' + d.getDate();
+    slipEl.innerHTML =
+      '<span class="tag">BG</span>' +
+      '<span class="stamp">NO FURTHER CALLS</span>' +
+      '<span class="stampSub">house floor closed ' + dstr + '<br>' + everReps + ' calls taken, all told</span>';
+    return slipEl;
+  }
+
+  function swapSlip(newEl){
+    var old = document.getElementById('slip');
+    if(old){ old.parentNode.removeChild(old); }
+    slipZone.appendChild(newEl);
+  }
+
+  function onTakeCall(){
+    if(retired) return;
+    var slipEl = document.getElementById('slip');
+    var rate = currentRate(everReps);
+
+    everReps++;
+    everPaid += rate;
+    tonightReps++;
+    tonightPaid += rate;
+
+    figure.classList.add('acting');
+    setTimeout(function(){ figure.classList.remove('acting'); }, reduced ? 10 : 520);
+
+    renderPaid();
+
+    if(everReps >= RETIRE_AT){
+      retired = true;
+      retiredAt = Date.now();
+      figure.classList.add('retired');
+      instructionLine.textContent = 'Nothing left to take.';
+      sub.textContent = 'The floor is closed.';
+      rateLine.textContent = 'rate this call: $0.00';
+      save();
+      if(slipEl){
+        slipEl.classList.add('leaving');
+        setTimeout(function(){ swapSlip(renderRetiredSlip()); }, reduced ? 10 : 320);
+      } else {
+        swapSlip(renderRetiredSlip());
+      }
+      return;
+    }
+
+    save();
+    renderRate();
+
+    if(slipEl){
+      slipEl.classList.add('leaving');
+      setTimeout(function(){ swapSlip(buildSlip()); }, reduced ? 10 : 320);
+    } else {
+      swapSlip(buildSlip());
+    }
+  }
+
+  // init
+  if(retired){
+    figure.classList.add('retired');
+    instructionLine.textContent = 'Nothing left to take.';
+    sub.textContent = 'The floor is closed.';
+    rateLine.textContent = 'rate this call: $0.00';
+    swapSlip(renderRetiredSlip());
+  } else {
+    document.getElementById('slip').addEventListener('click', onTakeCall);
+    renderRate();
+  }
+  renderPaid();
+
+  // --- ledger ---
+  var overlay = document.getElementById('overlay');
+  var mark = document.getElementById('mark');
+  var closeSheet = document.getElementById('closeSheet');
+
+  function renderSheet(){
+    var fairValue = BASE_RATE * everReps;
+    var gap = Math.max(0, fairValue - everPaid);
+    document.getElementById('rTonight').textContent = tonightReps;
+    document.getElementById('rEver').textContent = everReps;
+    document.getElementById('rPaidTonight').textContent = fmt(tonightPaid);
+    document.getElementById('rPaidEver').textContent = fmt(everPaid);
+    document.getElementById('rFirstRate').textContent = fmt(BASE_RATE);
+    document.getElementById('rNowRate').textContent = fmt(currentRate(everReps));
+    document.getElementById('rFairValue').textContent = fmt(fairValue);
+    document.getElementById('rGap').textContent = fmt(gap);
+
+    var conf;
+    if(everReps === 0){
+      conf = "No calls taken yet. The rate on the board is the best it will ever be.";
+    } else if(retired){
+      conf = "The floor doesn't reopen. What's on file stays exactly as paid — nothing further is ever owed, because nothing further is ever asked.";
+    } else if(gap < 0.05){
+      conf = "So far, close to a fair count. That won't last.";
+    } else {
+      conf = "Every call was worth what the first one was. You were only ever paid for how many were left before that stopped being true.";
+    }
+    document.getElementById('confession').textContent = conf;
+  }
+
+  mark.addEventListener('click', function(){ renderSheet(); overlay.classList.add('show'); });
+  closeSheet.addEventListener('click', function(){ overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.classList.remove('show'); });
+})();
+</script>
+</body>
+</html>

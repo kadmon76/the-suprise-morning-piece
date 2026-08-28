@@ -258,6 +258,13 @@
       "kind": "seed",
       "note": "Free tonight. Call a cue or two — see who else is calling them.",
       "path": "projects/2026-08-27-on-the-house/index.html"
+    },
+    {
+      "date": "2026-08-28",
+      "title": "(Background Work.)",
+      "kind": "question",
+      "note": "A board of small calls, backstage. Take as many as you like tonight — take enough, and there won't be a tomorrow for it.",
+      "path": "projects/2026-08-28-background-work/index.html"
     }
   ]
 }
