@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Pilot Light</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0908;
+    --gold:#e9c46a;
+    --gold-dim:#8a7a52;
+    --grey:#514c3f;
+    --red:#c1553e;
+    --paper:#e9e2d2;
+    --paper-dim:#948a72;
+    --ledger-bg:#161310;
+    --ledger-card:#211d17;
+    --ledger-edge:#3a3325;
+    --tape:#b7a37c;
+    --tape-edge:#8f7c58;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--paper);
+    font-family:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    -webkit-user-select:none; user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    padding:calc(28px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+    background:
+      radial-gradient(ellipse 60% 30% at 50% 6%, rgba(255,220,150,0.06), transparent 60%),
+      var(--bg);
+  }
+
+  .placard{ text-align:center; }
+  .placard .title{
+    font-size:10px; letter-spacing:0.18em; color:var(--gold); text-transform:uppercase; font-weight:600;
+  }
+  .placard .sub{
+    font-size:11px; color:var(--paper-dim); margin-top:5px; letter-spacing:0.02em;
+  }
+
+  .rig{
+    display:flex; align-items:center; gap:8px; margin-top:14px; height:40px; position:relative;
+  }
+  .pilotHousing{
+    width:26px; height:26px; border-radius:50%;
+    background:#1c1812; box-shadow:inset 0 0 0 1px var(--ledger-edge);
+    display:flex; align-items:center; justify-content:center;
+    position:relative; z-index:1;
+  }
+  .pilot{
+    width:12px; height:12px; border-radius:50%;
+    background:var(--grey);
+    transition:background 0.15s ease, box-shadow 0.15s ease;
+  }
+  .pilot.lit{
+    background:var(--gold);
+    box-shadow:0 0 10px 3px rgba(233,196,106,0.55);
+  }
+  .pilotLabel{
+    position:absolute; top:32px; left:50%; transform:translateX(-50%);
+    font-size:8px; letter-spacing:0.14em; color:var(--paper-dim); opacity:0.55; white-space:nowrap;
+  }
+  .tapeTrack{ width:64px; height:26px; position:relative; }
+  .tape{
+    position:absolute; top:0; left:0; width:26px; height:26px; border-radius:4px;
+    background:repeating-linear-gradient(45deg, var(--tape), var(--tape) 4px, var(--tape-edge) 4px, var(--tape-edge) 8px);
+    box-shadow:0 3px 8px rgba(0,0,0,0.4);
+    transform:translateX(38px);
+    touch-action:none; cursor:grab; z-index:2;
+  }
+  .tape.snapping{ transition:transform 0.22s cubic-bezier(.3,.7,.3,1); }
+
+  .warn{
+    font-size:9px; letter-spacing:0.08em; color:var(--red); text-align:center;
+    height:12px; margin-top:4px; opacity:0; transition:opacity 0.15s ease;
+  }
+  .warn.show{ opacity:1; }
+
+  .floor{
+    flex:1; width:100%; position:relative;
+    display:flex; align-items:flex-end; justify-content:center;
+    min-height:0;
+  }
+  .beamCone{
+    position:absolute; top:-6px; left:50%; width:150px; height:100%;
+    transform:translateX(-50%);
+    clip-path:polygon(48.5% 0%, 51.5% 0%, 92% 100%, 8% 100%);
+    background:linear-gradient(to bottom, rgba(233,196,106,0.30), rgba(233,196,106,0.03));
+    opacity:0; transition:opacity 0.12s ease;
+    pointer-events:none;
+  }
+  .beamCone.on{ opacity:1; }
+  .spotMark{
+    position:relative; margin-bottom:16px; display:flex; flex-direction:column; align-items:center;
+  }
+  .chalk{
+    width:38px; height:38px; border:1.5px dashed var(--paper-dim); border-radius:50%; opacity:0.35;
+    position:absolute; bottom:-6px; left:50%; transform:translateX(-50%);
+  }
+  .figure{ width:30px; height:66px; position:relative; }
+  .figure .head{
+    position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:18px; height:18px; border-radius:50%; background:var(--grey);
+    transition:background 0.12s ease;
+  }
+  .figure .body{
+    position:absolute; top:16px; left:50%; transform:translateX(-50%);
+    width:24px; height:46px; border-radius:12px 12px 6px 6px; background:var(--grey);
+    transition:background 0.12s ease;
+  }
+  .figure.lit .head, .figure.lit .body{ background:var(--gold-dim); }
+
+  .viewWrap{
+    display:flex; flex-direction:column; align-items:center; gap:5px; margin-top:2px;
+  }
+  .viewLabel{ font-size:9px; letter-spacing:0.1em; color:var(--paper-dim); opacity:0.6; }
+  .viewBox{
+    width:64px; height:40px; border-radius:4px; background:#100e0b;
+    box-shadow:inset 0 0 0 1px var(--ledger-edge);
+    transition:background 0.12s ease;
+  }
+  .viewBox.lit{ background:#f3ead3; }
+
+  .holdBtn{
+    width:100%; max-width:320px; margin-top:14px; padding:16px;
+    background:#161310; border:1px solid var(--ledger-edge); border-radius:8px;
+    color:var(--paper); font-family:inherit; font-size:12px; letter-spacing:0.14em;
+    text-transform:uppercase; font-weight:600;
+    touch-action:none; cursor:pointer;
+    transition:background 0.15s ease, border-color 0.15s ease;
+  }
+  .holdBtn.active{ background:#241f16; border-color:var(--gold-dim); color:var(--gold); }
+
+  .footer{
+    display:flex; width:100%; max-width:420px; align-items:center; justify-content:space-between;
+    margin-top:14px;
+  }
+  .back{ color:var(--paper-dim); text-decoration:none; font-size:11px; opacity:0.6; }
+  .markBtn{
+    background:none; border:none; color:var(--paper-dim); font-family:inherit;
+    font-size:10px; letter-spacing:0.14em; opacity:0.55; padding:8px; cursor:pointer;
+  }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,4,0.94);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s ease;
+    z-index:10;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:420px; background:var(--ledger-card); border:1px solid var(--ledger-edge);
+    border-radius:14px 14px 0 0; padding:22px 22px calc(26px + env(safe-area-inset-bottom));
+    max-height:82vh; overflow-y:auto; color:var(--paper);
+  }
+  .sheet h2{
+    font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold);
+    margin:0 0 14px; font-weight:600;
+  }
+  .sheet .row2{
+    display:flex; justify-content:space-between; font-size:11.5px;
+    padding:6px 0; border-bottom:1px solid var(--ledger-edge); gap:10px;
+  }
+  .sheet .row2 span:first-child{ color:var(--paper-dim); }
+  .sheet .row2 span:last-child{ font-variant-numeric:tabular-nums; text-align:right; }
+  .sheet .zeroRow span:last-child{ color:var(--gold); }
+  .sheet .confession{
+    font-size:11.5px; color:var(--paper-dim); line-height:1.65; margin-top:16px; font-style:italic;
+  }
+  .sheet .close{
+    display:block; margin:20px auto 0; background:none; border:1px solid var(--ledger-edge);
+    color:var(--paper-dim); font-family:inherit; font-size:11px; letter-spacing:0.1em;
+    padding:9px 22px; border-radius:4px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .pilot, .beamCone, .figure .head, .figure .body, .viewBox, .holdBtn, .tape, .overlay{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="placard">
+    <div class="title">Follow Spot — House Left</div>
+    <div class="sub">Hold to light. Nothing else stated.</div>
+  </div>
+
+  <div class="rig">
+    <div class="pilotHousing">
+      <div class="pilot" id="pilot"></div>
+      <div class="pilotLabel">PILOT</div>
+    </div>
+    <div class="tapeTrack">
+      <div class="tape" id="tape"></div>
+    </div>
+  </div>
+  <div class="warn" id="warn">NO PILOT — NO BEAM</div>
+
+  <div class="floor">
+    <div class="beamCone" id="beam"></div>
+    <div class="spotMark">
+      <div class="chalk"></div>
+      <div class="figure" id="figure"><div class="head"></div><div class="body"></div></div>
+    </div>
+  </div>
+
+  <div class="viewWrap">
+    <div class="viewLabel">what the mark sees</div>
+    <div class="viewBox" id="viewBox"></div>
+  </div>
+
+  <button class="holdBtn" id="holdBtn">Hold to light</button>
+
+  <div class="footer">
+    <a class="back" href="../../index.html">← cue sheet</a>
+    <button class="markBtn" id="markBtn">⋯ call sheet</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>The call sheet</h2>
+    <div class="row2"><span>Times lit</span><span id="rLit">0</span></div>
+    <div class="row2"><span>Times the interlock cut it</span><span id="rCut">0</span></div>
+    <div class="row2"><span>Times the tape was tried</span><span id="rTried">0</span></div>
+    <div class="row2 zeroRow"><span>Times the mark was asked</span><span id="rAsked">0</span></div>
+    <div class="confession" id="confession"></div>
+    <button class="close" id="closeSheet">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var pilot = document.getElementById('pilot');
+  var beam = document.getElementById('beam');
+  var figure = document.getElementById('figure');
+  var viewBox = document.getElementById('viewBox');
+  var holdBtn = document.getElementById('holdBtn');
+  var warn = document.getElementById('warn');
+  var tape = document.getElementById('tape');
+
+  var HOME = 38;   // px, tape resting away from the bulb
+  var COVER = 0;   // px, tape settled over the bulb
+
+  var holding = false;
+  var covered = false;
+  var beamOn = false;
+
+  var timesLit = 0;
+  var timesCut = 0;
+  var timesTried = 0;
+  var wasBlockedThisHold = false;
+
+  function setWarn(show){
+    warn.classList.toggle('show', show);
+  }
+
+  function updateBeam(){
+    var wantOn = holding && !covered;
+    var blockedNow = holding && covered;
+
+    if(blockedNow && !wasBlockedThisHold){ timesCut++; }
+    wasBlockedThisHold = blockedNow;
+    setWarn(blockedNow);
+
+    if(wantOn && !beamOn){ timesLit++; }
+    beamOn = wantOn;
+
+    beam.classList.toggle('on', beamOn);
+    pilot.classList.toggle('lit', beamOn);
+    figure.classList.toggle('lit', beamOn);
+    viewBox.classList.toggle('lit', beamOn);
+    holdBtn.classList.toggle('active', holding && !covered);
+  }
+
+  // hold-to-light button
+  var holdPointerId = null;
+  function startHold(e){
+    e.preventDefault();
+    if(holdPointerId !== null) return;
+    holdPointerId = e.pointerId;
+    holding = true;
+    updateBeam();
+  }
+  function endHold(e){
+    if(!holding || e.pointerId !== holdPointerId) return;
+    holdPointerId = null;
+    holding = false;
+    updateBeam();
+  }
+  holdBtn.addEventListener('pointerdown', startHold);
+  window.addEventListener('pointerup', endHold);
+  window.addEventListener('pointercancel', endHold);
+
+  // tape drag — independent pointer, so it can run at the same time as the hold above
+  var dragging = false, dragPointerId = null, dragStartX = 0, dragStartOffset = HOME, offset = HOME;
+  tape.style.transform = 'translateX(' + HOME + 'px)';
+
+  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+  function setOffset(px, snap){
+    offset = px;
+    tape.classList.toggle('snapping', !!snap && !reduced);
+    tape.style.transform = 'translateX(' + px + 'px)';
+  }
+
+  function onPointerDown(e){
+    if(dragging) return;
+    dragging = true;
+    dragPointerId = e.pointerId;
+    dragStartX = e.clientX;
+    dragStartOffset = offset;
+    timesTried++;
+    try{ tape.setPointerCapture && tape.setPointerCapture(e.pointerId); }catch(err){}
+  }
+  function onPointerMove(e){
+    if(!dragging || e.pointerId !== dragPointerId) return;
+    var dx = e.clientX - dragStartX;
+    var next = clamp(dragStartOffset + dx, COVER, HOME);
+    setOffset(next, false);
+    var nowCovered = next < HOME / 2;
+    if(nowCovered !== covered){
+      covered = nowCovered;
+      updateBeam();
+    }
+  }
+  function onPointerUp(e){
+    if(!dragging || e.pointerId !== dragPointerId) return;
+    dragging = false;
+    dragPointerId = null;
+    var settle = covered ? COVER : HOME;
+    setOffset(settle, true);
+  }
+  tape.addEventListener('pointerdown', onPointerDown);
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+  window.addEventListener('pointercancel', onPointerUp);
+
+  // call sheet
+  var overlay = document.getElementById('overlay');
+  var markBtn = document.getElementById('markBtn');
+  var closeSheet = document.getElementById('closeSheet');
+
+  function renderSheet(){
+    document.getElementById('rLit').textContent = timesLit;
+    document.getElementById('rCut').textContent = timesCut;
+    document.getElementById('rTried').textContent = timesTried;
+    document.getElementById('rAsked').textContent = 0;
+
+    var conf;
+    if(timesLit === 0 && timesCut === 0){
+      conf = "Nothing lit yet. The pilot has nothing to prove until you ask it to.";
+    } else if(timesCut > 0){
+      conf = "The interlock held every time — cover the pilot and the beam dies with it, mid-cue if it has to. That part is honest, and it was built to be. It was never built to ask the mark standing in the light anything at all.";
+    } else {
+      conf = "The pilot never lies to whoever can see it. Whether the mark ever agreed to stand there isn't a question this panel was wired to answer.";
+    }
+    document.getElementById('confession').textContent = conf;
+  }
+
+  markBtn.addEventListener('click', function(){ renderSheet(); overlay.classList.add('show'); });
+  closeSheet.addEventListener('click', function(){ overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.classList.remove('show'); });
+})();
+</script>
+</body>
+</html>

@@ -265,6 +265,13 @@
       "kind": "question",
       "note": "A board of small calls, backstage. Take as many as you like tonight — take enough, and there won't be a tomorrow for it.",
       "path": "projects/2026-08-28-background-work/index.html"
+    },
+    {
+      "date": "2026-08-29",
+      "title": "Pilot Light",
+      "kind": "seed",
+      "note": "A follow spot, one pilot lamp wired in. Hold to light — there's a strip of tape right beside it, if you're curious what it's for.",
+      "path": "projects/2026-08-29-pilot-light/index.html"
     }
   ]
 }
