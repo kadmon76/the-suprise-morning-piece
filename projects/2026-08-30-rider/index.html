@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>(Rider.)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0908;
+    --gold:#e9c46a;
+    --gold-dim:#8a7a52;
+    --grey:#514c3f;
+    --steel:#7d93a3;
+    --steel-dim:#4a5760;
+    --paper:#e9e2d2;
+    --paper-dim:#948a72;
+    --ledger-bg:#161310;
+    --ledger-card:#211d17;
+    --ledger-edge:#3a3325;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--paper);
+    font-family:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    -webkit-user-select:none; user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    padding:calc(30px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+    background:
+      radial-gradient(ellipse 60% 26% at 50% 4%, rgba(255,220,150,0.05), transparent 60%),
+      var(--bg);
+  }
+
+  .placard{ text-align:center; }
+  .placard .title{
+    font-size:11px; letter-spacing:0.18em; color:var(--gold); text-transform:uppercase; font-weight:600;
+  }
+  .placard .sub{
+    font-size:11px; color:var(--paper-dim); margin-top:6px; letter-spacing:0.02em;
+  }
+
+  .board{
+    flex:1; width:100%; max-width:400px; display:flex; flex-direction:column;
+    justify-content:center; gap:12px; min-height:0;
+  }
+
+  .cueRow{
+    display:flex; align-items:center; gap:14px;
+    background:#141110; border:1px solid var(--ledger-edge); border-radius:10px;
+    padding:10px 12px;
+  }
+
+  .lampWrap{
+    position:relative; width:48px; height:48px; flex:none;
+    touch-action:none; cursor:pointer;
+  }
+  .lampWrap svg{ position:absolute; inset:0; transform:rotate(-90deg); }
+  .lampWrap svg circle{ fill:none; }
+  .ringTrack{ stroke:#2a251d; stroke-width:3; }
+  .ringFill{ stroke:var(--gold); stroke-width:3; stroke-linecap:round;
+    transition:stroke-dashoffset 0.05s linear; }
+  .ringFill.declineColor{ stroke:var(--steel); }
+  .lamp{
+    position:absolute; top:9px; left:9px; width:30px; height:30px; border-radius:50%;
+    background:var(--grey); transition:background 0.2s ease, box-shadow 0.2s ease;
+  }
+  .lamp.fired{ background:var(--gold); box-shadow:0 0 12px 3px rgba(233,196,106,0.55); }
+  .lamp.spent{ background:var(--gold-dim); }
+  .lamp.declined{ background:var(--steel); box-shadow:0 0 10px 3px rgba(125,147,163,0.45); }
+
+  .rowMid{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .crewName{ font-size:13px; letter-spacing:0.04em; color:var(--paper); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rowTag{ font-size:9px; letter-spacing:0.1em; color:var(--paper-dim); opacity:0; transition:opacity 0.3s ease; height:11px; }
+  .rowTag.show{ opacity:0.85; }
+  .rowTag.declineTag{ color:var(--steel); }
+
+  .xBtn{
+    flex:none; width:34px; height:34px; border-radius:8px;
+    background:#1a1613; border:1px solid var(--ledger-edge); color:var(--paper-dim);
+    font-family:inherit; font-size:15px; line-height:1; cursor:pointer;
+  }
+  .xBtn:active{ background:#231d17; }
+
+  .footer{
+    display:flex; width:100%; max-width:400px; align-items:center; justify-content:space-between;
+    margin-top:6px;
+  }
+  .back{ color:var(--paper-dim); text-decoration:none; font-size:11px; opacity:0.6; }
+  .markBtn{
+    background:none; border:none; color:var(--paper-dim); font-family:inherit;
+    font-size:10px; letter-spacing:0.14em; opacity:0.55; padding:8px; cursor:pointer;
+  }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,4,0.94);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s ease;
+    z-index:10;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:420px; background:var(--ledger-card); border:1px solid var(--ledger-edge);
+    border-radius:14px 14px 0 0; padding:22px 22px calc(26px + env(safe-area-inset-bottom));
+    max-height:84vh; overflow-y:auto; color:var(--paper);
+  }
+  .sheet h2{
+    font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold);
+    margin:0 0 14px; font-weight:600;
+  }
+  .sheet table{ width:100%; border-collapse:collapse; font-size:10.5px; }
+  .sheet th{
+    text-align:right; color:var(--paper-dim); font-weight:500; padding:5px 4px;
+    border-bottom:1px solid var(--ledger-edge); letter-spacing:0.04em;
+  }
+  .sheet th:first-child{ text-align:left; }
+  .sheet td{
+    text-align:right; padding:6px 4px; border-bottom:1px solid var(--ledger-edge);
+    font-variant-numeric:tabular-nums;
+  }
+  .sheet td:first-child{ text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70px; }
+  .sheet tr.protectedRow td{ color:var(--steel); }
+  .sheet .confession{
+    font-size:11.5px; color:var(--paper-dim); line-height:1.65; margin-top:16px; font-style:italic;
+  }
+  .sheet .close{
+    display:block; margin:20px auto 0; background:none; border:1px solid var(--ledger-edge);
+    color:var(--paper-dim); font-family:inherit; font-size:11px; letter-spacing:0.1em;
+    padding:9px 22px; border-radius:4px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .lamp, .rowTag, .overlay, .ringFill{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="placard">
+    <div class="title">Tonight's Board</div>
+    <div class="sub">Push the board however you like.</div>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="footer">
+    <a class="back" href="../../index.html">← cue sheet</a>
+    <button class="markBtn" id="markBtn">⋯ call sheet</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>The call sheet</h2>
+    <table>
+      <thead>
+        <tr><th>name</th><th>fired</th><th>pushed</th><th>hold</th><th>swapped</th></tr>
+      </thead>
+      <tbody id="sheetBody"></tbody>
+    </table>
+    <div class="confession" id="confession"></div>
+    <button class="close" id="closeSheet">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var board = document.getElementById('board');
+
+  var BASE_HOLD = 900;
+  var PROTECTED_INDEX = 2;
+  var pool = ["K. OSEI","L. BRAND","P. NAKASHIMA","S. IGARASHI","J. MERCER","R. DUBOIS"];
+  var poolPtr = 0;
+  function nextName(){
+    var n = pool[poolPtr % pool.length];
+    poolPtr++;
+    return n;
+  }
+
+  var initialNames = ["R. VANCE","T. OKONKWO","M. SALAZAR","D. FERRIS","A. QUINN"];
+
+  var R = 21; // ring radius
+  var CIRC = 2 * Math.PI * R;
+
+  var rows = initialNames.map(function(name, i){
+    return {
+      name: name,
+      protected: i === PROTECTED_INDEX,
+      fired: 0,
+      pushed: 0,
+      released: 0,
+      requiredHold: BASE_HOLD,
+      peak: 1.0,
+      holding: false,
+      pointerId: null,
+      startTime: 0,
+      settled: true
+    };
+  });
+
+  var els = [];
+
+  function buildRow(state, i){
+    var row = document.createElement('div');
+    row.className = 'cueRow';
+
+    var lampWrap = document.createElement('div');
+    lampWrap.className = 'lampWrap';
+
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 48 48');
+    var track = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    track.setAttribute('cx', '24'); track.setAttribute('cy', '24'); track.setAttribute('r', R);
+    track.setAttribute('class', 'ringTrack');
+    var fill = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    fill.setAttribute('cx', '24'); fill.setAttribute('cy', '24'); fill.setAttribute('r', R);
+    fill.setAttribute('class', 'ringFill');
+    fill.setAttribute('stroke-dasharray', CIRC.toFixed(2));
+    fill.setAttribute('stroke-dashoffset', CIRC.toFixed(2));
+    svg.appendChild(track); svg.appendChild(fill);
+
+    var lamp = document.createElement('div');
+    lamp.className = 'lamp';
+
+    lampWrap.appendChild(svg);
+    lampWrap.appendChild(lamp);
+
+    var mid = document.createElement('div');
+    mid.className = 'rowMid';
+    var nameEl = document.createElement('div');
+    nameEl.className = 'crewName';
+    nameEl.textContent = state.name;
+    var tag = document.createElement('div');
+    tag.className = 'rowTag';
+    mid.appendChild(nameEl); mid.appendChild(tag);
+
+    var xBtn = document.createElement('button');
+    xBtn.className = 'xBtn';
+    xBtn.textContent = '×';
+
+    row.appendChild(lampWrap);
+    row.appendChild(mid);
+    row.appendChild(xBtn);
+    board.appendChild(row);
+
+    return { row: row, lampWrap: lampWrap, fill: fill, lamp: lamp, nameEl: nameEl, tag: tag, xBtn: xBtn };
+  }
+
+  rows.forEach(function(state, i){ els.push(buildRow(state, i)); });
+
+  function setRing(i, progress){
+    var off = CIRC * (1 - Math.max(0, Math.min(1, progress)));
+    els[i].fill.setAttribute('stroke-dashoffset', off.toFixed(2));
+  }
+
+  function showTag(i, text, decline){
+    var t = els[i].tag;
+    t.textContent = text;
+    t.classList.toggle('declineTag', !!decline);
+    t.classList.add('show');
+    clearTimeout(t._to);
+    t._to = setTimeout(function(){ t.classList.remove('show'); }, reduced ? 400 : 900);
+  }
+
+  function fire(i){
+    var s = rows[i];
+    s.fired++;
+    s.pushed++;
+    var e = els[i];
+    e.lamp.classList.remove('spent');
+    e.lamp.classList.add('fired');
+    setRing(i, 0);
+    var flashTime = reduced ? 0 : 220;
+    setTimeout(function(){
+      e.lamp.classList.remove('fired');
+      e.lamp.classList.add('spent');
+      e.lamp.style.opacity = String(0.5 + 0.5 * s.peak);
+    }, flashTime);
+    s.requiredHold = Math.max(260, s.requiredHold * 0.82);
+    s.peak = Math.max(0.55, s.peak * 0.93);
+  }
+
+  function decline(i){
+    var s = rows[i];
+    s.pushed++;
+    var e = els[i];
+    e.lamp.classList.add('declined');
+    e.fill.classList.add('declineColor');
+    showTag(i, 'declined', true);
+    var holdFull = reduced ? 0 : 150;
+    setTimeout(function(){
+      setRing(i, 0);
+      e.lamp.classList.remove('declined');
+      e.fill.classList.remove('declineColor');
+    }, holdFull);
+  }
+
+  function endHold(i, completed){
+    var s = rows[i];
+    s.holding = false;
+    s.pointerId = null;
+    if(!completed){ setRing(i, 0); }
+  }
+
+  function tick(){
+    rows.forEach(function(s, i){
+      if(!s.holding) return;
+      var elapsed = performance.now() - s.startTime;
+      var progress = elapsed / s.requiredHold;
+      if(progress >= 1){
+        setRing(i, 1);
+        if(s.protected){ decline(i); } else { fire(i); }
+        endHold(i, true);
+      } else {
+        setRing(i, progress);
+      }
+    });
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  els.forEach(function(e, i){
+    e.lampWrap.addEventListener('pointerdown', function(ev){
+      ev.preventDefault();
+      var s = rows[i];
+      if(s.holding) return;
+      s.holding = true;
+      s.pointerId = ev.pointerId;
+      s.startTime = performance.now();
+      try{ e.lampWrap.setPointerCapture && e.lampWrap.setPointerCapture(ev.pointerId); }catch(err){}
+    });
+    function release(ev){
+      var s = rows[i];
+      if(!s.holding || ev.pointerId !== s.pointerId) return;
+      endHold(i, false);
+    }
+    e.lampWrap.addEventListener('pointerup', release);
+    e.lampWrap.addEventListener('pointercancel', release);
+    e.lampWrap.addEventListener('pointerleave', function(ev){
+      var s = rows[i];
+      if(s.holding && ev.pointerId === s.pointerId){ endHold(i, false); }
+    });
+
+    e.xBtn.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var s = rows[i];
+      if(s.protected){
+        showTag(i, 'declined', true);
+        return;
+      }
+      s.released++;
+      s.name = nextName();
+      s.requiredHold = Math.max(260, BASE_HOLD * 0.7);
+      s.peak = 1.0;
+      e.nameEl.textContent = s.name;
+      e.lamp.style.opacity = '1';
+      e.lamp.classList.remove('spent');
+      showTag(i, 'swapped', false);
+    });
+  });
+
+  // call sheet
+  var overlay = document.getElementById('overlay');
+  var markBtn = document.getElementById('markBtn');
+  var closeSheet = document.getElementById('closeSheet');
+  var sheetBody = document.getElementById('sheetBody');
+  var confession = document.getElementById('confession');
+
+  function renderSheet(){
+    sheetBody.innerHTML = '';
+    rows.forEach(function(s){
+      var tr = document.createElement('tr');
+      if(s.protected) tr.className = 'protectedRow';
+      tr.innerHTML =
+        '<td>' + s.name + '</td>' +
+        '<td>' + s.fired + '</td>' +
+        '<td>' + s.pushed + '</td>' +
+        '<td>' + Math.round(s.requiredHold) + 'ms</td>' +
+        '<td>' + s.released + '</td>';
+      sheetBody.appendChild(tr);
+    });
+
+    var anyPushed = rows.some(function(s){ return s.pushed > 0; });
+    var protectedRow = rows[PROTECTED_INDEX];
+    var text;
+    if(!anyPushed){
+      text = "Nothing pushed yet. Every name on this board reads exactly the same until you lean on one.";
+    } else if(protectedRow.pushed === 0){
+      text = "Four names on this board get cheaper to move every time you move them, and any of them can be swapped for someone who'll go faster still. One name hasn't been tested tonight — its price is still whatever it started at.";
+    } else {
+      text = "Four names got cheaper to move every time you moved them, and every one of them could be swapped for someone who'd move for less. One never got cheaper, never fired, and never left the board — no matter how many times you tried to replace it.";
+    }
+    confession.textContent = text;
+  }
+
+  markBtn.addEventListener('click', function(){ renderSheet(); overlay.classList.add('show'); });
+  closeSheet.addEventListener('click', function(){ overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.classList.remove('show'); });
+})();
+</script>
+</body>
+</html>

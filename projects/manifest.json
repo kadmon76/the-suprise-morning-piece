@@ -272,6 +272,13 @@
       "kind": "seed",
       "note": "A follow spot, one pilot lamp wired in. Hold to light — there's a strip of tape right beside it, if you're curious what it's for.",
       "path": "projects/2026-08-29-pilot-light/index.html"
+    },
+    {
+      "date": "2026-08-30",
+      "title": "(Rider.)",
+      "kind": "question",
+      "note": "Five names on tonight's board. Push as hard as you like — one of them was already decided, long before tonight.",
+      "path": "projects/2026-08-30-rider/index.html"
     }
   ]
 }
