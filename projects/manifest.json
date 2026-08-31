@@ -279,6 +279,13 @@
       "kind": "question",
       "note": "Five names on tonight's board. Push as hard as you like — one of them was already decided, long before tonight.",
       "path": "projects/2026-08-30-rider/index.html"
+    },
+    {
+      "date": "2026-08-31",
+      "title": "Dead Wax",
+      "kind": "seed",
+      "note": "Six unlabeled sides in a crate, a lathe waiting to cut. Hold whichever you like — it always says the same thing back.",
+      "path": "projects/2026-08-31-dead-wax/index.html"
     }
   ]
 }

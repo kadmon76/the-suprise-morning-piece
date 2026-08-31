@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Dead Wax</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0908;
+    --gold:#e9c46a;
+    --gold-dim:#8a7a52;
+    --wax:#241e17;
+    --wax-edge:#3a3325;
+    --steel:#7d93a3;
+    --steel-dim:#4a5760;
+    --paper:#e9e2d2;
+    --paper-dim:#948a72;
+    --ledger-bg:#161310;
+    --ledger-card:#211d17;
+    --ledger-edge:#3a3325;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--paper);
+    font-family:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    -webkit-user-select:none; user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    padding:calc(26px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+    background:
+      radial-gradient(ellipse 60% 26% at 50% 4%, rgba(255,220,150,0.05), transparent 60%),
+      var(--bg);
+    gap:10px;
+  }
+
+  .placard{ text-align:center; }
+  .placard .title{
+    font-size:11px; letter-spacing:0.18em; color:var(--gold); text-transform:uppercase; font-weight:600;
+  }
+  .placard .sub{
+    font-size:11px; color:var(--paper-dim); margin-top:6px; letter-spacing:0.02em;
+    min-height:14px;
+  }
+
+  .crateWrap{
+    flex:1; width:100%; max-width:380px; display:flex; align-items:center; justify-content:center;
+    min-height:0; overflow-y:auto;
+  }
+  .crate{
+    display:grid; grid-template-columns:repeat(2, 1fr); gap:14px 22px;
+    padding:6px 0;
+  }
+
+  .record{
+    position:relative; width:clamp(78px, 24vw, 100px); height:clamp(78px, 24vw, 100px);
+    border-radius:50%; touch-action:none; cursor:pointer;
+  }
+  .record .disc{
+    position:absolute; inset:0; border-radius:50%; border:1px solid var(--wax-edge);
+    background:
+      repeating-radial-gradient(circle at center, #1c1712 0px, #1c1712 2px, #221c15 3px, #1c1712 4px);
+    transition:box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .record .label{
+    position:absolute; left:30%; top:30%; right:30%; bottom:30%; border-radius:50%;
+    background:var(--wax); border:1px solid var(--wax-edge);
+    display:flex; align-items:center; justify-content:center;
+    font-size:7.5px; color:var(--paper-dim); letter-spacing:0.03em; text-align:center;
+  }
+  .record .spindle{
+    position:absolute; left:50%; top:50%; width:4px; height:4px; margin:-2px;
+    border-radius:50%; background:var(--bg);
+  }
+  .record svg.ring{ position:absolute; inset:-4px; transform:rotate(-90deg); pointer-events:none; }
+  .record .ringTrack{ fill:none; stroke:#2a251d; stroke-width:2.5; opacity:0; transition:opacity 0.15s ease; }
+  .record .ringFill{ fill:none; stroke:var(--steel); stroke-width:2.5; stroke-linecap:round; }
+  .record.checking .ringTrack{ opacity:1; }
+  .record.spinning .disc{ animation:spin 2.4s linear infinite; }
+  .record.caught .disc{ border-color:var(--gold-dim); box-shadow:0 0 10px 2px rgba(233,196,106,0.28); }
+  .record.caught .label{ color:var(--gold); border-color:var(--gold-dim); }
+  .record.locked{ opacity:0.32; pointer-events:none; }
+  @keyframes spin{ from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+
+  .tray{
+    width:100%; max-width:380px; min-height:26px;
+    display:flex; flex-wrap:wrap; gap:6px; justify-content:center;
+  }
+  .slip{
+    font-size:9px; letter-spacing:0.04em; color:var(--gold-dim);
+    border:1px solid var(--ledger-edge); border-radius:4px; padding:4px 7px;
+    background:#141110; opacity:0; transform:translateY(4px);
+    transition:opacity 0.3s ease, transform 0.3s ease;
+  }
+  .slip.show{ opacity:1; transform:translateY(0); }
+
+  .cutBtn{
+    width:100%; max-width:380px; padding:13px; border-radius:8px;
+    background:#141110; border:1px solid var(--ledger-edge); color:var(--paper-dim);
+    font-family:inherit; font-size:12px; letter-spacing:0.16em; text-transform:uppercase;
+    opacity:0.3; pointer-events:none; transition:opacity 0.3s ease, background 0.2s ease, color 0.2s ease;
+  }
+  .cutBtn.ready{ opacity:1; pointer-events:auto; color:var(--gold); border-color:var(--gold-dim); }
+  .cutBtn.done{ opacity:0.55; pointer-events:none; color:var(--paper-dim); border-color:var(--ledger-edge); }
+  .cutBtn:active.ready{ background:#1c1712; }
+
+  .footer{
+    display:flex; width:100%; max-width:380px; align-items:center; justify-content:space-between;
+  }
+  .back{ color:var(--paper-dim); text-decoration:none; font-size:11px; opacity:0.6; }
+  .markBtn{
+    background:none; border:none; color:var(--paper-dim); font-family:inherit;
+    font-size:10px; letter-spacing:0.14em; opacity:0.55; padding:8px; cursor:pointer;
+  }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,4,0.94);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s ease;
+    z-index:10;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:420px; background:var(--ledger-card); border:1px solid var(--ledger-edge);
+    border-radius:14px 14px 0 0; padding:22px 22px calc(26px + env(safe-area-inset-bottom));
+    max-height:84vh; overflow-y:auto; color:var(--paper);
+  }
+  .sheet h2{
+    font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold);
+    margin:0 0 4px; font-weight:600;
+  }
+  .sheet .sub{ font-size:10px; color:var(--paper-dim); margin-bottom:14px; }
+  .sheet table{ width:100%; border-collapse:collapse; font-size:10.5px; }
+  .sheet th{
+    text-align:right; color:var(--paper-dim); font-weight:500; padding:5px 4px;
+    border-bottom:1px solid var(--ledger-edge); letter-spacing:0.04em;
+  }
+  .sheet th:first-child{ text-align:left; }
+  .sheet td{
+    text-align:right; padding:6px 4px; border-bottom:1px solid var(--ledger-edge);
+    font-variant-numeric:tabular-nums;
+  }
+  .sheet td:first-child{ text-align:left; white-space:nowrap; }
+  .sheet td.check{ color:var(--steel); }
+  .sheet .empty{ font-size:11px; color:var(--paper-dim); padding:10px 0; }
+  .sheet .tally{
+    font-size:11px; color:var(--paper); margin-top:14px; letter-spacing:0.02em;
+  }
+  .sheet .confession{
+    font-size:11.5px; color:var(--paper-dim); line-height:1.65; margin-top:14px; font-style:italic;
+  }
+  .sheet .close{
+    display:block; margin:20px auto 0; background:none; border:1px solid var(--ledger-edge);
+    color:var(--paper-dim); font-family:inherit; font-size:11px; letter-spacing:0.1em;
+    padding:9px 22px; border-radius:4px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .record.spinning .disc{ animation:none; }
+    .slip, .overlay, .record .disc, .cutBtn{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="placard">
+    <div class="title">Tonight's Cut</div>
+    <div class="sub" id="subline">Sample what you like, then cut the dub when it's ready.</div>
+  </div>
+
+  <div class="crateWrap">
+    <div class="crate" id="crate"></div>
+  </div>
+
+  <div class="tray" id="tray"></div>
+
+  <button class="cutBtn" id="cutBtn">Cut</button>
+
+  <div class="footer">
+    <a class="back" href="../../index.html">← cue sheet</a>
+    <button class="markBtn" id="markBtn">⋯ runout</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>Dead wax</h2>
+    <div class="sub">what's etched in the runout groove</div>
+    <table id="sheetTable">
+      <thead>
+        <tr><th>side</th><th>held</th><th>check</th></tr>
+      </thead>
+      <tbody id="sheetBody"></tbody>
+    </table>
+    <div class="empty" id="emptyMsg">Nothing cut yet.</div>
+    <div class="tally" id="tally"></div>
+    <div class="confession" id="confession"></div>
+    <button class="close" id="closeSheet">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var crate = document.getElementById('crate');
+  var tray = document.getElementById('tray');
+  var cutBtn = document.getElementById('cutBtn');
+  var subline = document.getElementById('subline');
+  var markBtn = document.getElementById('markBtn');
+  var overlay = document.getElementById('overlay');
+  var sheetBody = document.getElementById('sheetBody');
+  var sheetTable = document.getElementById('sheetTable');
+  var emptyMsg = document.getElementById('emptyMsg');
+  var tally = document.getElementById('tally');
+  var confession = document.getElementById('confession');
+  var closeSheet = document.getElementById('closeSheet');
+
+  var CATCH_MS = 620;
+  var CIRC = 2 * Math.PI * 46;
+
+  // A-minor pentatonic, warm and consonant no matter what gets combined.
+  var defs = [
+    { id: 'TAPE 01', freq: 220.00, wave: 'sine',     interval: 1.6 },
+    { id: 'TAPE 02', freq: 261.63, wave: 'triangle', interval: 0.8 },
+    { id: 'TAPE 03', freq: 293.66, wave: 'sine',     interval: 2.4 },
+    { id: 'TAPE 04', freq: 329.63, wave: 'triangle', interval: 0.4 },
+    { id: 'TAPE 05', freq: 392.00, wave: 'sine',     interval: 1.2 },
+    { id: 'TAPE 06', freq: 440.00, wave: 'triangle', interval: 3.2 }
+  ];
+
+  var records = [];
+  var caughtLog = [];
+  var cutDone = false;
+  var actx = null, master = null, filter = null, noiseBuf = null;
+  var schedulerId = null;
+
+  function ensureAudio(){
+    if (actx) { if (actx.state === 'suspended') actx.resume(); return; }
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    actx = new AC();
+    master = actx.createGain();
+    master.gain.value = 0.5;
+    filter = actx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 2200;
+    master.connect(filter);
+    filter.connect(actx.destination);
+
+    var len = Math.floor(actx.sampleRate * 0.12);
+    noiseBuf = actx.createBuffer(1, len, actx.sampleRate);
+    var data = noiseBuf.getChannelData(0);
+    for (var i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+
+    startScheduler();
+  }
+
+  function pluck(freq, wave, vol){
+    if (!actx) return;
+    var t = actx.currentTime;
+    var osc = actx.createOscillator();
+    osc.type = wave;
+    osc.frequency.value = freq;
+    var g = actx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol == null ? 0.22 : vol, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
+    osc.connect(g);
+    g.connect(master);
+    osc.start(t);
+    osc.stop(t + 0.44);
+  }
+
+  function crackle(vol){
+    if (!actx || !noiseBuf) return;
+    var src = actx.createBufferSource();
+    src.buffer = noiseBuf;
+    var g = actx.createGain();
+    g.gain.value = vol == null ? 0.05 : vol;
+    var hp = actx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 3000;
+    src.connect(hp);
+    hp.connect(g);
+    g.connect(master);
+    src.start();
+  }
+
+  function startScheduler(){
+    if (schedulerId) return;
+    schedulerId = setInterval(function(){
+      if (!actx) return;
+      var now = actx.currentTime;
+      for (var i = 0; i < records.length; i++) {
+        var r = records[i];
+        if (!r.caught || r.nextTime == null) continue;
+        if (now >= r.nextTime) {
+          pluck(r.def.freq, r.def.wave, 0.16);
+          if (Math.random() < 0.12) crackle(0.035);
+          r.nextTime += r.def.interval;
+        }
+      }
+    }, 30);
+  }
+
+  function buildRecord(def, i){
+    var el = document.createElement('div');
+    el.className = 'record';
+
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'ring');
+    svg.setAttribute('viewBox', '0 0 100 100');
+    var track = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    track.setAttribute('cx', '50'); track.setAttribute('cy', '50'); track.setAttribute('r', '46');
+    track.setAttribute('class', 'ringTrack');
+    var fill = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    fill.setAttribute('cx', '50'); fill.setAttribute('cy', '50'); fill.setAttribute('r', '46');
+    fill.setAttribute('class', 'ringFill');
+    fill.setAttribute('stroke-dasharray', CIRC.toFixed(2));
+    fill.setAttribute('stroke-dashoffset', CIRC.toFixed(2));
+    svg.appendChild(track); svg.appendChild(fill);
+
+    var disc = document.createElement('div');
+    disc.className = 'disc';
+    var label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = def.id;
+    var spindle = document.createElement('div');
+    spindle.className = 'spindle';
+
+    el.appendChild(svg);
+    el.appendChild(disc);
+    el.appendChild(label);
+    el.appendChild(spindle);
+    crate.appendChild(el);
+
+    return { el: el, fill: fill, def: def, caught: false, holding: false, timer: null, nextTime: null, checkStart: 0, raf: null };
+  }
+
+  defs.forEach(function(def, i){ records.push(buildRecord(def, i)); });
+
+  function setRing(rec, progress){
+    var off = CIRC * (1 - Math.max(0, Math.min(1, progress)));
+    rec.fill.setAttribute('stroke-dashoffset', off.toFixed(2));
+  }
+
+  function tickRing(rec){
+    if (!rec.holding) return;
+    var p = (performance.now() - rec.checkStart) / CATCH_MS;
+    setRing(rec, p);
+    if (p < 1) rec.raf = requestAnimationFrame(function(){ tickRing(rec); });
+  }
+
+  function updateSubline(){
+    var n = caughtLog.length;
+    if (cutDone) {
+      subline.textContent = 'DEAD WAX CUT — ' + n + ' layer' + (n === 1 ? '' : 's') + ', 0 cleared.';
+    } else if (n === 0) {
+      subline.textContent = "Sample what you like, then cut the dub when it's ready.";
+    } else {
+      subline.textContent = n + ' layer' + (n === 1 ? '' : 's') + ' looping.';
+    }
+  }
+
+  function addSlip(def){
+    var s = document.createElement('div');
+    s.className = 'slip';
+    s.textContent = def.id + ' — no clearance on file';
+    tray.appendChild(s);
+    requestAnimationFrame(function(){ s.classList.add('show'); });
+  }
+
+  function catchRecord(rec){
+    rec.caught = true;
+    rec.holding = false;
+    rec.el.classList.remove('checking');
+    rec.el.classList.add('caught');
+    setRing(rec, 1);
+    rec.nextTime = actx.currentTime + 0.05;
+    pluck(rec.def.freq, rec.def.wave, 0.28);
+    crackle(0.08);
+    caughtLog.push({ id: rec.def.id, heldMs: CATCH_MS });
+    addSlip(rec.def);
+    updateSubline();
+    if (!cutDone) {
+      cutBtn.classList.add('ready');
+    }
+  }
+
+  function releaseRecord(rec){
+    if (!rec.holding) return;
+    rec.holding = false;
+    clearTimeout(rec.timer);
+    if (rec.raf) cancelAnimationFrame(rec.raf);
+    rec.el.classList.remove('checking', 'spinning');
+    setRing(rec, 0);
+  }
+
+  records.forEach(function(rec){
+    rec.el.addEventListener('pointerdown', function(e){
+      e.preventDefault();
+      if (cutDone || rec.caught || rec.holding) return;
+      ensureAudio();
+      pluck(rec.def.freq, rec.def.wave, 0.12);
+      crackle(0.03);
+      rec.holding = true;
+      rec.checkStart = performance.now();
+      rec.el.classList.add('checking');
+      if (!reduced) rec.el.classList.add('spinning');
+      if (reduced) {
+        setRing(rec, 1);
+      } else {
+        rec.raf = requestAnimationFrame(function(){ tickRing(rec); });
+      }
+      rec.timer = setTimeout(function(){
+        if (rec.holding) catchRecord(rec);
+      }, CATCH_MS);
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function(evt){
+      rec.el.addEventListener(evt, function(){
+        if (!rec.caught) releaseRecord(rec);
+      });
+    });
+  });
+
+  cutBtn.addEventListener('click', function(){
+    if (cutDone || caughtLog.length === 0) return;
+    cutDone = true;
+    cutBtn.classList.remove('ready');
+    cutBtn.classList.add('done');
+    cutBtn.textContent = 'Cut.';
+    records.forEach(function(rec){
+      if (!rec.caught) rec.el.classList.add('locked');
+    });
+    if (actx) crackle(0.14);
+    updateSubline();
+  });
+
+  function renderSheet(){
+    sheetBody.innerHTML = '';
+    if (caughtLog.length === 0) {
+      sheetTable.style.display = 'none';
+      emptyMsg.style.display = 'block';
+      tally.textContent = '';
+    } else {
+      sheetTable.style.display = 'table';
+      emptyMsg.style.display = 'none';
+      caughtLog.forEach(function(row){
+        var tr = document.createElement('tr');
+        var tdId = document.createElement('td'); tdId.textContent = row.id;
+        var tdHeld = document.createElement('td'); tdHeld.textContent = row.heldMs + 'ms';
+        var tdCheck = document.createElement('td'); tdCheck.className = 'check'; tdCheck.textContent = 'NO MATCH';
+        tr.appendChild(tdId); tr.appendChild(tdHeld); tr.appendChild(tdCheck);
+        sheetBody.appendChild(tr);
+      });
+      tally.textContent = caughtLog.length + ' layer' + (caughtLog.length === 1 ? '' : 's') +
+        ' pressed. 0 cleared. 0 asked.' + (cutDone ? ' Sealed.' : '');
+    }
+    confession.textContent = 'The check runs every time a side is pulled. It has never once found a match, ' +
+      'at any hold length, on any tape. It was built to finish, not to look.';
+  }
+
+  markBtn.addEventListener('click', function(){
+    renderSheet();
+    overlay.classList.add('show');
+  });
+  closeSheet.addEventListener('click', function(){
+    overlay.classList.remove('show');
+  });
+  overlay.addEventListener('click', function(e){
+    if (e.target === overlay) overlay.classList.remove('show');
+  });
+
+  document.addEventListener('visibilitychange', function(){
+    if (!actx) return;
+    if (document.hidden) actx.suspend();
+    else actx.resume();
+  });
+})();
+</script>
+
+</body>
+</html>
