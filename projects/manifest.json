@@ -286,6 +286,13 @@
       "kind": "seed",
       "note": "Six unlabeled sides in a crate, a lathe waiting to cut. Hold whichever you like — it always says the same thing back.",
       "path": "projects/2026-08-31-dead-wax/index.html"
+    },
+    {
+      "date": "2026-09-01",
+      "title": "(Grandfathered.)",
+      "kind": "question",
+      "note": "A rig already hung above the house, one switch below it. Hold as long as you like — see what it was actually wired to.",
+      "path": "projects/2026-09-01-grandfathered/index.html"
     }
   ]
 }

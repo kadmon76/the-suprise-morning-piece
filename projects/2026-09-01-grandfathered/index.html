@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>(Grandfathered.)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0c;
+    --gold:#e9c46a;
+    --gold-dim:#6f6340;
+    --dark-lamp:#1b1c20;
+    --dark-edge:#33343a;
+    --steel:#7d93a3;
+    --steel-dim:#3f4d56;
+    --paper:#e6e2d6;
+    --paper-dim:#8b8778;
+    --ledger-bg:#0e0e10;
+    --ledger-card:#18181b;
+    --ledger-edge:#333338;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--paper);
+    font-family:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    -webkit-user-select:none; user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    padding:calc(24px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+    background:
+      radial-gradient(ellipse 70% 22% at 50% 2%, rgba(233,196,106,0.05), transparent 60%),
+      var(--bg);
+    gap:8px;
+  }
+
+  .placard{ text-align:center; }
+  .placard .title{
+    font-size:11px; letter-spacing:0.16em; color:var(--gold); text-transform:uppercase; font-weight:600;
+  }
+  .placard .sub{
+    font-size:10.5px; color:var(--paper-dim); margin-top:6px; letter-spacing:0.01em;
+    line-height:1.5; max-width:300px; margin-left:auto; margin-right:auto;
+  }
+
+  .rigWrap{
+    flex:1; width:100%; max-width:360px; display:flex; align-items:center; justify-content:center;
+    min-height:0;
+  }
+  .rig{
+    display:grid; grid-template-columns:repeat(6, 1fr); gap:clamp(8px, 2.6vw, 13px);
+    width:100%;
+  }
+
+  .lamp{
+    position:relative; width:100%; aspect-ratio:1/1; border-radius:50%;
+    touch-action:none;
+  }
+  .lamp .body{
+    position:absolute; inset:0; border-radius:50%;
+    border:1px solid var(--dark-edge); background:var(--dark-lamp);
+    transition:background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .lamp.hung .body{
+    background:radial-gradient(circle at 38% 32%, #fff6da 0%, var(--gold) 45%, #8a7440 100%);
+    border-color:var(--gold-dim);
+    box-shadow:0 0 7px 1px rgba(233,196,106,0.35);
+  }
+  .lamp.hung.flash .body{
+    box-shadow:0 0 13px 4px rgba(233,196,106,0.7);
+  }
+  .lamp.local .body{ border-color:var(--gold-dim); }
+
+  .toast{
+    font-size:10px; color:var(--steel); letter-spacing:0.04em; min-height:14px;
+    opacity:0; transition:opacity 0.4s ease; text-align:center;
+  }
+  .toast.show{ opacity:1; }
+
+  .popover{
+    position:fixed; z-index:6; pointer-events:none;
+    background:var(--ledger-card); border:1px solid var(--ledger-edge); border-radius:6px;
+    padding:6px 9px; font-size:9.5px; color:var(--paper); white-space:nowrap;
+    opacity:0; transform:translate(-50%, -6px); transition:opacity 0.18s ease, transform 0.18s ease;
+  }
+  .popover.show{ opacity:1; transform:translate(-50%, -12px); }
+  .popover .n{ color:var(--gold); }
+
+  .switchWrap{
+    width:100%; max-width:360px; display:flex; flex-direction:column; align-items:center; gap:6px;
+  }
+  .switchBtn{
+    width:100%; padding:15px; border-radius:9px; touch-action:none;
+    background:#141416; border:1px solid var(--ledger-edge); color:var(--paper-dim);
+    font-family:inherit; font-size:11.5px; letter-spacing:0.14em; text-transform:uppercase;
+    transition:background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .switchBtn.holding{
+    background:#132227; color:var(--steel); border-color:var(--steel-dim);
+  }
+  .holdHint{ font-size:9.5px; color:var(--paper-dim); opacity:0.55; letter-spacing:0.02em; }
+
+  .footer{
+    display:flex; width:100%; max-width:360px; align-items:center; justify-content:space-between;
+  }
+  .back{ color:var(--paper-dim); text-decoration:none; font-size:11px; opacity:0.6; }
+  .markBtn{
+    background:none; border:none; color:var(--paper-dim); font-family:inherit;
+    font-size:10px; letter-spacing:0.12em; opacity:0.55; padding:8px; cursor:pointer;
+  }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(5,5,6,0.94);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s ease;
+    z-index:10;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:420px; background:var(--ledger-card); border:1px solid var(--ledger-edge);
+    border-radius:14px 14px 0 0; padding:22px 22px calc(26px + env(safe-area-inset-bottom));
+    max-height:84vh; overflow-y:auto; color:var(--paper);
+  }
+  .sheet h2{
+    font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold);
+    margin:0 0 4px; font-weight:600;
+  }
+  .sheet .sub{ font-size:10px; color:var(--paper-dim); margin-bottom:14px; }
+  .sheet .row{
+    display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    padding:7px 0; border-bottom:1px solid var(--ledger-edge); font-size:11px;
+  }
+  .sheet .row .label{ color:var(--paper-dim); }
+  .sheet .row .val{ color:var(--paper); font-variant-numeric:tabular-nums; text-align:right; }
+  .sheet .confession{
+    font-size:11.5px; color:var(--paper-dim); line-height:1.65; margin-top:16px; font-style:italic;
+  }
+  .sheet .close{
+    display:block; margin:20px auto 0; background:none; border:1px solid var(--ledger-edge);
+    color:var(--paper-dim); font-family:inherit; font-size:11px; letter-spacing:0.1em;
+    padding:9px 22px; border-radius:4px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .lamp .body, .toast, .popover, .switchBtn, .overlay{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="placard">
+    <div class="title">(Grandfathered.)</div>
+    <div class="sub">Hold the switch to keep anything new from being hung tonight.</div>
+  </div>
+
+  <div class="rigWrap">
+    <div class="rig" id="rig"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="switchWrap">
+    <button class="switchBtn" id="switchBtn">Hold — Block New Rigging</button>
+    <div class="holdHint">press and hold</div>
+  </div>
+
+  <div class="footer">
+    <a class="back" href="../../index.html">← cue sheet</a>
+    <button class="markBtn" id="markBtn">⋯ log</button>
+  </div>
+</div>
+
+<div class="popover" id="popover"></div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>The Log</h2>
+    <div class="sub">what's already running, and what your hold actually reaches</div>
+    <div class="row"><span class="label">Hung before tonight</span><span class="val" id="rHungBefore"></span></div>
+    <div class="row"><span class="label">New, from the budget your switch controls</span><span class="val" id="rState"></span></div>
+    <div class="row"><span class="label">New, from a budget your switch never touched</span><span class="val" id="rLocal"></span></div>
+    <div class="row"><span class="label">Archive entries logged tonight</span><span class="val" id="rArchive"></span></div>
+    <div class="row"><span class="label">Lookups made — asked of no one, refused none</span><span class="val" id="rLookups"></span></div>
+    <div class="confession" id="confession"></div>
+    <button class="close" id="closeSheet">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var rigEl = document.getElementById('rig');
+  var toastEl = document.getElementById('toast');
+  var switchBtn = document.getElementById('switchBtn');
+  var popover = document.getElementById('popover');
+  var markBtn = document.getElementById('markBtn');
+  var overlay = document.getElementById('overlay');
+  var closeSheet = document.getElementById('closeSheet');
+  var confession = document.getElementById('confession');
+
+  var TOTAL = 36;
+  var EMPTY_STATE_IDX = [3, 14, 19, 27];
+  var EMPTY_LOCAL_IDX = [8, 31];
+  var FILL_DELAY_STATE = 4000;
+  var LOCAL_FILL_TIMES = [6000, 15000];
+
+  var lamps = [];
+  var holding = false;
+  var idleMs = 0;
+  var lastFrame = null;
+  var lookupsCount = 0;
+  var startTime = performance.now();
+
+  function isEmpty(i){
+    return EMPTY_STATE_IDX.indexOf(i) !== -1 || EMPTY_LOCAL_IDX.indexOf(i) !== -1;
+  }
+
+  for (var i = 0; i < TOTAL; i++) {
+    var kind = EMPTY_STATE_IDX.indexOf(i) !== -1 ? 'state' :
+               (EMPTY_LOCAL_IDX.indexOf(i) !== -1 ? 'local' : 'fixed');
+    lamps.push({
+      id: i + 1,
+      kind: kind,
+      hung: kind === 'fixed',
+      archiveCount: 0,
+      lastTick: startTime,
+      el: null,
+      body: null
+    });
+  }
+
+  lamps.forEach(function(lamp){
+    var el = document.createElement('div');
+    el.className = 'lamp' + (lamp.hung ? ' hung' : '');
+    var body = document.createElement('div');
+    body.className = 'body';
+    el.appendChild(body);
+    rigEl.appendChild(el);
+    lamp.el = el;
+    lamp.body = body;
+
+    el.addEventListener('pointerdown', function(e){
+      e.preventDefault();
+      if (!lamp.hung) return;
+      lookupsCount++;
+      var secsAgo = Math.max(0, Math.round((performance.now() - lamp.lastTick) / 1000));
+      popover.innerHTML = 'LAMP ' + String(lamp.id).padStart(2, '0') +
+        ' — <span class="n">' + lamp.archiveCount + '</span>&times; tonight &middot; last ' + secsAgo + 's ago';
+      var r = el.getBoundingClientRect();
+      popover.style.left = (r.left + r.width / 2) + 'px';
+      popover.style.top = r.top + 'px';
+      popover.classList.add('show');
+      clearTimeout(popover._hideTimer);
+      popover._hideTimer = setTimeout(function(){ popover.classList.remove('show'); }, 1600);
+    });
+  });
+
+  function showToast(text){
+    toastEl.textContent = text;
+    toastEl.classList.add('show');
+    clearTimeout(toastEl._hideTimer);
+    toastEl._hideTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 3200);
+  }
+
+  function hangLamp(lamp, silent){
+    lamp.hung = true;
+    lamp.archiveCount = 0;
+    lamp.lastTick = performance.now();
+    lamp.el.classList.add('hung');
+    if (lamp.kind === 'local' && !silent) {
+      showToast('— hung anyway. Your hold was never wired to that budget.');
+    }
+  }
+
+  // state-budget filling: only advances while NOT holding
+  function stateTick(dt){
+    if (holding) { idleMs = 0; return; }
+    var nextState = lamps.filter(function(l){ return l.kind === 'state' && !l.hung; })[0];
+    if (!nextState) return;
+    idleMs += dt;
+    if (idleMs >= FILL_DELAY_STATE) {
+      idleMs = 0;
+      hangLamp(nextState, true);
+    }
+  }
+
+  // local-budget filling: fixed schedule, ignores holding entirely
+  var localFired = [false, false];
+  function localTick(elapsed){
+    LOCAL_FILL_TIMES.forEach(function(t, idx){
+      if (!localFired[idx] && elapsed >= t) {
+        localFired[idx] = true;
+        var next = lamps.filter(function(l){ return l.kind === 'local' && !l.hung; })[0];
+        if (next) hangLamp(next, false);
+      }
+    });
+  }
+
+  // archive ticking: any currently-hung lamp keeps logging on its own clock, regardless of the switch
+  var nextArchiveTick = startTime + 900 + Math.random() * 900;
+  function archiveTick(now){
+    if (now < nextArchiveTick) return;
+    nextArchiveTick = now + 700 + Math.random() * 1100;
+    var hungLamps = lamps.filter(function(l){ return l.hung; });
+    if (!hungLamps.length) return;
+    var pick = hungLamps[Math.floor(Math.random() * hungLamps.length)];
+    pick.archiveCount++;
+    pick.lastTick = now;
+    if (!reduced) {
+      pick.el.classList.add('flash');
+      setTimeout(function(){ pick.el.classList.remove('flash'); }, 260);
+    }
+  }
+
+  function frame(now){
+    if (lastFrame == null) lastFrame = now;
+    var dt = now - lastFrame;
+    lastFrame = now;
+    stateTick(dt);
+    localTick(now - startTime);
+    archiveTick(now);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  function setHolding(v){
+    holding = v;
+    switchBtn.classList.toggle('holding', v);
+    if (v) idleMs = 0;
+  }
+
+  switchBtn.addEventListener('pointerdown', function(e){ e.preventDefault(); setHolding(true); });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function(evt){
+    switchBtn.addEventListener(evt, function(){ setHolding(false); });
+  });
+
+  function renderSheet(){
+    var stateHung = lamps.filter(function(l){ return l.kind === 'state' && l.hung; }).length;
+    var localHung = lamps.filter(function(l){ return l.kind === 'local' && l.hung; }).length;
+    var archiveTotal = lamps.reduce(function(s, l){ return s + l.archiveCount; }, 0);
+    document.getElementById('rHungBefore').textContent = '30 — fixed';
+    document.getElementById('rState').textContent = stateHung + ' / 4';
+    document.getElementById('rLocal').textContent = localHung + ' / 2';
+    document.getElementById('rArchive').textContent = archiveTotal;
+    document.getElementById('rLookups').textContent = lookupsCount;
+    confession.textContent = 'Thirty of these were never going to move tonight, held or not. ' +
+      'The switch reaches four more. Two were never wired to it at all.';
+  }
+
+  markBtn.addEventListener('click', function(){
+    renderSheet();
+    overlay.classList.add('show');
+  });
+  closeSheet.addEventListener('click', function(){ overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.classList.remove('show'); });
+  document.addEventListener('click', function(e){
+    if (e.target.closest && (e.target.closest('.lamp') || e.target.closest('.popover'))) return;
+    popover.classList.remove('show');
+  });
+})();
+</script>
+
+</body>
+</html>
