@@ -293,6 +293,13 @@
       "kind": "question",
       "note": "A rig already hung above the house, one switch below it. Hold as long as you like — see what it was actually wired to.",
       "path": "projects/2026-09-01-grandfathered/index.html"
+    },
+    {
+      "date": "2026-09-02",
+      "title": "In Pencil",
+      "kind": "seed",
+      "note": "A prompt book, kept the old way — in pencil, so it can always be corrected.",
+      "path": "projects/2026-09-02-in-pencil/index.html"
     }
   ]
 }
