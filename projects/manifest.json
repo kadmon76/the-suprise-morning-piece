@@ -300,6 +300,13 @@
       "kind": "seed",
       "note": "A prompt book, kept the old way — in pencil, so it can always be corrected.",
       "path": "projects/2026-09-02-in-pencil/index.html"
+    },
+    {
+      "date": "2026-09-03",
+      "title": "(Line Check.)",
+      "kind": "question",
+      "note": "A callbox backstage. Hold it as long as you like — it already knows what it's going to say.",
+      "path": "projects/2026-09-03-line-check/index.html"
     }
   ]
 }
