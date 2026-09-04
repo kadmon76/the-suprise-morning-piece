@@ -307,6 +307,13 @@
       "kind": "question",
       "note": "A callbox backstage. Hold it as long as you like — it already knows what it's going to say.",
       "path": "projects/2026-09-03-line-check/index.html"
+    },
+    {
+      "date": "2026-09-04",
+      "title": "Stock",
+      "kind": "seed",
+      "note": "A prop shelf backstage, stocked by everyone who came before you. Nothing here has a price — take what you need.",
+      "path": "projects/2026-09-04-stock/index.html"
     }
   ]
 }
