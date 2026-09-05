@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>(Wirework.)</title>
+<style>
+  :root{
+    color-scheme: dark;
+    --bg: #0a0a0c;
+    --panel: #131316;
+    --panel-line: #232328;
+    --ink: #d8d3c4;
+    --ink-dim: #85807a;
+    --gold: #e3b568;
+    --gold-dim: #a68752;
+    --blue: #7fb8d6;
+    --blue-dim: #4d7d92;
+    --rust: #c1704a;
+  }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+  html,body{
+    margin:0; padding:0; height:100%; background:var(--bg); color:var(--ink);
+    font-family: ui-monospace, "SF Mono", "Courier New", Courier, monospace;
+    overflow:hidden; touch-action: manipulation;
+  }
+  body{
+    display:flex; flex-direction:column; height:100dvh; height:100vh;
+    padding: max(16px, env(safe-area-inset-top)) 14px max(12px, env(safe-area-inset-bottom));
+  }
+
+  .back{
+    position:fixed; left:12px; bottom: max(10px, env(safe-area-inset-bottom));
+    font-size: 10.5px; color: var(--ink-dim); text-decoration:none;
+    letter-spacing: 0.04em; z-index: 5;
+  }
+
+  header{ text-align:center; flex: 0 0 auto; margin-bottom: 4px; }
+  h1{
+    margin:0; font-size: 15px; letter-spacing: 0.22em; font-weight: 600;
+    color: var(--ink); text-transform: uppercase;
+  }
+  .sub{ margin-top:4px; font-size: 10px; color: var(--ink-dim); letter-spacing: 0.16em; text-transform:uppercase; }
+  .instr{ margin-top: 9px; font-size: 12px; color: var(--ink-dim); letter-spacing: 0.02em; }
+
+  .stage{
+    flex: 1 1 auto; min-height: 0; position: relative;
+    margin-top: 10px; border-top: 1px solid var(--panel-line);
+    border-bottom: 1px solid var(--panel-line);
+  }
+
+  .cable-svg{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
+  #cableLine{ stroke: var(--blue-dim); stroke-width: 1.6; }
+  #cableLine.live{ stroke: var(--blue); }
+  #handleDot{ fill: var(--panel); stroke: var(--blue); stroke-width: 1.6; pointer-events: auto; cursor: grab; }
+  #handleHit{ fill: transparent; pointer-events: auto; cursor: grab; }
+
+  .rail{
+    position:absolute; left:0; right:0; height:1px; background: var(--panel-line);
+    border-top: 1px dashed var(--gold-dim);
+  }
+  .rail span{
+    position:absolute; right:2px; top:-14px; font-size: 8.5px; letter-spacing:0.14em;
+    color: var(--gold-dim);
+  }
+
+  .lanes{
+    position:absolute; inset:0; display:flex; justify-content:space-between;
+    align-items: flex-end; padding: 0 4px 34px; pointer-events: none;
+  }
+  .lane{
+    position:relative; width: 18%; height:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+  }
+  .track{
+    position:absolute; bottom:34px; left:50%; width:1px; height: calc(100% - 34px);
+    background: var(--panel-line); transform: translateX(-50%);
+  }
+  .figure{
+    position:absolute; bottom: 34px; left:50%; width:11px; height:11px; border-radius:50%;
+    background: var(--ink-dim); transform: translate(-50%, 50%);
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .figure{ transition: transform .55s cubic-bezier(.2,.7,.3,1), background .3s ease; }
+  }
+  .figure.up.clear{ background: var(--gold); box-shadow: 0 0 10px rgba(227,181,104,0.5); }
+  .figure.up.wired{ background: var(--blue); box-shadow: 0 0 10px rgba(127,184,214,0.55); }
+  .figure.up.short{ background: var(--ink-dim); }
+  .mark{
+    position:absolute; bottom:0; left:50%; width:16px; height:16px; border-radius:50%;
+    transform: translateX(-50%); border: 1px solid var(--panel-line);
+  }
+  .hit{
+    position:absolute; bottom:-10px; left:50%; width:56px; height:56px;
+    transform: translateX(-50%); border-radius:50%; pointer-events: auto; cursor: pointer;
+  }
+  .tag{
+    position:absolute; bottom:-30px; left:50%; transform: translateX(-50%);
+    font-size: 9px; letter-spacing: 0.05em; color: var(--ink-dim); white-space:nowrap;
+  }
+  .score{
+    position:absolute; top:2px; left:50%; transform: translateX(-50%);
+    font-size: 10.5px; letter-spacing:0.03em; color: var(--ink-dim); min-width: 20px; text-align:center;
+  }
+  .score.clear{ color: var(--gold); }
+  .score.wired{ color: var(--blue); }
+
+  .board{ flex: 0 0 auto; margin-top: 14px; }
+  .board-title{ font-size: 9.5px; letter-spacing: 0.18em; color: var(--ink-dim); text-transform:uppercase; margin-bottom: 5px; }
+  .board-rows{ display:flex; flex-direction:column; gap:3px; }
+  .board-row{
+    display:flex; justify-content:space-between; font-size: 11px; padding: 4px 8px;
+    background: var(--panel); border: 1px solid var(--panel-line); border-radius: 4px;
+    color: var(--ink);
+  }
+  .board-row .n{ color: var(--ink-dim); letter-spacing:0.04em; }
+  .board-row .v{ letter-spacing:0.03em; }
+  .board-row.empty{ color: var(--ink-dim); justify-content:center; font-size:10.5px; }
+
+  .plot-btn{
+    position: fixed; right: 12px; bottom: max(10px, env(safe-area-inset-bottom));
+    background:none; border:none; color: var(--ink-dim); font-family: inherit;
+    font-size: 10.5px; letter-spacing: 0.08em; padding: 6px; z-index: 5;
+  }
+
+  .overlay{
+    position: fixed; inset:0; background: rgba(6,6,7,0.92); display:flex;
+    align-items:center; justify-content:center; padding: 20px; z-index: 20;
+    opacity:0; pointer-events:none;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  @media (prefers-reduced-motion:no-preference){ .overlay{ transition: opacity .25s ease; } }
+  .sheet{
+    width:100%; max-width: 360px; background: var(--panel); border: 1px solid var(--panel-line);
+    border-radius: 8px; padding: 16px;
+  }
+  .sheet-title{ font-size: 11px; letter-spacing: 0.16em; color: var(--ink); margin-bottom: 10px; text-transform:uppercase; }
+  table{ width:100%; border-collapse: collapse; font-size: 10.5px; }
+  th, td{ text-align:right; padding: 4px 3px; border-bottom: 1px solid var(--panel-line); color: var(--ink); }
+  th:first-child, td:first-child{ text-align:left; color: var(--ink-dim); }
+  td.wire-yes{ color: var(--blue); }
+  .confession{ margin-top: 12px; font-size: 11px; line-height:1.5; color: var(--ink-dim); }
+  .close-btn{
+    margin-top: 14px; width:100%; background:none; border:1px solid var(--panel-line);
+    color: var(--ink-dim); font-family:inherit; font-size:11px; letter-spacing:0.08em;
+    padding: 9px; border-radius: 5px;
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="../../index.html">&larr; cue sheet</a>
+
+<header>
+  <h1>Wirework</h1>
+  <div class="sub">Backstage &middot; Tonight's Call</div>
+  <div class="instr">Tap a mark to send it up the line.</div>
+</header>
+
+<div class="stage" id="stage">
+  <div class="rail" id="rail" style="bottom:75%"><span>clear</span></div>
+  <svg class="cable-svg" id="cableSvg">
+    <line id="cableLine" x1="0" y1="0" x2="0" y2="0"></line>
+    <circle id="handleHit" r="24" cx="0" cy="0"></circle>
+    <circle id="handleDot" r="6" cx="0" cy="0"></circle>
+  </svg>
+  <div class="lanes" id="lanes"></div>
+</div>
+
+<div class="board">
+  <div class="board-title">Tonight's Call</div>
+  <div class="board-rows" id="boardRows"><div class="board-row empty">&mdash; nobody's flown yet &mdash;</div></div>
+</div>
+
+<button class="plot-btn" id="plotBtn">plot</button>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <div class="sheet-title">Rig Plot</div>
+    <table>
+      <thead><tr><th>name</th><th>own</th><th>wired</th></tr></thead>
+      <tbody id="plotBody"></tbody>
+    </table>
+    <div class="confession">The call only ever posts one number under one name. It has never once asked which leap this was.</div>
+    <button class="close-btn" id="closeSheet">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var performers = [
+    { id:'principal', tag:'Principal',  base: 34 },
+    { id:'standby',   tag:'Standby',    base: 29 },
+    { id:'understudy',tag:'Understudy', base: 21 },
+    { id:'swing',     tag:'Swing',      base: 13 },
+    { id:'chorus',    tag:'Chorus',     base: 6  }
+  ];
+  var CLEAR = 75;
+  var wireHolder = 'principal';
+  var best = {}; // id -> {score, clear}
+
+  var lanesEl = document.getElementById('lanes');
+  var stageEl = document.getElementById('stage');
+  var svgEl = document.getElementById('cableSvg');
+  var lineEl = document.getElementById('cableLine');
+  var handleDot = document.getElementById('handleDot');
+  var handleHit = document.getElementById('handleHit');
+  var boardRows = document.getElementById('boardRows');
+  var plotBody = document.getElementById('plotBody');
+
+  performers.forEach(function(p){
+    var lane = document.createElement('div');
+    lane.className = 'lane';
+    lane.dataset.id = p.id;
+    lane.innerHTML =
+      '<div class="track"></div>' +
+      '<div class="score" data-role="score">&mdash;</div>' +
+      '<div class="figure" data-role="figure"></div>' +
+      '<div class="hit" data-role="hit"></div>' +
+      '<div class="mark"></div>' +
+      '<div class="tag">' + p.tag.toUpperCase() + '</div>';
+    lanesEl.appendChild(lane);
+  });
+
+  function laneEl(id){ return lanesEl.querySelector('[data-id="' + id + '"]'); }
+
+  function laneCenterX(id){
+    var el = laneEl(id);
+    var r = el.getBoundingClientRect();
+    var sr = stageEl.getBoundingClientRect();
+    return r.left - sr.left + r.width / 2;
+  }
+
+  function attachY(){
+    var sr = stageEl.getBoundingClientRect();
+    return sr.height - 116;
+  }
+
+  function drawCable(x, live){
+    var sr = stageEl.getBoundingClientRect();
+    var topX = sr.width / 2;
+    var y = attachY();
+    lineEl.setAttribute('x1', topX);
+    lineEl.setAttribute('y1', 0);
+    lineEl.setAttribute('x2', x);
+    lineEl.setAttribute('y2', y);
+    handleDot.setAttribute('cx', x);
+    handleDot.setAttribute('cy', y);
+    handleHit.setAttribute('cx', x);
+    handleHit.setAttribute('cy', y);
+    lineEl.classList.toggle('live', !!live);
+  }
+
+  function refreshCable(){
+    drawCable(laneCenterX(wireHolder), false);
+  }
+
+  function nearestLane(x){
+    var best = null, bestD = Infinity;
+    performers.forEach(function(p){
+      var cx = laneCenterX(p.id);
+      var d = Math.abs(cx - x);
+      if (d < bestD){ bestD = d; best = p.id; }
+    });
+    return best;
+  }
+
+  // --- drag to move the wire ---
+  var dragging = false;
+  function onDown(e){
+    dragging = true;
+    handleDot.setAttribute('r', 8);
+    move(e);
+  }
+  function move(e){
+    if (!dragging) return;
+    var pt = (e.touches && e.touches[0]) || e;
+    var sr = stageEl.getBoundingClientRect();
+    var x = pt.clientX - sr.left;
+    x = Math.max(20, Math.min(sr.width - 20, x));
+    drawCable(x, true);
+    e.preventDefault && e.preventDefault();
+  }
+  function up(e){
+    if (!dragging) return;
+    dragging = false;
+    handleDot.setAttribute('r', 6);
+    var pt = (e.changedTouches && e.changedTouches[0]) || e;
+    var sr = stageEl.getBoundingClientRect();
+    var x = (pt.clientX !== undefined ? pt.clientX : sr.left) - sr.left;
+    wireHolder = nearestLane(x);
+    refreshCable();
+  }
+  [handleDot, handleHit].forEach(function(el){
+    el.addEventListener('pointerdown', function(e){ el.setPointerCapture && el.setPointerCapture(e.pointerId); onDown(e); });
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+  });
+
+  // --- tap a mark to leap ---
+  var animating = {};
+  function attempt(p){
+    if (animating[p.id]) return;
+    animating[p.id] = true;
+    var wired = (wireHolder === p.id);
+    var score;
+    if (wired){
+      score = 76 + Math.floor(Math.random() * 8);
+    } else {
+      score = Math.max(1, p.base + Math.floor(Math.random() * 5) - 2);
+    }
+    var clear = score >= CLEAR;
+
+    var lane = laneEl(p.id);
+    var track = lane.querySelector('.track');
+    var figure = lane.querySelector('[data-role="figure"]');
+    var scoreEl = lane.querySelector('[data-role="score"]');
+    var trackH = track.getBoundingClientRect().height;
+    var px = Math.min(trackH, (score / 100) * trackH);
+
+    figure.classList.remove('up','clear','short','wired');
+    scoreEl.classList.remove('clear','wired');
+    // force reflow so the transition restarts even after a repeat tap
+    void figure.offsetWidth;
+
+    figure.style.transform = 'translate(-50%, ' + (-px) + 'px)';
+    figure.classList.add('up', clear ? 'clear' : 'short');
+    if (wired) figure.classList.add('wired');
+    scoreEl.textContent = score;
+    if (clear) scoreEl.classList.add('clear');
+    if (wired) scoreEl.classList.add('wired');
+
+    var settle = function(){
+      recordBest(p, score, clear);
+      var fallDelay = reduced ? 10 : 650;
+      setTimeout(function(){
+        figure.style.transform = 'translate(-50%, 50%)';
+        figure.classList.remove('up');
+        setTimeout(function(){ animating[p.id] = false; }, reduced ? 10 : 600);
+      }, fallDelay);
+    };
+    if (reduced) settle(); else setTimeout(settle, 30);
+  }
+
+  function recordBest(p, score, clear){
+    var cur = best[p.id];
+    if (!cur || score > cur.score){
+      best[p.id] = { score: score, clear: clear };
+    }
+    renderBoard();
+  }
+
+  function renderBoard(){
+    var ids = Object.keys(best);
+    if (!ids.length){
+      boardRows.innerHTML = '<div class="board-row empty">&mdash; nobody\'s flown yet &mdash;</div>';
+      return;
+    }
+    ids.sort(function(a,b){ return best[b].score - best[a].score; });
+    boardRows.innerHTML = ids.map(function(id){
+      var p = performers.filter(function(x){ return x.id === id; })[0];
+      var b = best[id];
+      var verdict = b.clear ? 'flew clean' : ('short of the rail, ' + b.score + '%');
+      return '<div class="board-row"><span class="n">' + p.tag.toUpperCase() + '</span><span class="v">' + b.score + ' &middot; ' + verdict + '</span></div>';
+    }).join('');
+  }
+
+  performers.forEach(function(p){
+    var lane = laneEl(p.id);
+    lane.querySelector('[data-role="hit"]').addEventListener('click', function(){ attempt(p); });
+  });
+
+  // --- plot overlay ---
+  var overlay = document.getElementById('overlay');
+  document.getElementById('plotBtn').addEventListener('click', function(){
+    plotBody.innerHTML = performers.map(function(p){
+      var wiredNow = wireHolder === p.id;
+      return '<tr><td>' + p.tag.toUpperCase() + '</td><td>' + p.base + '</td><td class="' + (wiredNow ? 'wire-yes' : '') + '">~79' + (wiredNow ? ' &larr;' : '') + '</td></tr>';
+    }).join('');
+    overlay.classList.add('show');
+  });
+  document.getElementById('closeSheet').addEventListener('click', function(){ overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.classList.remove('show'); });
+
+  function layout(){ refreshCable(); }
+  window.addEventListener('resize', layout);
+  window.addEventListener('orientationchange', function(){ setTimeout(layout, 60); });
+  setTimeout(layout, 30);
+})();
+</script>
+</body>
+</html>
