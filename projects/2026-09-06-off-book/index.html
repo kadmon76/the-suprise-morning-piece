@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Off Book</title>
+<style>
+  :root{
+    color-scheme: dark;
+    --bg: #0a0a0c;
+    --panel: #131316;
+    --panel-line: #232328;
+    --ink: #d8d3c4;
+    --ink-dim: #85807a;
+    --gold: #e3b568;
+    --gold-dim: #a68752;
+    --blue: #7fb8d6;
+    --blue-dim: #4d7d92;
+    --rust: #c1704a;
+  }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+  html,body{
+    margin:0; padding:0; height:100%; background:var(--bg); color:var(--ink);
+    font-family: ui-monospace, "SF Mono", "Courier New", Courier, monospace;
+    overflow:hidden; touch-action: manipulation;
+  }
+  body{
+    display:flex; flex-direction:column; height:100dvh; height:100vh;
+    padding: max(16px, env(safe-area-inset-top)) 14px max(12px, env(safe-area-inset-bottom));
+  }
+
+  .back{
+    position:fixed; left:12px; bottom: max(10px, env(safe-area-inset-bottom));
+    font-size: 10.5px; color: var(--ink-dim); text-decoration:none;
+    letter-spacing: 0.04em; z-index: 5;
+  }
+
+  header{ text-align:center; flex: 0 0 auto; margin-bottom: 4px; }
+  h1{
+    margin:0; font-size: 15px; letter-spacing: 0.22em; font-weight: 600;
+    color: var(--ink); text-transform: uppercase;
+  }
+  .sub{ margin-top:4px; font-size: 10px; color: var(--ink-dim); letter-spacing: 0.16em; text-transform:uppercase; }
+  .instr{ margin-top: 9px; font-size: 12px; color: var(--ink-dim); letter-spacing: 0.02em; }
+
+  .banner{
+    flex:0 0 auto; text-align:center; margin-top: 10px; font-size: 11px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-dim);
+    padding: 5px 0;
+  }
+  .banner .word{ color: var(--gold); }
+  @media (prefers-reduced-motion:no-preference){ .banner .word{ transition: color .4s ease; } }
+  .banner.off .word{ color: var(--blue); }
+  .banner .sub2{ display:block; font-size: 9.5px; letter-spacing: 0.1em; color: var(--ink-dim); margin-top: 2px; text-transform:none; }
+
+  .stage{
+    flex: 1 1 auto; min-height: 0; position: relative;
+    margin-top: 8px; border-top: 1px solid var(--panel-line);
+    border-bottom: 1px solid var(--panel-line);
+  }
+
+  .mark{
+    position:absolute; width: 22px; height:22px; margin:-11px 0 0 -11px;
+    border-radius:50%; border: 1px solid var(--panel-line); background: var(--panel);
+  }
+  .mark .ring{
+    position:absolute; inset:-9px; border-radius:50%; border: 1px solid var(--gold-dim);
+    opacity:0;
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .mark.due .ring{ animation: pulse 1.15s ease-in-out infinite; }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .mark.due .ring{ opacity: 0.8; }
+  }
+  @keyframes pulse{
+    0%{ opacity:0; transform:scale(0.7); }
+    50%{ opacity:0.85; transform:scale(1); }
+    100%{ opacity:0; transform:scale(1.15); }
+  }
+  .mark .hit{
+    position:absolute; inset:-16px; border-radius:50%;
+  }
+  .mark .ghost{
+    position:absolute; inset:-6px; border-radius:50%; border: 1px solid var(--rust);
+    opacity:0; pointer-events:none;
+  }
+  .mark .ghost.show{ opacity:0.9; }
+  @media (prefers-reduced-motion:no-preference){
+    .mark .ghost{ transition: opacity 1.4s ease; }
+  }
+
+  .performer{
+    position:absolute; width:15px; height:15px; margin:-7.5px 0 0 -7.5px;
+    border-radius:50%; background: var(--gold); box-shadow: 0 0 9px rgba(227,181,104,0.5);
+    z-index: 2;
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .performer{ transition: left .55s cubic-bezier(.2,.7,.3,1), top .55s cubic-bezier(.2,.7,.3,1), background .3s ease, box-shadow .3s ease; }
+  }
+  .performer.off{ background: var(--blue); box-shadow: 0 0 9px rgba(127,184,214,0.55); }
+
+  .tally{
+    flex:0 0 auto; margin-top: 10px; text-align:center;
+    font-size: 10.5px; letter-spacing: 0.06em; color: var(--ink-dim);
+  }
+  .tally .n{ color: var(--ink); }
+
+  .book-btn{
+    position: fixed; right: 12px; bottom: max(10px, env(safe-area-inset-bottom));
+    background:none; border:none; color: var(--ink-dim); font-family: inherit;
+    font-size: 10.5px; letter-spacing: 0.08em; padding: 6px; z-index: 5;
+  }
+
+  .overlay{
+    position: fixed; inset:0; background: rgba(6,6,7,0.92); display:flex;
+    align-items:center; justify-content:center; padding: 20px; z-index: 20;
+    opacity:0; pointer-events:none;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  @media (prefers-reduced-motion:no-preference){ .overlay{ transition: opacity .25s ease; } }
+  .sheet{
+    width:100%; max-width: 360px; background: var(--panel); border: 1px solid var(--panel-line);
+    border-radius: 8px; padding: 16px;
+  }
+  .sheet-title{ font-size: 11px; letter-spacing: 0.16em; color: var(--ink); margin-bottom: 10px; text-transform:uppercase; }
+  .row{
+    display:flex; justify-content:space-between; font-size: 11px; padding: 5px 2px;
+    border-bottom: 1px solid var(--panel-line); color: var(--ink);
+  }
+  .row .n{ color: var(--ink-dim); }
+  .confession{ margin-top: 12px; font-size: 11px; line-height:1.5; color: var(--ink-dim); }
+  .close-btn{
+    margin-top: 14px; width:100%; background:none; border:1px solid var(--panel-line);
+    color: var(--ink-dim); font-family:inherit; font-size:11px; letter-spacing:0.08em;
+    padding: 9px; border-radius: 5px;
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="../../index.html">&larr; cue sheet</a>
+
+<header>
+  <h1>Off Book</h1>
+  <div class="sub">Backstage &middot; Prompt Corner</div>
+  <div class="instr">Tap the mark that's up next.</div>
+</header>
+
+<div class="banner" id="banner">
+  <span class="word" id="bannerWord">ON BOOK</span>
+  <span class="sub2" id="bannerSub">reading from you</span>
+</div>
+
+<div class="stage" id="stage"></div>
+
+<div class="tally" id="tally">fed by you &middot; <span class="n" id="fedN">0</span></div>
+
+<button class="book-btn" id="bookBtn">book</button>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <div class="sheet-title">The Book</div>
+    <div class="row"><span class="n">fed by you</span><span id="rFed">0 of 12</span></div>
+    <div class="row"><span class="n">declared off book at cue</span><span id="rDeclared">&mdash;</span></div>
+    <div class="row"><span class="n">correct since declared</span><span id="rCorrect">0</span></div>
+    <div class="row"><span class="n">missed since declared</span><span id="rMissed">0</span></div>
+    <div class="row"><span class="n">back on book</span><span id="rBack">never</span></div>
+    <div class="confession" id="confession">It hasn't stopped yet.</div>
+    <button class="close-btn" id="closeSheet">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Seven marks on the floor, given as percentages of the stage box.
+  var marks = [
+    { x:20, y:74 },
+    { x:50, y:86 },
+    { x:80, y:70 },
+    { x:30, y:46 },
+    { x:68, y:34 },
+    { x:16, y:20 },
+    { x:82, y:16 }
+  ];
+
+  // The blocking as actually rehearsed, twelve cues long.
+  var truePath = [2, 5, 0, 4, 6, 1, 2, 5, 3, 6, 0, 4];
+  var DECLARE_AT = 6; // after this many correctly fed cues, the desk stops asking
+
+  // What the desk assumes the rest must be, once it stops listening:
+  // it just repeats the six cues it was actually fed.
+  var memoryPath = truePath.slice(0, DECLARE_AT);
+
+  var stageEl = document.getElementById('stage');
+  var bannerEl = document.getElementById('banner');
+  var bannerWord = document.getElementById('bannerWord');
+  var bannerSub = document.getElementById('bannerSub');
+  var fedN = document.getElementById('fedN');
+
+  var markEls = [];
+  var performerEl = document.createElement('div');
+  performerEl.className = 'performer';
+  stageEl.appendChild(performerEl);
+
+  marks.forEach(function(m, i){
+    var el = document.createElement('div');
+    el.className = 'mark';
+    el.style.left = m.x + '%';
+    el.style.top = m.y + '%';
+    el.innerHTML = '<div class="ring"></div><div class="ghost"></div><div class="hit"></div>';
+    stageEl.appendChild(el);
+    markEls.push(el);
+    el.querySelector('.hit').addEventListener('click', function(){ onTap(i); });
+  });
+
+  var stepIndex = 0;   // position within truePath, while on book
+  var fedCount = 0;
+  var declared = false;
+  var declaredAt = null;
+  var correctSince = 0;
+  var missedSince = 0;
+  var backOnBook = false;
+
+  function place(el, i){
+    el.style.left = marks[i].x + '%';
+    el.style.top = marks[i].y + '%';
+  }
+
+  function clearDue(){
+    markEls.forEach(function(el){ el.classList.remove('due'); });
+  }
+
+  function showDue(){
+    if (declared) return;
+    clearDue();
+    markEls[truePath[stepIndex]].classList.add('due');
+  }
+
+  function onTap(i){
+    if (declared) return; // it isn't listening anymore
+    if (i !== truePath[stepIndex]) return;
+    clearDue();
+    place(performerEl, i);
+    fedCount++;
+    fedN.textContent = fedCount;
+    stepIndex++;
+    if (fedCount >= DECLARE_AT){
+      var wait = reduced ? 10 : 500;
+      setTimeout(declare, wait);
+    } else {
+      showDue();
+    }
+  }
+
+  function declare(){
+    declared = true;
+    declaredAt = fedCount;
+    bannerEl.classList.add('off');
+    bannerWord.textContent = 'OFF BOOK';
+    bannerSub.textContent = 'continuing without you';
+    performerEl.classList.add('off');
+    var delay = reduced ? 10 : 900;
+    setTimeout(runAuto, delay);
+  }
+
+  function runAuto(){
+    var remaining = truePath.length - DECLARE_AT;
+    var k = 0;
+    function step(){
+      if (k >= remaining){ return; }
+      var guess = memoryPath[k % memoryPath.length];
+      var truth = truePath[DECLARE_AT + k];
+      place(performerEl, guess);
+      if (guess === truth){
+        correctSince++;
+      } else {
+        missedSince++;
+        var ghost = markEls[truth].querySelector('.ghost');
+        ghost.classList.add('show');
+        setTimeout(function(){ ghost.classList.remove('show'); }, reduced ? 10 : 1200);
+      }
+      k++;
+      setTimeout(step, reduced ? 10 : 1000);
+    }
+    step();
+  }
+
+  showDue();
+
+  // --- the book ---
+  var overlay = document.getElementById('overlay');
+  document.getElementById('bookBtn').addEventListener('click', function(){
+    document.getElementById('rFed').textContent = fedCount + ' of 12';
+    document.getElementById('rDeclared').textContent = declaredAt ? declaredAt : '—';
+    document.getElementById('rCorrect').textContent = correctSince;
+    document.getElementById('rMissed').textContent = missedSince;
+    document.getElementById('rBack').textContent = backOnBook ? 'yes' : 'never';
+    var c;
+    if (!declared){
+      c = 'It is still asking. Ask it enough times and it will stop.';
+    } else if (missedSince === 0){
+      c = 'It stopped asking after the ' + ordinal(declaredAt) + ' cue. So far, it hasn’t needed to.';
+    } else {
+      c = 'It stopped asking after the ' + ordinal(declaredAt) + ' cue. It has since missed ' + missedSince + ' of its own marks — and has not asked again.';
+    }
+    document.getElementById('confession').textContent = c;
+    overlay.classList.add('show');
+  });
+  document.getElementById('closeSheet').addEventListener('click', function(){ overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.classList.remove('show'); });
+
+  function ordinal(n){
+    var s = ['th','st','nd','rd'], v = n % 100;
+    return n + (s[(v-20)%10] || s[v] || s[0]);
+  }
+})();
+</script>
+</body>
+</html>

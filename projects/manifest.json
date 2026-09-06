@@ -321,6 +321,13 @@
       "kind": "question",
       "note": "Five names on tonight's board, one wire between them. Watch what happens when it changes hands.",
       "path": "projects/2026-09-05-wirework/index.html"
+    },
+    {
+      "date": "2026-09-06",
+      "title": "Off Book",
+      "kind": "seed",
+      "note": "A performer backstage, waiting on cues from you. Feed enough of them and it stops waiting — whether or not it actually learned the rest.",
+      "path": "projects/2026-09-06-off-book/index.html"
     }
   ]
 }
