@@ -328,6 +328,13 @@
       "kind": "seed",
       "note": "A performer backstage, waiting on cues from you. Feed enough of them and it stops waiting — whether or not it actually learned the rest.",
       "path": "projects/2026-09-06-off-book/index.html"
+    },
+    {
+      "date": "2026-09-07",
+      "title": "(As Tested.)",
+      "kind": "question",
+      "note": "A relay under a work light. Hold it until it clicks — then see where the others have already gone.",
+      "path": "projects/2026-09-07-as-tested/index.html"
     }
   ]
 }
