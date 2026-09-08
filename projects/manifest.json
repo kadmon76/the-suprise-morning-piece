@@ -335,6 +335,13 @@
       "kind": "question",
       "note": "A relay under a work light. Hold it until it clicks — then see where the others have already gone.",
       "path": "projects/2026-09-07-as-tested/index.html"
+    },
+    {
+      "date": "2026-09-08",
+      "title": "House Physical",
+      "kind": "seed",
+      "note": "A pad backstage, two gauges above it. One reads freely; the other only when someone decides it's safe enough to ask.",
+      "path": "projects/2026-09-08-house-physical/index.html"
     }
   ]
 }
