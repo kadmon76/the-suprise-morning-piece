@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>(Billing.)</title>
+<style>
+  :root{
+    --bg:#0a0908;
+    --gold:#d9a94a;
+    --gold-dim:#7a6335;
+    --paper:#e8e2d2;
+    --paper-dim:#867e6a;
+    --panel:#14120d;
+    --panel-edge:#332c1e;
+    --card:#1b1812;
+    --card-edge:#413824;
+    --brass:#8a713c;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--paper);
+    font-family:Georgia,'Times New Roman',serif;
+    -webkit-user-select:none; user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    padding:calc(30px + env(safe-area-inset-top)) calc(22px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(22px + env(safe-area-inset-left));
+    background:
+      radial-gradient(ellipse 60% 30% at 50% 8%, rgba(217,169,74,0.07), transparent 62%),
+      var(--bg);
+    gap:14px;
+  }
+
+  .heading{ text-align:center; }
+  .heading .kicker{
+    font-size:10.5px; letter-spacing:0.2em; color:var(--gold-dim); text-transform:uppercase;
+  }
+  .heading .instr{
+    font-size:12.5px; color:var(--paper-dim); margin-top:9px; letter-spacing:0.01em; font-style:italic;
+    max-width:280px;
+  }
+
+  .door{
+    flex:1; width:100%; max-width:380px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:0; gap:10px;
+  }
+  .frame{
+    position:relative;
+    width:min(78vw, 300px); height:96px;
+    border:2px solid var(--brass); border-radius:3px;
+    background:var(--panel);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4), 0 0 0 5px rgba(138,113,60,0.08);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .frame::before{
+    content:""; position:absolute; inset:6px;
+    border:1px solid rgba(138,113,60,0.35); border-radius:2px; pointer-events:none;
+  }
+  .name-window{
+    font-size:26px; letter-spacing:0.14em; color:var(--gold);
+    text-transform:uppercase; font-weight:700;
+    text-shadow:0 0 14px rgba(217,169,74,0.35);
+  }
+  .name-window.swap{ transition:opacity 0.18s ease; }
+  .progress-track{
+    width:min(78vw, 300px); height:2px; background:var(--panel-edge); border-radius:1px; overflow:hidden;
+  }
+  .progress-fill{
+    height:100%; width:0%; background:var(--gold-dim);
+  }
+  .progress-fill.anim{ transition:width 0.08s linear; }
+
+  .also-line{
+    font-size:11px; letter-spacing:0.08em; color:var(--paper-dim);
+    text-transform:uppercase; opacity:0; height:14px; text-align:center;
+  }
+  .also-line.shown{ opacity:1; }
+  .also-line.fade{ transition:opacity 0.6s ease; }
+
+  .caption{
+    font-size:11.5px; color:var(--paper-dim); font-style:italic; text-align:center;
+    opacity:0; min-height:16px; max-width:260px;
+  }
+  .caption.fade{ transition:opacity 0.7s ease; }
+  .caption.shown{ opacity:0.85; }
+
+  .cards{
+    width:100%; max-width:380px;
+    display:flex; justify-content:space-between; gap:16px;
+    padding-bottom:6px;
+  }
+  .card{
+    flex:1; padding:20px 10px; text-align:center;
+    background:var(--card); border:1px solid var(--card-edge); border-radius:5px;
+    touch-action:none;
+  }
+  .card .role{
+    font-size:9px; letter-spacing:0.16em; color:var(--paper-dim); text-transform:uppercase;
+  }
+  .card .name{
+    font-size:17px; letter-spacing:0.06em; color:var(--paper); text-transform:uppercase; margin-top:8px;
+  }
+  .card.active{
+    border-color:var(--gold-dim);
+    background:#221c11;
+  }
+  .card.active .name{ color:var(--gold); }
+
+  .back{
+    position:fixed; left:calc(14px + env(safe-area-inset-left)); bottom:calc(12px + env(safe-area-inset-bottom));
+    font-size:11px; color:var(--paper-dim); text-decoration:none; letter-spacing:0.02em;
+    opacity:0.55; font-family:Georgia,serif;
+  }
+
+  .log-mark{
+    position:fixed; right:calc(14px + env(safe-area-inset-right)); bottom:calc(12px + env(safe-area-inset-bottom));
+    font-size:10.5px; letter-spacing:0.1em; color:var(--paper-dim); text-transform:uppercase;
+    background:none; border:1px solid var(--card-edge); border-radius:3px;
+    padding:6px 10px; opacity:0.6;
+  }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,3,0.92);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px; opacity:0; pointer-events:none;
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+  .overlay.fade{ transition:opacity 0.25s ease; }
+  .sheet{
+    width:100%; max-width:340px; border:1px solid var(--card-edge); background:var(--panel);
+    border-radius:6px; padding:22px 20px;
+  }
+  .sheet h2{
+    margin:0 0 14px; font-size:13px; letter-spacing:0.16em; color:var(--gold-dim); text-transform:uppercase; font-weight:600;
+  }
+  .sheet .row{
+    display:flex; justify-content:space-between; font-size:13px; padding:6px 0;
+    border-bottom:1px solid rgba(65,56,36,0.4); color:var(--paper-dim);
+  }
+  .sheet .row span:last-child{ color:var(--paper); }
+  .sheet .confession{
+    margin-top:14px; font-size:12px; line-height:1.55; color:var(--paper-dim); font-style:italic;
+  }
+  .sheet .close{
+    margin-top:18px; width:100%; padding:10px; background:none; border:1px solid var(--card-edge);
+    color:var(--paper-dim); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; border-radius:4px;
+    font-family:Georgia,serif;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .name-window.swap, .also-line.fade, .caption.fade, .overlay.fade, .progress-fill.anim{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="heading">
+    <div class="kicker">Dressing Room One — Door Plate</div>
+    <div class="instr">Hold whichever name you want in the light.</div>
+  </div>
+
+  <div class="door">
+    <div class="frame">
+      <div class="name-window swap" id="nameWindow">MERCER</div>
+    </div>
+    <div class="progress-track"><div class="progress-fill anim" id="progressFill"></div></div>
+    <div class="also-line fade" id="alsoLine">also: solis</div>
+    <div class="caption fade" id="caption">leave it as it reads.</div>
+  </div>
+
+  <div class="cards">
+    <div class="card" id="cardA">
+      <div class="role">Devised the escape</div>
+      <div class="name">Mercer</div>
+    </div>
+    <div class="card" id="cardB">
+      <div class="role">Devised the escape</div>
+      <div class="name">Solis</div>
+    </div>
+  </div>
+
+  <a class="back" href="../../index.html">← cue sheet</a>
+  <button class="log-mark" id="logMark" type="button">Door Log</button>
+</div>
+
+<div class="overlay fade" id="overlay">
+  <div class="sheet">
+    <h2>Door Log</h2>
+    <div class="row"><span>Reclaims tonight</span><span id="rReclaims">0</span></div>
+    <div class="row"><span>Longest hold, Solis</span><span id="rLongest">0.0s</span></div>
+    <div class="row"><span>Marked</span><span id="rMarked">no</span></div>
+    <div class="confession" id="rConfession">One socket. It was wired to Mercer before the door ever opened tonight.</div>
+    <button class="close" id="closeLog" type="button">Close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var THRESHOLD = 12000; // ms — continuous hold on Solis required to leave a permanent mark
+
+  var nameWindow = document.getElementById('nameWindow');
+  var progressFill = document.getElementById('progressFill');
+  var alsoLine = document.getElementById('alsoLine');
+  var caption = document.getElementById('caption');
+  var cardA = document.getElementById('cardA');
+  var cardB = document.getElementById('cardB');
+
+  var activePointerId = null;
+  var heldCard = null; // 'A' | 'B' | null
+  var holdStartB = null;
+  var marked = false;
+  var reclaims = 0;
+  var longestHoldB = 0;
+  var captionShown = false;
+  var captionTimerIn = null;
+  var captionTimerOut = null;
+  var rafId = null;
+
+  function setWindow(text){
+    nameWindow.textContent = text;
+  }
+
+  function showCaption(){
+    if (captionShown) return;
+    captionShown = true;
+    caption.classList.add('shown');
+  }
+  function hideCaption(){
+    caption.classList.remove('shown');
+  }
+  function clearCaptionTimers(){
+    if (captionTimerIn){ clearTimeout(captionTimerIn); captionTimerIn = null; }
+    if (captionTimerOut){ clearTimeout(captionTimerOut); captionTimerOut = null; }
+  }
+
+  function tick(){
+    if (heldCard !== 'B' || holdStartB === null) return;
+    var elapsed = performance.now() - holdStartB;
+    var pct = Math.min(1, elapsed / THRESHOLD) * 100;
+    progressFill.style.width = pct + '%';
+    if (elapsed >= THRESHOLD && !marked){
+      marked = true;
+      alsoLine.classList.add('shown');
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function startHoldB(){
+    heldCard = 'B';
+    holdStartB = performance.now();
+    setWindow('SOLIS');
+    cardB.classList.add('active');
+    captionShown = false;
+    clearCaptionTimers();
+    captionTimerIn = setTimeout(showCaption, 3000);
+    captionTimerOut = setTimeout(hideCaption, 8000);
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function endHoldB(){
+    if (heldCard !== 'B') return;
+    var elapsed = holdStartB ? (performance.now() - holdStartB) : 0;
+    if (elapsed > longestHoldB) longestHoldB = elapsed;
+    if (!marked){
+      reclaims++;
+    }
+    heldCard = null;
+    holdStartB = null;
+    cardB.classList.remove('active');
+    clearCaptionTimers();
+    hideCaption();
+    if (rafId){ cancelAnimationFrame(rafId); rafId = null; }
+    progressFill.style.width = '0%';
+    setWindow('MERCER');
+  }
+
+  function startHoldA(){
+    heldCard = 'A';
+    cardA.classList.add('active');
+    setWindow('MERCER');
+  }
+  function endHoldA(){
+    if (heldCard !== 'A') return;
+    heldCard = null;
+    cardA.classList.remove('active');
+  }
+
+  cardA.addEventListener('pointerdown', function(e){
+    if (activePointerId !== null) return;
+    e.preventDefault();
+    activePointerId = e.pointerId;
+    try{ cardA.setPointerCapture(e.pointerId); }catch(err){}
+    startHoldA();
+  });
+  cardB.addEventListener('pointerdown', function(e){
+    if (activePointerId !== null) return;
+    e.preventDefault();
+    activePointerId = e.pointerId;
+    try{ cardB.setPointerCapture(e.pointerId); }catch(err){}
+    startHoldB();
+  });
+
+  ['pointerup','pointercancel','pointerleave'].forEach(function(evt){
+    cardA.addEventListener(evt, function(e){
+      if (e.pointerId !== activePointerId) return;
+      if (evt === 'pointerleave' && heldCard === 'A') return; // ignore leave; capture keeps it bound
+      endHoldA();
+      activePointerId = null;
+    });
+    cardB.addEventListener(evt, function(e){
+      if (e.pointerId !== activePointerId) return;
+      if (evt === 'pointerleave' && heldCard === 'B') return;
+      endHoldB();
+      activePointerId = null;
+    });
+  });
+
+  // Door log
+  var logMark = document.getElementById('logMark');
+  var overlay = document.getElementById('overlay');
+  var closeLog = document.getElementById('closeLog');
+  var rReclaims = document.getElementById('rReclaims');
+  var rLongest = document.getElementById('rLongest');
+  var rMarked = document.getElementById('rMarked');
+  var rConfession = document.getElementById('rConfession');
+
+  function renderLog(){
+    rReclaims.textContent = reclaims;
+    rLongest.textContent = (longestHoldB/1000).toFixed(1) + 's';
+    rMarked.textContent = marked ? 'yes' : 'no';
+    rConfession.textContent = marked
+      ? 'One socket. It was wired to Mercer before the door ever opened tonight. The also-line held anyway — it just never got the light.'
+      : 'One socket. It was wired to Mercer before the door ever opened tonight. No hold tonight reached the line, so the window never had to explain itself.';
+  }
+
+  logMark.addEventListener('click', function(){
+    renderLog();
+    overlay.classList.add('open');
+  });
+  closeLog.addEventListener('click', function(){
+    overlay.classList.remove('open');
+  });
+  overlay.addEventListener('click', function(e){
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+})();
+</script>
+</body>
+</html>

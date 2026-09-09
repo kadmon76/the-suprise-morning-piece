@@ -342,6 +342,13 @@
       "kind": "seed",
       "note": "A pad backstage, two gauges above it. One reads freely; the other only when someone decides it's safe enough to ask.",
       "path": "projects/2026-09-08-house-physical/index.html"
+    },
+    {
+      "date": "2026-09-09",
+      "title": "(Billing.)",
+      "kind": "question",
+      "note": "Two names devised tonight's escape. Hold whichever one you think should be lit — the door already has an opinion.",
+      "path": "projects/2026-09-09-billing/index.html"
     }
   ]
 }
