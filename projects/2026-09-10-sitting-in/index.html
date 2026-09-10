@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sitting In</title>
+<style>
+  :root{
+    color-scheme: dark;
+    --bg: #0a0a0c;
+    --panel: #131316;
+    --panel-line: #232328;
+    --ink: #d8d3c4;
+    --ink-dim: #85807a;
+    --gold: #e3b568;
+    --gold-dim: #a68752;
+    --blue: #7fb8d6;
+    --blue-dim: #3f5c69;
+    --rust: #c1704a;
+  }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+  html,body{
+    margin:0; padding:0; height:100%; background:var(--bg); color:var(--ink);
+    font-family: ui-monospace, "SF Mono", "Courier New", Courier, monospace;
+    overflow:hidden; touch-action: manipulation;
+  }
+  body{
+    display:flex; flex-direction:column; height:100dvh; height:100vh;
+    padding: max(16px, env(safe-area-inset-top)) 14px max(12px, env(safe-area-inset-bottom));
+  }
+
+  .back{
+    position:fixed; left:12px; bottom: max(10px, env(safe-area-inset-bottom));
+    font-size: 10.5px; color: var(--ink-dim); text-decoration:none;
+    letter-spacing: 0.04em; z-index: 5;
+  }
+
+  header{ text-align:center; flex: 0 0 auto; margin-bottom: 4px; }
+  h1{
+    margin:0; font-size: 15px; letter-spacing: 0.22em; font-weight: 600;
+    color: var(--ink); text-transform: uppercase;
+  }
+  .sub{ margin-top:4px; font-size: 10px; color: var(--ink-dim); letter-spacing: 0.16em; text-transform:uppercase; }
+  .instr{ margin-top: 9px; font-size: 12px; color: var(--ink-dim); letter-spacing: 0.02em; }
+
+  .stage{
+    flex: 1 1 auto; min-height: 0; position: relative;
+    margin-top: 10px; border-top: 1px solid var(--panel-line);
+    border-bottom: 1px solid var(--panel-line);
+    display:flex; flex-direction:column; align-items:center; justify-content:space-evenly;
+  }
+
+  .unit{ display:flex; flex-direction:column; align-items:center; gap:8px; width:100%; }
+
+  .lamp{
+    width: 104px; height:104px; border-radius:50%;
+    background: radial-gradient(circle at 38% 32%, #2a2620, #16140f 70%);
+    border: 1px solid var(--panel-line);
+    box-shadow: inset 0 0 14px rgba(0,0,0,0.5);
+    position: relative; cursor:pointer;
+  }
+  .lamp.star{ border-color: var(--gold-dim); }
+  .lamp.shadow{ border-color: var(--blue-dim); }
+  @media (prefers-reduced-motion:no-preference){
+    .lamp{ transition: box-shadow .15s ease, background .15s ease; }
+  }
+  .lamp.star.lit{
+    background: radial-gradient(circle at 38% 32%, #f3cf8f, #b8863f 70%);
+    box-shadow: 0 0 26px rgba(227,181,104,0.55), inset 0 0 14px rgba(0,0,0,0.15);
+  }
+  .lamp.shadow.lit{
+    background: radial-gradient(circle at 38% 32%, #a9d6ec, #4a7186 70%);
+    box-shadow: 0 0 26px rgba(127,184,214,0.55), inset 0 0 14px rgba(0,0,0,0.15);
+  }
+  .lamp.shadow.awake{ border-color: var(--blue); }
+  .lamp.shadow.flicker{ box-shadow: 0 0 8px rgba(127,184,214,0.3); }
+
+  .label{ font-size: 10.5px; letter-spacing: 0.18em; color: var(--ink-dim); text-transform: uppercase; }
+
+  .plate{
+    margin-top: 2px; padding: 7px 14px; min-width: 180px; text-align:center;
+    border: 1px solid var(--panel-line); border-radius: 4px; background: var(--panel);
+    font-size: 10px; letter-spacing: 0.05em; color: var(--ink-dim); min-height: 30px;
+    display:flex; align-items:center; justify-content:center; line-height:1.5;
+  }
+  .plate .worn{ opacity: 0.35; letter-spacing: 0.2em; }
+  .plate .real{ display:none; }
+  .plate.revealed .worn{ display:none; }
+  .plate.revealed .real{ display:block; color: var(--ink-dim); }
+  .plate .real b{ color: var(--ink); font-weight: 600; }
+  .plate .real .old-tag{ display:block; margin-top:4px; font-size:9px; color: var(--rust); opacity:0.75; letter-spacing:0.08em; }
+
+  .tag{
+    margin-top: 2px; font-size: 9.5px; letter-spacing: 0.08em; color: var(--rust);
+    text-align:center; opacity: 0; position:relative; min-height: 12px;
+  }
+  @media (prefers-reduced-motion:no-preference){ .tag{ transition: opacity .5s ease; } }
+  .tag.show{ opacity: 0.9; }
+  .tag .stamp{
+    display:block; margin-top: 3px; opacity:0; transform: rotate(-6deg) scale(1.1);
+    color: var(--rust); font-weight:600; letter-spacing:0.1em;
+  }
+  @media (prefers-reduced-motion:no-preference){ .tag .stamp{ transition: opacity .6s ease .1s; } }
+  .tag .stamp.show{ opacity: 1; }
+
+  .tally{
+    flex:0 0 auto; margin-top: 10px; text-align:center;
+    font-size: 10.5px; letter-spacing: 0.06em; color: var(--ink-dim);
+  }
+  .tally .n{ color: var(--ink); }
+
+  .ledger-btn{
+    position: fixed; right: 12px; bottom: max(10px, env(safe-area-inset-bottom));
+    background:none; border:none; color: var(--ink-dim); font-family: inherit;
+    font-size: 10.5px; letter-spacing: 0.08em; padding: 6px; z-index: 5;
+  }
+
+  .overlay{
+    position: fixed; inset:0; background: rgba(6,6,7,0.92); display:flex;
+    align-items:center; justify-content:center; padding: 20px; z-index: 20;
+    opacity:0; pointer-events:none;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  @media (prefers-reduced-motion:no-preference){ .overlay{ transition: opacity .25s ease; } }
+  .sheet{
+    width:100%; max-width: 360px; background: var(--panel); border: 1px solid var(--panel-line);
+    border-radius: 8px; padding: 16px;
+  }
+  .sheet-title{ font-size: 11px; letter-spacing: 0.16em; color: var(--ink); margin-bottom: 10px; text-transform:uppercase; }
+  .row{
+    display:flex; justify-content:space-between; font-size: 11px; padding: 5px 2px;
+    border-bottom: 1px solid var(--panel-line); color: var(--ink);
+  }
+  .row .n{ color: var(--ink-dim); }
+  .confession{ margin-top: 12px; font-size: 11px; line-height:1.5; color: var(--ink-dim); }
+  .close-btn{
+    margin-top: 14px; width:100%; background:none; border:1px solid var(--panel-line);
+    color: var(--ink-dim); font-family:inherit; font-size:11px; letter-spacing:0.08em;
+    padding: 9px; border-radius: 5px;
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="../../index.html">&larr; cue sheet</a>
+
+<header>
+  <h1>Sitting In</h1>
+  <div class="sub">Backstage &middot; Session</div>
+  <div class="instr">Tap the lamp to ask it something.</div>
+</header>
+
+<div class="stage">
+  <div class="unit">
+    <div class="lamp star" id="starLamp"></div>
+    <div class="label">Star</div>
+    <div class="plate" id="plate">
+      <span class="worn">&middot; &middot; &middot;</span>
+      <span class="real">Originally: <b>&ldquo;Lucia V.&rdquo;</b><span class="old-tag">unauthorized. do not feed.</span></span>
+    </div>
+  </div>
+  <div class="unit">
+    <div class="lamp shadow" id="shadowLamp"></div>
+    <div class="label">Shadow</div>
+    <div class="tag" id="tag">unauthorized. do not feed.<span class="stamp" id="stamp">indistinguishable.</span></div>
+  </div>
+</div>
+
+<div class="tally">asked &middot; <span class="n" id="askedN">0</span></div>
+
+<button class="ledger-btn" id="ledgerBtn">ledger</button>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <div class="sheet-title">The Ledger</div>
+    <div class="row"><span class="n">asked</span><span id="rAsked">0</span></div>
+    <div class="row"><span class="n">phrases Shadow has heard</span><span id="rHeard">0 of 5</span></div>
+    <div class="row"><span class="n">coverage</span><span id="rCoverage">0%</span></div>
+    <div class="row"><span class="n">Shadow's own answers</span><span id="rAnswers">0</span></div>
+    <div class="row"><span class="n">indistinguishable from Star</span><span id="rIndist">no</span></div>
+    <div class="confession">Every answer Shadow has given came from watching Star answer you. It was never asked anything itself. This ledger does not say where Star learned its own answers.</div>
+    <button class="close-btn" id="closeSheet">close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var scale = [392.00, 440.00, 493.88, 587.33, 659.25]; // G A B D E
+
+  var phrases = [
+    [{d:0,t:220},{d:1,t:220},{d:0,t:440}],
+    [{d:3,t:160},{d:2,t:160},{d:1,t:160},{d:0,t:440}],
+    [{d:2,t:260},{d:4,t:260},{d:2,t:440}],
+    [{d:1,t:160},{d:1,t:160},{d:3,t:160},{d:0,t:440}],
+    [{d:4,t:300},{d:3,t:300},{d:0,t:460}]
+  ];
+
+  var heard = phrases.map(function(){ return false; });
+  var asked = 0;
+  var shadowAnswers = 0;
+  var lastStarPhrase = -1;
+  var busy = false;
+
+  var starLamp = document.getElementById('starLamp');
+  var shadowLamp = document.getElementById('shadowLamp');
+  var askedN = document.getElementById('askedN');
+  var tag = document.getElementById('tag');
+  var stamp = document.getElementById('stamp');
+
+  var actx = null;
+  function ensureAudio(){
+    if (reduced) return;
+    if (!actx){
+      try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
+    }
+    if (actx && actx.state === 'suspended') { try { actx.resume(); } catch(e){} }
+  }
+  function note(freq, dur){
+    if (!actx || actx.state !== 'running') return;
+    var t = actx.currentTime;
+    var osc = actx.createOscillator();
+    var gain = actx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.07, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur/1000);
+    osc.connect(gain).connect(actx.destination);
+    osc.start(t);
+    osc.stop(t + dur/1000 + 0.03);
+  }
+
+  function playPhrase(idx, lampEl, onDone){
+    var seq = phrases[idx];
+    var i = 0;
+    function step(){
+      if (i >= seq.length){ lampEl.classList.remove('lit'); if (onDone) onDone(); return; }
+      var n = seq[i];
+      lampEl.classList.add('lit');
+      note(scale[n.d], n.t);
+      var holdT = reduced ? 10 : Math.max(30, n.t - 40);
+      var gapT = reduced ? 5 : 40;
+      setTimeout(function(){
+        lampEl.classList.remove('lit');
+        setTimeout(function(){ i++; step(); }, gapT);
+      }, holdT);
+    }
+    step();
+  }
+
+  function coverage(){
+    var n = 0;
+    heard.forEach(function(h){ if (h) n++; });
+    return n;
+  }
+
+  function updateTally(){ askedN.textContent = asked; }
+
+  function onStarTap(){
+    if (busy) return;
+    ensureAudio();
+    busy = true;
+    var idx;
+    if (phrases.length > 1){
+      do { idx = Math.floor(Math.random()*phrases.length); } while (idx === lastStarPhrase);
+    } else {
+      idx = 0;
+    }
+    lastStarPhrase = idx;
+    asked++;
+    updateTally();
+    playPhrase(idx, starLamp, function(){
+      if (!heard[idx]){
+        heard[idx] = true;
+        onFirstHeard();
+      }
+      busy = false;
+    });
+  }
+
+  function onFirstHeard(){
+    shadowLamp.classList.add('awake');
+    tag.classList.add('show');
+    if (coverage() === phrases.length){
+      stamp.classList.add('show');
+    }
+  }
+
+  function onShadowTap(){
+    if (busy) return;
+    var known = [];
+    heard.forEach(function(h,i){ if (h) known.push(i); });
+    if (known.length === 0){
+      shadowLamp.classList.add('flicker');
+      setTimeout(function(){ shadowLamp.classList.remove('flicker'); }, reduced ? 10 : 220);
+      return;
+    }
+    ensureAudio();
+    busy = true;
+    var idx = known[Math.floor(Math.random()*known.length)];
+    shadowAnswers++;
+    playPhrase(idx, shadowLamp, function(){ busy = false; });
+  }
+
+  starLamp.addEventListener('click', onStarTap);
+  shadowLamp.addEventListener('click', onShadowTap);
+
+  // the plate under Star: holds its own history, legible only under effort
+  var plate = document.getElementById('plate');
+  var holdTimer = null;
+  function startHold(){
+    clearTimeout(holdTimer);
+    holdTimer = setTimeout(function(){ plate.classList.add('revealed'); }, reduced ? 0 : 450);
+  }
+  function endHold(){
+    clearTimeout(holdTimer);
+    plate.classList.remove('revealed');
+  }
+  plate.addEventListener('pointerdown', startHold);
+  plate.addEventListener('pointerup', endHold);
+  plate.addEventListener('pointerleave', endHold);
+  plate.addEventListener('pointercancel', endHold);
+
+  // the ledger: guaranteed, plain, and deliberately incomplete
+  var overlay = document.getElementById('overlay');
+  document.getElementById('ledgerBtn').addEventListener('click', function(){
+    document.getElementById('rAsked').textContent = asked;
+    document.getElementById('rHeard').textContent = coverage() + ' of ' + phrases.length;
+    document.getElementById('rCoverage').textContent = Math.round(100*coverage()/phrases.length) + '%';
+    document.getElementById('rAnswers').textContent = shadowAnswers;
+    document.getElementById('rIndist').textContent = (coverage() === phrases.length) ? 'yes' : 'no';
+    overlay.classList.add('show');
+  });
+  document.getElementById('closeSheet').addEventListener('click', function(){ overlay.classList.remove('show'); });
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.classList.remove('show'); });
+})();
+</script>
+</body>
+</html>

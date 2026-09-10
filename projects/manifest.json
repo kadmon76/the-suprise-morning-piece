@@ -349,6 +349,13 @@
       "kind": "question",
       "note": "Two names devised tonight's escape. Hold whichever one you think should be lit — the door already has an opinion.",
       "path": "projects/2026-09-09-billing/index.html"
+    },
+    {
+      "date": "2026-09-10",
+      "title": "Sitting In",
+      "kind": "seed",
+      "note": "A lamp answers when you ask it something. It isn't the only one listening.",
+      "path": "projects/2026-09-10-sitting-in/index.html"
     }
   ]
 }
