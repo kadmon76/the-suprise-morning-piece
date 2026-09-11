@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>(Strike.)</title>
+<style>
+  :root{
+    --bg:#0a0908;
+    --gold:#d9a94a;
+    --gold-dim:#7a6335;
+    --paper:#e8e2d2;
+    --paper-dim:#867e6a;
+    --panel:#14120d;
+    --panel-edge:#332c1e;
+    --card:#1b1812;
+    --card-edge:#413824;
+    --rust:#a84632;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--paper);
+    font-family:Georgia,'Times New Roman',serif;
+    -webkit-user-select:none; user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    padding:calc(30px + env(safe-area-inset-top)) calc(22px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(22px + env(safe-area-inset-left));
+    background:
+      radial-gradient(ellipse 60% 30% at 50% 8%, rgba(217,169,74,0.06), transparent 62%),
+      var(--bg);
+    gap:14px;
+  }
+
+  .heading{ text-align:center; }
+  .heading .kicker{
+    font-size:10.5px; letter-spacing:0.2em; color:var(--gold-dim); text-transform:uppercase;
+  }
+  .heading .instr{
+    font-size:12.5px; color:var(--paper-dim); margin-top:9px; letter-spacing:0.01em; font-style:italic;
+    max-width:280px;
+  }
+
+  .rig{
+    flex:1; width:100%; max-width:380px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:0; gap:0;
+  }
+  .truss{
+    width:64%; max-width:230px; height:5px; border-radius:2px;
+    background:linear-gradient(90deg, var(--panel-edge), #4a4025, var(--panel-edge));
+  }
+  .cord{ width:2px; height:34px; background:var(--panel-edge); }
+  .bulb-wrap{ position:relative; display:flex; align-items:center; justify-content:center; }
+  .bulb{
+    width:66px; height:66px; border-radius:50%;
+    background:#221e16; box-shadow:none;
+    border:1px solid var(--panel-edge);
+  }
+  .bulb.lit{
+    background:radial-gradient(circle at 35% 30%, #fff6d8, var(--gold) 55%, var(--gold-dim) 100%);
+    box-shadow:0 0 44px 15px rgba(217,169,74,0.42), 0 0 100px 34px rgba(217,169,74,0.14);
+    border-color:rgba(217,169,74,0.5);
+  }
+  .bulb.dark.flash{
+    border-color:rgba(168,70,50,0.7);
+    box-shadow:0 0 0 3px rgba(168,70,50,0.18);
+  }
+  .bulb.trans{ transition:background 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
+
+  .status{
+    margin-top:18px; min-height:34px; text-align:center; max-width:280px;
+    font-size:12px; letter-spacing:0.03em; line-height:1.5;
+  }
+  .status .struck-tag{
+    color:var(--rust); text-transform:uppercase; letter-spacing:0.14em; font-size:11px;
+  }
+  .status .justification{
+    color:var(--paper-dim); font-style:italic;
+  }
+  .status.fade{ transition:opacity 0.35s ease; }
+  .status.hidden{ opacity:0; }
+  .status.shown{ opacity:1; }
+
+  .counters{
+    display:flex; gap:18px; margin-top:16px;
+    font-size:10.5px; letter-spacing:0.08em; color:var(--paper-dim); text-transform:uppercase;
+  }
+  .counters b{ color:var(--paper); font-weight:600; }
+
+  .switch-row{
+    width:100%; max-width:380px; display:flex; justify-content:center; padding-bottom:4px;
+  }
+  .strike-btn{
+    padding:15px 44px; background:var(--card); border:1px solid var(--card-edge); border-radius:5px;
+    color:var(--paper); font-family:Georgia,serif; font-size:13px; letter-spacing:0.18em; text-transform:uppercase;
+    touch-action:manipulation;
+  }
+  .strike-btn:active{ background:#221c11; border-color:var(--gold-dim); }
+  .strike-btn:disabled{ opacity:0.5; }
+
+  .back{
+    position:fixed; left:calc(14px + env(safe-area-inset-left)); bottom:calc(12px + env(safe-area-inset-bottom));
+    font-size:11px; color:var(--paper-dim); text-decoration:none; letter-spacing:0.02em;
+    opacity:0.55; font-family:Georgia,serif;
+  }
+
+  .log-mark{
+    position:fixed; right:calc(14px + env(safe-area-inset-right)); bottom:calc(12px + env(safe-area-inset-bottom));
+    font-size:10.5px; letter-spacing:0.1em; color:var(--paper-dim); text-transform:uppercase;
+    background:none; border:1px solid var(--card-edge); border-radius:3px;
+    padding:6px 10px; opacity:0.6; font-family:Georgia,serif;
+  }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,3,0.92);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px; opacity:0; pointer-events:none;
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+  .overlay.fade{ transition:opacity 0.25s ease; }
+  .sheet{
+    width:100%; max-width:340px; border:1px solid var(--card-edge); background:var(--panel);
+    border-radius:6px; padding:22px 20px;
+  }
+  .sheet h2{
+    margin:0 0 14px; font-size:13px; letter-spacing:0.16em; color:var(--gold-dim); text-transform:uppercase; font-weight:600;
+  }
+  .sheet .row{
+    display:flex; justify-content:space-between; gap:12px; font-size:12.5px; padding:6px 0;
+    border-bottom:1px solid rgba(65,56,36,0.4); color:var(--paper-dim);
+  }
+  .sheet .row span:last-child{ color:var(--paper); text-align:right; }
+  .sheet .confession{
+    margin-top:14px; font-size:12px; line-height:1.55; color:var(--paper-dim); font-style:italic;
+  }
+  .sheet .close{
+    margin-top:18px; width:100%; padding:10px; background:none; border:1px solid var(--card-edge);
+    color:var(--paper-dim); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; border-radius:4px;
+    font-family:Georgia,serif;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .bulb.trans, .status.fade, .overlay.fade{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="heading">
+    <div class="kicker">Backstage — Work Light</div>
+    <div class="instr">Tap the switch to strike it.</div>
+  </div>
+
+  <div class="rig">
+    <div class="truss"></div>
+    <div class="cord"></div>
+    <div class="bulb-wrap">
+      <div class="bulb lit trans" id="bulb"></div>
+    </div>
+    <div class="status fade shown" id="status">
+      <span class="justification">Breaker's still out on the house side. One more night.</span>
+    </div>
+    <div class="counters">
+      <div>Struck tonight: <b id="cStruck">0</b></div>
+      <div>Lit: <b>25 years</b> running</div>
+    </div>
+  </div>
+
+  <div class="switch-row">
+    <button class="strike-btn" id="strikeBtn" type="button">Strike</button>
+  </div>
+
+  <a class="back" href="../../index.html">← cue sheet</a>
+  <button class="log-mark" id="logMark" type="button">Strike Log</button>
+</div>
+
+<div class="overlay fade" id="overlay">
+  <div class="sheet">
+    <h2>Strike Log</h2>
+    <div class="row"><span>First hung</span><span>25 years ago tonight</span></div>
+    <div class="row"><span>Original reason</span><span>a blown house breaker</span></div>
+    <div class="row"><span>That reason held for</span><span>one night</span></div>
+    <div class="row"><span>Reasons given tonight</span><span id="rStruck">0</span></div>
+    <div class="row"><span>Reasons given, every visit</span><span id="rStruckAll">0</span></div>
+    <div class="row"><span>List exhausted &amp; restarted, ever</span><span id="rCycles">0 times</span></div>
+    <div class="row"><span>Struck for good</span><span>0</span></div>
+    <div class="confession" id="rConfession">Every reason after the first got invented after the bulb was already lit. It has never once gone dark and stayed there.</div>
+    <button class="close" id="closeLog" type="button">Close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var RELIGHT_DELAY = reduced ? 250 : 1100;
+
+  var justifications = [
+    "Breaker's still out on the house side. One more night.",
+    "House electrician's on vacation — leave it till she's back.",
+    "Can't strike a working rig without a work order on file.",
+    "It's on this month's insurance rider now. Pulling it voids the policy.",
+    "Nobody currently on staff remembers wiring it any other way.",
+    "It's part of the house now. Ask maintenance, not us."
+  ];
+
+  var bulb = document.getElementById('bulb');
+  var status = document.getElementById('status');
+  var cStruck = document.getElementById('cStruck');
+  var strikeBtn = document.getElementById('strikeBtn');
+
+  var STORE_KEY = 'strike_ledger_v1';
+  function loadLedger(){
+    try{
+      var raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return { struck: 0, cycles: 0, idx: 1 };
+      var parsed = JSON.parse(raw);
+      return { struck: parsed.struck|0, cycles: parsed.cycles|0, idx: (parsed.idx|0) || 1 };
+    }catch(err){ return { struck: 0, cycles: 0, idx: 1 }; }
+  }
+  function saveLedger(){
+    try{
+      localStorage.setItem(STORE_KEY, JSON.stringify({ struck: allTimeStruck, cycles: allTimeCycles, idx: idx }));
+    }catch(err){ /* private mode or blocked storage — ledger just won't carry forward */ }
+  }
+
+  var persisted = loadLedger();
+  var allTimeStruck = persisted.struck;
+  var allTimeCycles = persisted.cycles;
+
+  var idx = persisted.idx; // resumes where the last visit, any night, left off
+  var cycles = 0;
+  var struckCount = 0;
+  var busy = false;
+  var relightTimer = null;
+
+  function setStatus(html, isStruckTag){
+    status.classList.remove('shown');
+    status.classList.add('hidden');
+    var apply = function(){
+      status.innerHTML = html;
+      status.classList.remove('hidden');
+      status.classList.add('shown');
+    };
+    if (reduced){ apply(); } else { setTimeout(apply, 90); }
+  }
+
+  function strike(){
+    if (busy) return;
+    busy = true;
+    strikeBtn.disabled = true;
+    struckCount++;
+    cStruck.textContent = struckCount;
+
+    bulb.classList.remove('lit');
+    bulb.classList.add('dark', 'flash');
+    setStatus('<span class="struck-tag">Struck.</span>', true);
+
+    relightTimer = setTimeout(function(){
+      var suffix = (cycles > 0 || allTimeCycles > 0) ? ' — still.' : '';
+      var text = justifications[idx] + suffix;
+      idx++;
+      if (idx >= justifications.length){
+        idx = 0;
+        cycles++;
+        allTimeCycles++;
+      }
+      allTimeStruck++;
+      saveLedger();
+      bulb.classList.remove('dark', 'flash');
+      bulb.classList.add('lit');
+      setStatus('<span class="justification">' + text + '</span>', false);
+      busy = false;
+      strikeBtn.disabled = false;
+    }, RELIGHT_DELAY);
+  }
+
+  strikeBtn.addEventListener('click', strike);
+
+  // Strike Log
+  var logMark = document.getElementById('logMark');
+  var overlay = document.getElementById('overlay');
+  var closeLog = document.getElementById('closeLog');
+  var rStruck = document.getElementById('rStruck');
+  var rStruckAll = document.getElementById('rStruckAll');
+  var rCycles = document.getElementById('rCycles');
+  var rConfession = document.getElementById('rConfession');
+
+  function renderLog(){
+    rStruck.textContent = struckCount;
+    rStruckAll.textContent = allTimeStruck;
+    rCycles.textContent = allTimeCycles + (allTimeCycles === 1 ? ' time' : ' times');
+    rConfession.textContent = allTimeStruck === 0
+      ? 'Every reason after the first got invented after the bulb was already lit. Nobody has struck it yet, tonight or any other night — but it has never once gone dark and stayed there, in twenty-five years.'
+      : 'Every reason after the first got invented after the bulb was already lit. Struck, every visit this has ever been opened: ' + allTimeStruck + '. Down for good, on any of those nights: 0.';
+  }
+
+  logMark.addEventListener('click', function(){
+    renderLog();
+    overlay.classList.add('open');
+  });
+  closeLog.addEventListener('click', function(){
+    overlay.classList.remove('open');
+  });
+  overlay.addEventListener('click', function(e){
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+})();
+</script>
+</body>
+</html>

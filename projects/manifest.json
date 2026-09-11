@@ -356,6 +356,13 @@
       "kind": "seed",
       "note": "A lamp answers when you ask it something. It isn't the only one listening.",
       "path": "projects/2026-09-10-sitting-in/index.html"
+    },
+    {
+      "date": "2026-09-11",
+      "title": "(Strike.)",
+      "kind": "question",
+      "note": "A work light, hung backstage for one night only. Tap the switch — see how long one night turns out to be.",
+      "path": "projects/2026-09-11-strike/index.html"
     }
   ]
 }
