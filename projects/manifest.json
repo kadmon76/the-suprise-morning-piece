@@ -370,6 +370,13 @@
       "kind": "seed",
       "note": "Six stands share one score. Play yours however you like — the pit isn't only listening to you.",
       "path": "projects/2026-09-12-cut-time/index.html"
+    },
+    {
+      "date": "2026-09-13",
+      "title": "(Fully Involved.)",
+      "kind": "question",
+      "note": "Backstage, something's already caught. There's a proper window for the call — plenty of time, as far as the rule's concerned.",
+      "path": "projects/2026-09-13-fully-involved/index.html"
     }
   ]
 }

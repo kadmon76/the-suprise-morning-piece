@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>(Fully Involved.)</title>
+<style>
+  :root{
+    --bg:#0a0908;
+    --gold:#d9a94a;
+    --gold-dim:#7a6335;
+    --paper:#e8e2d2;
+    --paper-dim:#867e6a;
+    --panel:#14120d;
+    --panel-edge:#332c1e;
+    --card:#1b1812;
+    --card-edge:#413824;
+    --rust:#a84632;
+    --ember:#e8672f;
+    --ember-dim:#5e2d16;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none;}
+  html,body{
+    margin:0; padding:0; min-height:100%;
+    background:var(--bg); color:var(--paper);
+    font-family:Georgia,'Times New Roman',serif;
+    -webkit-user-select:none; user-select:none;
+  }
+  .stage{
+    min-height:100dvh; overflow-y:auto;
+    display:flex; flex-direction:column; align-items:center;
+    padding:calc(22px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(64px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+    background:
+      radial-gradient(ellipse 60% 24% at 50% 6%, rgba(217,169,74,0.05), transparent 62%),
+      var(--bg);
+    gap:16px;
+  }
+
+  .heading{ text-align:center; }
+  .heading .kicker{
+    font-size:10.5px; letter-spacing:0.2em; color:var(--gold-dim); text-transform:uppercase;
+  }
+  .heading .instr{
+    font-size:12.5px; color:var(--paper-dim); margin-top:9px; letter-spacing:0.01em; font-style:italic;
+    max-width:290px; margin-left:auto; margin-right:auto;
+  }
+
+  .panel-box{
+    background:var(--panel); border:1px solid var(--panel-edge); border-radius:8px;
+    padding:14px;
+  }
+  .grid{
+    display:grid; grid-template-columns:repeat(8, 1fr); gap:6px;
+    width:min(78vw, 300px);
+  }
+  .seat{
+    aspect-ratio:1/1; border-radius:3px;
+    background:#1c1812; border:1px solid var(--panel-edge);
+  }
+  .seat.trans{ transition:background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease; }
+  .seat.lit{
+    background:radial-gradient(circle at 35% 30%, #ffcf9a, var(--ember) 55%, var(--ember-dim) 100%);
+    box-shadow:0 0 6px 1px rgba(232,103,47,0.4);
+    border-color:rgba(232,103,47,0.5);
+  }
+  .seat.spotted{
+    box-shadow:0 0 0 2px var(--gold), 0 0 6px 1px rgba(232,103,47,0.4);
+  }
+
+  .controls{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    width:100%; max-width:300px;
+  }
+  .window-readout{
+    font-family:'Courier New', monospace; font-size:13px; letter-spacing:0.04em; color:var(--paper-dim);
+  }
+  .window-readout b{ color:var(--paper); font-weight:600; }
+  .window-readout.warn b{ color:var(--rust); }
+
+  .report-btn{
+    padding:11px 26px; background:var(--card); border:1px solid var(--card-edge); border-radius:5px;
+    color:var(--paper); font-family:Georgia,serif; font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+    touch-action:manipulation;
+  }
+  .report-btn:active{ background:#221c11; border-color:var(--gold-dim); }
+  .report-btn:disabled{ opacity:0.5; }
+
+  .status{
+    min-height:34px; text-align:center; max-width:290px;
+    font-size:12px; letter-spacing:0.02em; line-height:1.5; color:var(--paper-dim); font-style:italic;
+  }
+  .status.fade{ transition:opacity 0.35s ease; }
+  .status.hidden{ opacity:0; }
+  .status.shown{ opacity:1; }
+
+  .back{
+    position:fixed; left:calc(14px + env(safe-area-inset-left)); bottom:calc(12px + env(safe-area-inset-bottom));
+    font-size:11px; color:var(--paper-dim); text-decoration:none; letter-spacing:0.02em;
+    opacity:0.55; font-family:Georgia,serif;
+  }
+
+  .log-mark{
+    position:fixed; right:calc(14px + env(safe-area-inset-right)); bottom:calc(12px + env(safe-area-inset-bottom));
+    font-size:10.5px; letter-spacing:0.1em; color:var(--paper-dim); text-transform:uppercase;
+    background:none; border:1px solid var(--card-edge); border-radius:3px;
+    padding:6px 10px; opacity:0.6; font-family:Georgia,serif;
+  }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,3,0.92);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px; opacity:0; pointer-events:none;
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+  .overlay.fade{ transition:opacity 0.25s ease; }
+  .sheet{
+    width:100%; max-width:340px; max-height:82vh; overflow-y:auto;
+    border:1px solid var(--card-edge); background:var(--panel);
+    border-radius:6px; padding:22px 20px;
+  }
+  .sheet h2{
+    margin:0 0 14px; font-size:13px; letter-spacing:0.16em; color:var(--gold-dim); text-transform:uppercase; font-weight:600;
+  }
+  .sheet .row{
+    display:flex; justify-content:space-between; gap:12px; font-size:12px; padding:6px 0;
+    border-bottom:1px solid rgba(65,56,36,0.4); color:var(--paper-dim);
+  }
+  .sheet .row span:last-child{ color:var(--paper); text-align:right; }
+  .sheet .confession{
+    margin-top:14px; font-size:12px; line-height:1.55; color:var(--paper-dim); font-style:italic;
+  }
+  .sheet .close{
+    margin-top:18px; width:100%; padding:10px; background:none; border:1px solid var(--card-edge);
+    color:var(--paper-dim); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; border-radius:4px;
+    font-family:Georgia,serif;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .seat.trans, .status.fade, .overlay.fade{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="heading">
+    <div class="kicker">Backstage — House Circuit</div>
+    <div class="instr">Something's caught. Report it before the window closes.</div>
+  </div>
+
+  <div class="panel-box">
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="controls">
+    <div class="window-readout" id="windowReadout">window <b id="windowNum">24</b></div>
+    <button class="report-btn" id="reportBtn" type="button">Report</button>
+  </div>
+
+  <div class="status fade shown" id="status"></div>
+
+  <a class="back" href="../../index.html">← cue sheet</a>
+  <button class="log-mark" id="logMark" type="button">Incident Log</button>
+</div>
+
+<div class="overlay fade" id="overlay">
+  <div class="sheet">
+    <h2>Incident Log</h2>
+    <div class="row"><span>House</span><span id="rSize">64 seats</span></div>
+    <div class="row"><span>Seed to full house</span><span id="rFullTime">in progress</span></div>
+    <div class="row"><span>Legal window</span><span id="rWindow">24s</span></div>
+    <div class="row"><span>Reported</span><span id="rReported">not yet</span></div>
+    <div class="row"><span>House, at the moment of the call</span><span id="rCoverage">—</span></div>
+    <div class="row"><span>Compliant</span><span id="rCompliant">—</span></div>
+    <div class="row"><span>Spotted by you</span><span id="rSpotted">0 of 64</span></div>
+    <div class="confession" id="rConfession">The window is generous. Nothing about it depends on how far this has already gone.</div>
+    <button class="close" id="closeLog" type="button">Close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var COLS = 8, ROWS = 8;
+  var TOTAL = COLS * ROWS;
+  var WINDOW_SECONDS = 24;
+  var TICK_MS = 150;
+  var IGNITE_P = 0.10;
+
+  var grid = document.getElementById('grid');
+  var windowNum = document.getElementById('windowNum');
+  var windowReadout = document.getElementById('windowReadout');
+  var reportBtn = document.getElementById('reportBtn');
+  var status = document.getElementById('status');
+  var logMark = document.getElementById('logMark');
+  var overlay = document.getElementById('overlay');
+  var closeLog = document.getElementById('closeLog');
+
+  var seats = [];
+  for (var i = 0; i < TOTAL; i++){
+    var el = document.createElement('div');
+    el.className = 'seat trans';
+    grid.appendChild(el);
+    var seat = { el: el, lit: false, spotted: false, r: Math.floor(i / COLS), c: i % COLS };
+    (function(seat){
+      seat.el.addEventListener('click', function(){
+        if (seat.lit && !seat.spotted){
+          seat.spotted = true;
+          spottedCount++;
+          seat.el.classList.add('spotted');
+        }
+      });
+    })(seat);
+    seats.push(seat);
+  }
+
+  function neighborsOf(seat){
+    var res = [];
+    for (var dr = -1; dr <= 1; dr++){
+      for (var dc = -1; dc <= 1; dc++){
+        if (dr === 0 && dc === 0) continue;
+        var r = seat.r + dr, c = seat.c + dc;
+        if (r >= 0 && r < ROWS && c >= 0 && c < COLS) res.push(seats[r * COLS + c]);
+      }
+    }
+    return res;
+  }
+
+  var litCount = 0;
+  var spottedCount = 0;
+  var startTime = null;
+  var fullTime = null;
+  var spreading = false;
+  var windowRemaining = WINDOW_SECONDS;
+  var windowTimer = null;
+  var reported = false;
+  var reportElapsed = null;
+  var coverageAtReport = null;
+
+  function setStatus(text){
+    if (!text){
+      status.classList.remove('shown'); status.classList.add('hidden');
+      return;
+    }
+    status.classList.remove('shown');
+    status.classList.add('hidden');
+    var apply = function(){
+      status.textContent = text;
+      status.classList.remove('hidden');
+      status.classList.add('shown');
+    };
+    if (reduced){ apply(); } else { setTimeout(apply, 90); }
+  }
+
+  function igniteSeat(seat){
+    if (seat.lit) return;
+    seat.lit = true;
+    litCount++;
+    seat.el.classList.add('lit');
+    if (litCount === TOTAL){
+      fullTime = performance.now();
+      spreading = false;
+      setStatus('Fully involved.');
+    }
+  }
+
+  function tick(){
+    if (litCount >= TOTAL){ spreading = false; return; }
+    var toIgnite = [];
+    seats.forEach(function(s){
+      if (!s.lit) return;
+      neighborsOf(s).forEach(function(n){
+        if (!n.lit && Math.random() < IGNITE_P) toIgnite.push(n);
+      });
+    });
+    toIgnite.forEach(igniteSeat);
+    if (spreading) setTimeout(tick, TICK_MS);
+  }
+
+  function updateWindowUI(){
+    windowNum.textContent = windowRemaining;
+    if (windowRemaining <= 5) windowReadout.classList.add('warn');
+  }
+
+  function startWindow(){
+    updateWindowUI();
+    windowTimer = setInterval(function(){
+      windowRemaining--;
+      updateWindowUI();
+      if (windowRemaining <= 0){
+        clearInterval(windowTimer);
+        reportBtn.disabled = true;
+        if (!reported){
+          setStatus('Window closed. Not reported.');
+        }
+      }
+    }, 1000);
+  }
+
+  function startSpread(){
+    startTime = performance.now();
+    var seed = seats[Math.floor(Math.random() * TOTAL)];
+    igniteSeat(seed);
+    spreading = true;
+    setTimeout(tick, TICK_MS);
+    startWindow();
+  }
+
+  setTimeout(startSpread, 650);
+
+  reportBtn.addEventListener('click', function(){
+    if (reported || windowRemaining <= 0) return;
+    reported = true;
+    reportElapsed = WINDOW_SECONDS - windowRemaining;
+    coverageAtReport = Math.round((litCount / TOTAL) * 100);
+    reportBtn.disabled = true;
+    reportBtn.textContent = 'Reported.';
+    setStatus('Reported — within window.');
+  });
+
+  function renderLog(){
+    var rFullTime = document.getElementById('rFullTime');
+    var rReported = document.getElementById('rReported');
+    var rCoverage = document.getElementById('rCoverage');
+    var rCompliant = document.getElementById('rCompliant');
+    var rSpotted = document.getElementById('rSpotted');
+    var rConfession = document.getElementById('rConfession');
+
+    if (fullTime !== null){
+      rFullTime.textContent = ((fullTime - startTime) / 1000).toFixed(1) + 's';
+    } else {
+      rFullTime.textContent = 'in progress';
+    }
+
+    rSpotted.textContent = spottedCount + ' of ' + TOTAL;
+
+    if (reported){
+      rReported.textContent = reportElapsed + 's into the window';
+      rCoverage.textContent = coverageAtReport + '%';
+      rCompliant.textContent = 'Yes';
+    } else if (windowRemaining <= 0){
+      rReported.textContent = 'never';
+      rCoverage.textContent = '—';
+      rCompliant.textContent = 'No';
+    } else {
+      rReported.textContent = 'not yet';
+      rCoverage.textContent = '—';
+      rCompliant.textContent = '—';
+    }
+
+    if (reported && fullTime !== null){
+      var full = ((fullTime - startTime) / 1000).toFixed(1);
+      if (coverageAtReport >= 100){
+        rConfession.textContent = 'The house was already full when you called it in — ' + full + 's to catch, ' + reportElapsed + ' still left on a 24-second window. The stamp reads compliant either way. It was never asked to read anything else.';
+      } else {
+        rConfession.textContent = 'You called it in at ' + coverageAtReport + '% full, ' + reportElapsed + 's in. It kept going anyway, to ' + full + 's and every seat. The call didn’t slow it — it was never wired to.';
+      }
+    } else if (!reported && windowRemaining <= 0){
+      rConfession.textContent = 'The house finished in ' + (fullTime !== null ? ((fullTime - startTime) / 1000).toFixed(1) + 's' : 'well under the window') + '. The window ran the full 24 regardless, and closed on nothing. Reporting late and not reporting would have looked almost the same from here.';
+    } else {
+      rConfession.textContent = 'The window is generous. Nothing about it depends on how far this has already gone.';
+    }
+  }
+
+  logMark.addEventListener('click', function(){
+    renderLog();
+    overlay.classList.add('open');
+  });
+  closeLog.addEventListener('click', function(){
+    overlay.classList.remove('open');
+  });
+  overlay.addEventListener('click', function(e){
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+})();
+</script>
+</body>
+</html>
