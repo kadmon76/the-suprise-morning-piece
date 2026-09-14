@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>(Slow Curtain.)</title>
+<style>
+  :root{
+    --bg:#0a0908;
+    --gold:#d9a94a;
+    --gold-dim:#7a6335;
+    --paper:#e8e2d2;
+    --paper-dim:#867e6a;
+    --panel:#14120d;
+    --panel-edge:#332c1e;
+    --card:#1b1812;
+    --card-edge:#413824;
+    --rust:#a84632;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--paper);
+    font-family:Georgia,'Times New Roman',serif;
+    -webkit-user-select:none; user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    padding:calc(28px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+    background:
+      radial-gradient(ellipse 60% 30% at 50% 8%, rgba(217,169,74,0.06), transparent 62%),
+      var(--bg);
+    gap:12px;
+  }
+
+  .heading{ text-align:center; }
+  .heading .kicker{
+    font-size:10.5px; letter-spacing:0.2em; color:var(--gold-dim); text-transform:uppercase;
+  }
+  .heading .instr{
+    font-size:12.5px; color:var(--paper-dim); margin-top:9px; letter-spacing:0.01em; font-style:italic;
+    max-width:280px; margin-left:auto; margin-right:auto;
+  }
+
+  .marquee{
+    width:100%; max-width:360px; border:1px solid var(--card-edge); background:var(--card);
+    border-radius:8px; padding:20px 16px; text-align:center;
+  }
+  .marquee .declared{
+    font-size:19px; letter-spacing:0.04em; color:var(--gold);
+    line-height:1.35; min-height:2.7em; display:flex; align-items:center; justify-content:center;
+  }
+  .marquee .declared.trans{ transition:opacity 0.2s ease; }
+  .marquee .declared.dim{ opacity:0; }
+  .marquee .tally{
+    margin-top:12px; font-size:10.5px; letter-spacing:0.1em; color:var(--paper-dim); text-transform:uppercase;
+  }
+  .marquee .tally b{ color:var(--paper); font-weight:600; }
+
+  .rig{
+    flex:1; width:100%; max-width:360px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:0; gap:18px;
+  }
+  .wire{
+    position:relative; width:88%; max-width:300px; height:2px; background:var(--panel-edge);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .node{
+    width:15px; height:15px; border-radius:50%; background:#221e16; border:1px solid var(--panel-edge);
+    flex:none; position:relative; z-index:1;
+  }
+  .node.lit{
+    background:radial-gradient(circle at 35% 30%, #fff6d8, var(--gold) 55%, var(--gold-dim) 100%);
+    box-shadow:0 0 16px 5px rgba(217,169,74,0.45);
+    border-color:rgba(217,169,74,0.5);
+  }
+  .node.trans{ transition:background 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease; }
+  .labels{
+    display:flex; justify-content:space-between; width:88%; max-width:300px;
+    font-size:8.5px; letter-spacing:0.06em; color:var(--paper-dim); text-transform:uppercase; opacity:0.65;
+  }
+
+  .call-btn{
+    padding:15px 36px; background:var(--card); border:1px solid var(--card-edge); border-radius:5px;
+    color:var(--paper); font-family:Georgia,serif; font-size:12.5px; letter-spacing:0.14em; text-transform:uppercase;
+    touch-action:manipulation;
+  }
+  .call-btn:active{ background:#221c11; border-color:var(--gold-dim); }
+  .call-btn:disabled{ opacity:0.5; }
+
+  .back{
+    position:fixed; left:calc(14px + env(safe-area-inset-left)); bottom:calc(12px + env(safe-area-inset-bottom));
+    font-size:11px; color:var(--paper-dim); text-decoration:none; letter-spacing:0.02em;
+    opacity:0.55; font-family:Georgia,serif;
+  }
+  .log-mark{
+    position:fixed; right:calc(14px + env(safe-area-inset-right)); bottom:calc(12px + env(safe-area-inset-bottom));
+    font-size:10.5px; letter-spacing:0.1em; color:var(--paper-dim); text-transform:uppercase;
+    background:none; border:1px solid var(--card-edge); border-radius:3px;
+    padding:6px 10px; opacity:0.6; font-family:Georgia,serif;
+  }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,3,0.92);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px; opacity:0; pointer-events:none;
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+  .overlay.fade{ transition:opacity 0.25s ease; }
+  .sheet{
+    width:100%; max-width:340px; border:1px solid var(--card-edge); background:var(--panel);
+    border-radius:6px; padding:22px 20px;
+  }
+  .sheet h2{
+    margin:0 0 14px; font-size:13px; letter-spacing:0.16em; color:var(--gold-dim); text-transform:uppercase; font-weight:600;
+  }
+  .sheet .row{
+    display:flex; justify-content:space-between; gap:12px; font-size:12.5px; padding:6px 0;
+    border-bottom:1px solid rgba(65,56,36,0.4); color:var(--paper-dim);
+  }
+  .sheet .row span:last-child{ color:var(--paper); text-align:right; }
+  .sheet .confession{
+    margin-top:14px; font-size:12px; line-height:1.55; color:var(--paper-dim); font-style:italic;
+  }
+  .sheet .close{
+    margin-top:18px; width:100%; padding:10px; background:none; border:1px solid var(--card-edge);
+    color:var(--paper-dim); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; border-radius:4px;
+    font-family:Georgia,serif;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .node.trans, .marquee .declared.trans, .overlay.fade{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="heading">
+    <div class="kicker">Backstage — House Relay</div>
+    <div class="instr">Tap to call for a slower pace.</div>
+  </div>
+
+  <div class="marquee">
+    <div class="declared trans" id="declared">Standing by.</div>
+    <div class="tally">Called tonight: <b id="cCount">0</b></div>
+  </div>
+
+  <div class="rig">
+    <div class="wire" id="wire">
+      <div class="node trans" data-i="0"></div>
+      <div class="node trans" data-i="1"></div>
+      <div class="node trans" data-i="2"></div>
+      <div class="node trans" data-i="3"></div>
+      <div class="node trans" data-i="4"></div>
+    </div>
+    <div class="labels">
+      <span>SM</span><span>ASM 1</span><span>ASM 2</span><span>ASM 3</span><span>FOH</span>
+    </div>
+  </div>
+
+  <button class="call-btn" id="callBtn" type="button">Call: Ease the Pace</button>
+
+  <a class="back" href="../../index.html">← cue sheet</a>
+  <button class="log-mark" id="logMark" type="button">Call Sheet</button>
+</div>
+
+<div class="overlay fade" id="overlay">
+  <div class="sheet">
+    <h2>Call Sheet</h2>
+    <div class="row"><span>Declared, tonight</span><span id="rDeclared">Standing by.</span></div>
+    <div class="row"><span>Times called</span><span id="rCount">0</span></div>
+    <div class="row"><span>First relay time</span><span id="rFirst">—</span></div>
+    <div class="row"><span>Latest relay time</span><span id="rLatest">—</span></div>
+    <div class="row"><span>Relay, faster by</span><span id="rDelta">0%</span></div>
+    <div class="row"><span>Floor reached</span><span id="rFloor">no</span></div>
+    <div class="confession" id="rConfession">Nobody's called it yet. The wire hasn't moved.</div>
+    <button class="close" id="closeLog" type="button">Close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var FIRST_HOP = 850;
+  var FLOOR_HOP = 70;
+  var MULT = 0.82;
+
+  var texts = [
+    'Called.',
+    'Seconded, hours later.',
+    'Safeguard adopted.',
+    'Coordinated. Standard set.',
+    'A landmark in restraint.'
+  ];
+
+  var nodes = Array.prototype.slice.call(document.querySelectorAll('.node'));
+  var declared = document.getElementById('declared');
+  var cCount = document.getElementById('cCount');
+  var callBtn = document.getElementById('callBtn');
+
+  var hop = FIRST_HOP;
+  var firstHop = null;
+  var callCount = 0;
+  var busy = false;
+
+  function setDeclared(text){
+    declared.classList.add('dim');
+    var apply = function(){
+      declared.textContent = text;
+      declared.classList.remove('dim');
+    };
+    if (reduced){ apply(); } else { setTimeout(apply, 110); }
+  }
+
+  function clearNodes(){
+    nodes.forEach(function(n){ n.classList.remove('lit'); });
+  }
+
+  function runChase(thisHop, done){
+    clearNodes();
+    var i = 0;
+    function step(){
+      if (i > 0) nodes[i - 1].classList.remove('lit');
+      if (i >= nodes.length){ done(); return; }
+      nodes[i].classList.add('lit');
+      i++;
+      setTimeout(step, reduced ? 16 : thisHop);
+    }
+    step();
+  }
+
+  function call(){
+    if (busy) return;
+    busy = true;
+    callBtn.disabled = true;
+
+    var thisHop = hop;
+    runChase(thisHop, function(){
+      callCount++;
+      cCount.textContent = callCount;
+      if (firstHop === null) firstHop = thisHop;
+
+      var idx = Math.min(callCount - 1, texts.length - 1);
+      setDeclared(texts[idx]);
+
+      hop = Math.max(FLOOR_HOP, Math.round(hop * MULT));
+
+      setTimeout(function(){
+        clearNodes();
+        busy = false;
+        callBtn.disabled = false;
+      }, reduced ? 60 : 260);
+    });
+  }
+
+  callBtn.addEventListener('click', call);
+
+  // Call Sheet
+  var logMark = document.getElementById('logMark');
+  var overlay = document.getElementById('overlay');
+  var closeLog = document.getElementById('closeLog');
+  var rDeclared = document.getElementById('rDeclared');
+  var rCount = document.getElementById('rCount');
+  var rFirst = document.getElementById('rFirst');
+  var rLatest = document.getElementById('rLatest');
+  var rDelta = document.getElementById('rDelta');
+  var rFloor = document.getElementById('rFloor');
+  var rConfession = document.getElementById('rConfession');
+
+  function renderLog(){
+    rDeclared.textContent = declared.textContent;
+    rCount.textContent = callCount;
+    if (callCount === 0){
+      rFirst.textContent = '—';
+      rLatest.textContent = '—';
+      rDelta.textContent = '0%';
+      rFloor.textContent = 'no';
+      rConfession.textContent = "Nobody's called it yet. The wire hasn't moved.";
+      return;
+    }
+    var latest = hop;
+    var pct = Math.round((1 - latest / firstHop) * 100);
+    var atFloor = latest <= FLOOR_HOP;
+    rFirst.textContent = firstHop + 'ms';
+    rLatest.textContent = latest + 'ms';
+    rDelta.textContent = pct + '%';
+    rFloor.textContent = atFloor ? 'yes' : 'no';
+    rConfession.textContent = atFloor
+      ? 'The relay is as fast as this wire will ever move. It is still being called ease.'
+      : 'Every call for a slower pace has made this wire faster to relay it than the call before. Nobody on it has said "slower" since the first one — only "confirmed," faster each time.';
+  }
+
+  logMark.addEventListener('click', function(){
+    renderLog();
+    overlay.classList.add('open');
+  });
+  closeLog.addEventListener('click', function(){
+    overlay.classList.remove('open');
+  });
+  overlay.addEventListener('click', function(e){
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+})();
+</script>
+</body>
+</html>

@@ -370,6 +370,13 @@
       "kind": "seed",
       "note": "Six stands share one score. Play yours however you like — the pit isn't only listening to you.",
       "path": "projects/2026-09-12-cut-time/index.html"
+    },
+    {
+      "date": "2026-09-14",
+      "title": "(Slow Curtain.)",
+      "kind": "question",
+      "note": "Call for a slower show. Watch how fast the call gets there.",
+      "path": "projects/2026-09-14-slow-curtain/index.html"
     }
   ]
 }
