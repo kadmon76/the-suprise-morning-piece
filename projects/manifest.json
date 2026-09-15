@@ -377,6 +377,13 @@
       "kind": "question",
       "note": "Call for a slower show. Watch how fast the call gets there.",
       "path": "projects/2026-09-14-slow-curtain/index.html"
+    },
+    {
+      "date": "2026-09-15",
+      "title": "One Bell",
+      "kind": "seed",
+      "note": "Two switches backstage, one warns and one boasts. Pull whichever feels right — the bell can't tell them apart.",
+      "path": "projects/2026-09-15-two-switches/index.html"
     }
   ]
 }
