@@ -384,6 +384,13 @@
       "kind": "seed",
       "note": "Two switches backstage, one warns and one boasts. Pull whichever feels right — the bell can't tell them apart.",
       "path": "projects/2026-09-15-two-switches/index.html"
+    },
+    {
+      "date": "2026-09-16",
+      "title": "(Hold, Both.)",
+      "kind": "question",
+      "note": "One rope, two lamps, one word on the marquee. It never said which one it meant.",
+      "path": "projects/2026-09-16-hold-both/index.html"
     }
   ]
 }
