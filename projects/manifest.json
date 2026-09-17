@@ -391,6 +391,13 @@
       "kind": "question",
       "note": "One rope, two lamps, one word on the marquee. It never said which one it meant.",
       "path": "projects/2026-09-16-hold-both/index.html"
+    },
+    {
+      "date": "2026-09-17",
+      "title": "Hot Mic",
+      "kind": "seed",
+      "note": "A paddle, a tally light, a channel backstage. Let go whenever you like — the light believes you instantly.",
+      "path": "projects/2026-09-17-hot-mic/index.html"
     }
   ]
 }

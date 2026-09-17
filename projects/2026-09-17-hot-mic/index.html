@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Hot Mic</title>
+<style>
+  :root{
+    --bg:#0a0908;
+    --gold:#d9a94a;
+    --gold-dim:#7a6335;
+    --paper:#e8e2d2;
+    --paper-dim:#867e6a;
+    --panel:#14120d;
+    --panel-edge:#332c1e;
+    --card:#1b1812;
+    --card-edge:#413824;
+    --rust:#c1503a;
+    --rust-dim:#5c2d22;
+    --ice:#7fb8d6;
+    --ice-dim:#3f5c68;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--paper);
+    font-family:Georgia,'Times New Roman',serif;
+    -webkit-user-select:none; user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center;
+    padding:calc(22px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+    background:
+      radial-gradient(ellipse 60% 24% at 50% 4%, rgba(217,169,74,0.05), transparent 62%),
+      var(--bg);
+    gap:12px;
+  }
+  .back{
+    position:absolute; top:calc(10px + env(safe-area-inset-top)); left:calc(12px + env(safe-area-inset-left));
+    color:var(--paper-dim); text-decoration:none; font-size:12px; opacity:0.55; letter-spacing:0.02em;
+    z-index:5;
+  }
+  .heading{ text-align:center; margin-top:6px; }
+  .heading .kicker{ font-size:10.5px; letter-spacing:0.22em; color:var(--gold-dim); text-transform:uppercase; }
+  .heading .instr{
+    font-size:12.5px; color:var(--paper-dim); margin-top:8px; letter-spacing:0.01em; font-style:italic;
+    max-width:280px; margin-left:auto; margin-right:auto; line-height:1.45;
+  }
+
+  .tally{
+    display:flex; flex-direction:column; align-items:center; gap:7px; margin-top:4px;
+  }
+  .tally .lamp{
+    width:20px; height:20px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #3a1712, #1c0c09);
+    border:1px solid var(--rust-dim);
+    box-shadow:inset 0 0 4px rgba(0,0,0,0.6);
+    transition:background 0.08s linear, box-shadow 0.08s linear, border-color 0.2s ease;
+  }
+  .tally.live .lamp{
+    background:radial-gradient(circle at 35% 30%, #ff8768, var(--rust));
+    border-color:var(--rust);
+    box-shadow:0 0 14px 3px rgba(193,80,58,0.65), inset 0 0 6px rgba(255,255,255,0.25);
+    animation:lamppulse 1.1s ease-in-out infinite;
+  }
+  @keyframes lamppulse{ 0%,100%{filter:brightness(1);} 50%{filter:brightness(1.18);} }
+  .tally .label{ font-size:11px; letter-spacing:0.18em; color:var(--paper-dim); text-transform:uppercase; }
+  .tally.live .label{ color:var(--rust); }
+
+  .paddlewrap{ margin-top:8px; }
+  .paddle{
+    width:150px; height:88px; border-radius:14px;
+    background:linear-gradient(180deg, #241f16, #15120c);
+    border:1px solid var(--card-edge);
+    box-shadow:0 5px 0 #0c0a07, 0 8px 14px rgba(0,0,0,0.5);
+    display:flex; align-items:center; justify-content:center;
+    touch-action:none; cursor:pointer;
+    transition:transform 0.05s ease, box-shadow 0.05s ease;
+  }
+  .paddle .grip{
+    width:88px; height:44px; border-radius:8px;
+    background:repeating-linear-gradient(180deg, #2c2416, #2c2416 3px, #1c170f 3px, #1c170f 6px);
+    border:1px solid #4a3f27;
+    display:flex; align-items:center; justify-content:center;
+    font-size:10.5px; letter-spacing:0.16em; color:var(--paper-dim); text-transform:uppercase;
+  }
+  .paddle.down{
+    transform:translateY(4px);
+    box-shadow:0 1px 0 #0c0a07, 0 3px 8px rgba(0,0,0,0.5);
+  }
+  .paddle.down .grip{ color:var(--gold); border-color:var(--gold-dim); }
+
+  .transcript{
+    width:100%; max-width:380px; flex:1; min-height:0; margin-top:10px;
+    background:var(--panel); border:1px solid var(--panel-edge); border-radius:10px;
+    padding:12px 13px; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    font-size:13px; line-height:1.65;
+  }
+  .transcript::-webkit-scrollbar{ width:0; }
+  .entry{ margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--panel-edge); }
+  .entry:last-child{ border-bottom:none; margin-bottom:0; padding-bottom:0; }
+  .entry .ts{ font-size:9.5px; letter-spacing:0.12em; color:var(--paper-dim); opacity:0.55; text-transform:uppercase; display:block; margin-bottom:4px; }
+  .seg-spoken{ color:var(--gold); }
+  .seg-ambient{ color:var(--ice); font-style:italic; opacity:0.9; }
+  .placeholder{ color:var(--paper-dim); opacity:0.45; font-style:italic; font-size:12.5px; }
+
+  .monitor-mark{
+    position:absolute; bottom:calc(14px + env(safe-area-inset-bottom)); right:calc(16px + env(safe-area-inset-right));
+    width:30px; height:30px; display:flex; align-items:center; justify-content:center;
+    color:var(--paper-dim); opacity:0.4; font-size:14px; z-index:5; touch-action:manipulation;
+  }
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,4,0.94); z-index:20;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+    opacity:0; pointer-events:none; transition:opacity 0.18s ease;
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:340px; background:var(--card); border:1px solid var(--card-edge); border-radius:12px;
+    padding:20px 20px 18px; font-family:'Courier New',monospace; font-size:12.5px; color:var(--paper); line-height:1.7;
+  }
+  .sheet h2{ margin:0 0 12px; font-family:Georgia,serif; font-size:14px; letter-spacing:0.08em; color:var(--gold); text-transform:uppercase; font-weight:normal; }
+  .sheet .row{ display:flex; justify-content:space-between; gap:10px; color:var(--paper-dim); }
+  .sheet .row b{ color:var(--paper); font-weight:normal; }
+  .sheet .confession{ margin-top:14px; padding-top:12px; border-top:1px solid var(--card-edge); font-family:Georgia,serif; font-style:italic; color:var(--paper-dim); font-size:12.5px; line-height:1.55; }
+  .sheet .close{ margin-top:16px; text-align:center; color:var(--gold-dim); font-family:Georgia,serif; font-size:12px; letter-spacing:0.05em; }
+
+  @media (prefers-reduced-motion: reduce){
+    .tally.live .lamp{ animation:none; filter:brightness(1.1); }
+    .paddle, .overlay{ transition:none; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <a class="back" href="../../index.html">← cue sheet</a>
+
+  <div class="heading">
+    <div class="kicker">Comms — Channel 2</div>
+    <div class="instr">Hold the paddle to call, and let go whenever you're done.</div>
+  </div>
+
+  <div class="tally" id="tally">
+    <div class="lamp"></div>
+    <div class="label" id="tallyLabel">OFF AIR</div>
+  </div>
+
+  <div class="paddlewrap">
+    <div class="paddle" id="paddle">
+      <div class="grip">Talk</div>
+    </div>
+  </div>
+
+  <div class="transcript" id="transcript">
+    <div class="placeholder" id="placeholder">Nothing called yet tonight.</div>
+  </div>
+
+  <div class="monitor-mark" id="monitorMark">●</div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>Monitor</h2>
+    <div class="row"><span>broadcasts closed</span><b id="mBroadcasts">0</b></div>
+    <div class="row"><span>held live</span><b id="mLive">0.0s</b></div>
+    <div class="row"><span>captured after dark</span><b id="mTrail">0.0s</b></div>
+    <div class="row"><span>of everything sent, dark-captured</span><b id="mPct">0%</b></div>
+    <div class="row"><span>calls that looked separate</span><b id="mApparent">0</b></div>
+    <div class="row"><span>lines that actually closed</span><b id="mReal">0</b></div>
+    <div class="confession" id="mConfession">The light goes dark the instant you let go. The line doesn't — it stays open about 3 seconds longer, every time, whether or not you meant to say anything else.</div>
+    <div class="close" id="closeMonitor">— close —</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var CALL_PHRASES = [
+    "Standby, follow spot.",
+    "House to half.",
+    "Cue twelve, go.",
+    "Warn fly one.",
+    "Hold, please.",
+    "Picture's up.",
+    "Thank you, clear.",
+    "Ready on the go.",
+    "Strike the prop.",
+    "Places, please."
+  ];
+  var AMBIENT_PHRASES = [
+    "...did he catch that cue",
+    "...just tell him it's fine",
+    "...five minutes, tops",
+    "...don't say anything yet",
+    "...same as last night",
+    "...nobody checks this channel",
+    "...say it again, softer",
+    "...that's not for the log",
+    "...he already knows, i think",
+    "...leave it, it's not worth it"
+  ];
+
+  var HOLD_INTERVAL = 700;
+  var TRAIL_INTERVAL = 750;
+  var TRAIL_DURATION = 3200;
+
+  var paddle = document.getElementById('paddle');
+  var tally = document.getElementById('tally');
+  var tallyLabel = document.getElementById('tallyLabel');
+  var transcript = document.getElementById('transcript');
+  var placeholder = document.getElementById('placeholder');
+  var monitorMark = document.getElementById('monitorMark');
+  var overlay = document.getElementById('overlay');
+  var closeMonitor = document.getElementById('closeMonitor');
+
+  var state = 'idle'; // idle | live | trailing
+  var current = null;
+  var holdIntervalId = null;
+  var trailIntervalId = null;
+  var sealTimeoutId = null;
+  var liveEl = null;
+
+  var ledger = { broadcasts:0, liveMs:0, trailMs:0, bridgeEvents:0 };
+
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function now(){ return Date.now(); }
+
+  function setLamp(on){
+    if(on){ tally.classList.add('live'); tallyLabel.textContent = 'LIVE'; }
+    else { tally.classList.remove('live'); tallyLabel.textContent = 'OFF AIR'; }
+  }
+
+  function ensureLiveEl(){
+    if(placeholder && placeholder.parentNode){ placeholder.remove(); }
+    if(!liveEl){
+      liveEl = document.createElement('div');
+      liveEl.className = 'entry';
+      var ts = document.createElement('span');
+      ts.className = 'ts';
+      var d = new Date();
+      ts.textContent = d.toTimeString().slice(0,8);
+      liveEl.appendChild(ts);
+      transcript.appendChild(liveEl);
+    }
+  }
+
+  function appendSegment(kind, text){
+    ensureLiveEl();
+    var span = document.createElement('span');
+    span.className = kind === 'spoken' ? 'seg-spoken' : 'seg-ambient';
+    span.textContent = text + ' ';
+    liveEl.appendChild(span);
+    transcript.scrollTop = transcript.scrollHeight;
+  }
+
+  function startEntry(){
+    current = { startTs: now(), liveStart: now(), liveMs:0, bridges:0 };
+    liveEl = null;
+  }
+
+  function onDown(e){
+    e.preventDefault();
+    try{ paddle.setPointerCapture(e.pointerId); }catch(err){}
+    paddle.classList.add('down');
+
+    if(state === 'idle'){
+      startEntry();
+      state = 'live';
+      setLamp(true);
+      appendSegment('spoken', pick(CALL_PHRASES));
+      holdIntervalId = setInterval(function(){ appendSegment('spoken', pick(CALL_PHRASES)); }, HOLD_INTERVAL);
+    } else if(state === 'trailing'){
+      clearInterval(trailIntervalId); trailIntervalId = null;
+      clearTimeout(sealTimeoutId); sealTimeoutId = null;
+      current.bridges++;
+      current.liveStart = now();
+      state = 'live';
+      setLamp(true);
+      appendSegment('spoken', pick(CALL_PHRASES));
+      holdIntervalId = setInterval(function(){ appendSegment('spoken', pick(CALL_PHRASES)); }, HOLD_INTERVAL);
+    }
+  }
+
+  function onUp(e){
+    paddle.classList.remove('down');
+    if(state !== 'live') return;
+    clearInterval(holdIntervalId); holdIntervalId = null;
+    current.liveMs += now() - current.liveStart;
+    state = 'trailing';
+    setLamp(false);
+    trailIntervalId = setInterval(function(){ appendSegment('ambient', pick(AMBIENT_PHRASES)); }, TRAIL_INTERVAL);
+    clearTimeout(sealTimeoutId);
+    sealTimeoutId = setTimeout(sealEntry, TRAIL_DURATION);
+  }
+
+  function sealEntry(){
+    clearInterval(trailIntervalId); trailIntervalId = null;
+    sealTimeoutId = null;
+    var totalMs = now() - current.startTs;
+    var trailMs = Math.max(0, totalMs - current.liveMs);
+
+    ledger.broadcasts += 1;
+    ledger.liveMs += current.liveMs;
+    ledger.trailMs += trailMs;
+    ledger.bridgeEvents += current.bridges;
+
+    liveEl = null;
+    current = null;
+    state = 'idle';
+    setLamp(false);
+  }
+
+  paddle.addEventListener('pointerdown', onDown);
+  paddle.addEventListener('pointerup', onUp);
+  paddle.addEventListener('pointercancel', onUp);
+  paddle.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+  function renderMonitor(){
+    var liveSec = (ledger.liveMs/1000).toFixed(1);
+    var trailSec = (ledger.trailMs/1000).toFixed(1);
+    var totalMs = ledger.liveMs + ledger.trailMs;
+    var pct = totalMs > 0 ? Math.round((ledger.trailMs/totalMs)*100) : 0;
+    var apparent = ledger.broadcasts + ledger.bridgeEvents;
+
+    document.getElementById('mBroadcasts').textContent = ledger.broadcasts;
+    document.getElementById('mLive').textContent = liveSec + 's';
+    document.getElementById('mTrail').textContent = trailSec + 's';
+    document.getElementById('mPct').textContent = pct + '%';
+    document.getElementById('mApparent').textContent = apparent;
+    document.getElementById('mReal').textContent = ledger.broadcasts;
+  }
+
+  monitorMark.addEventListener('click', function(){
+    renderMonitor();
+    overlay.classList.add('open');
+  });
+  closeMonitor.addEventListener('click', function(){
+    overlay.classList.remove('open');
+  });
+  overlay.addEventListener('click', function(e){
+    if(e.target === overlay){ overlay.classList.remove('open'); }
+  });
+})();
+</script>
+</body>
+</html>
