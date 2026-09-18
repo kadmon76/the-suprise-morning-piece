@@ -398,6 +398,13 @@
       "kind": "seed",
       "note": "A paddle, a tally light, a channel backstage. Let go whenever you like — the light believes you instantly.",
       "path": "projects/2026-09-17-hot-mic/index.html"
+    },
+    {
+      "date": "2026-09-18",
+      "title": "(Cannot Be Fully Mitigated.)",
+      "kind": "question",
+      "note": "A lobby board, a line of faces, a magnifying glass that only ever agrees with itself.",
+      "path": "projects/2026-09-18-cannot-be-fully-mitigated/index.html"
     }
   ]
 }
