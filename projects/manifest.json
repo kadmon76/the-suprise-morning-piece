@@ -405,6 +405,13 @@
       "kind": "question",
       "note": "A lobby board, a line of faces, a magnifying glass that only ever agrees with itself.",
       "path": "projects/2026-09-18-cannot-be-fully-mitigated/index.html"
+    },
+    {
+      "date": "2026-09-19",
+      "title": "Overtime",
+      "kind": "seed",
+      "note": "Thirty-six sockets, one rig. Tap fast if you like — the hanging doesn't wait on your hands.",
+      "path": "projects/2026-09-19-overtime/index.html"
     }
   ]
 }
