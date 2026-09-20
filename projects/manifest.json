@@ -412,6 +412,13 @@
       "kind": "seed",
       "note": "Thirty-six sockets, one rig. Tap fast if you like — the hanging doesn't wait on your hands.",
       "path": "projects/2026-09-19-overtime/index.html"
+    },
+    {
+      "date": "2026-09-20",
+      "title": "(Full Up.)",
+      "kind": "question",
+      "note": "A fader, a glass, three cards for what \"full\" means. It always reads true — just maybe not by the same card twice.",
+      "path": "projects/2026-09-20-full-up/index.html"
     }
   ]
 }

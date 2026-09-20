@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>(Full Up.)</title>
+<style>
+  :root{
+    --bg:#0a0908;
+    --gold:#d9a94a;
+    --gold-dim:#7a6335;
+    --paper:#e8e2d2;
+    --paper-dim:#867e6a;
+    --panel:#14120d;
+    --panel-edge:#332c1e;
+    --card:#1b1812;
+    --card-edge:#413824;
+    --rust:#c1503a;
+    --rust-dim:#5c2d22;
+    --amber:#c98a3a;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--paper);
+    font-family:Georgia,'Times New Roman',serif;
+    -webkit-user-select:none; user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center;
+    padding:calc(20px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+    background:
+      radial-gradient(ellipse 60% 22% at 50% 4%, rgba(217,169,74,0.05), transparent 62%),
+      var(--bg);
+  }
+  .back{
+    position:absolute; top:calc(10px + env(safe-area-inset-top)); left:calc(12px + env(safe-area-inset-left));
+    color:var(--paper-dim); text-decoration:none; font-size:12px; opacity:0.55; letter-spacing:0.02em;
+    z-index:5;
+  }
+  .heading{ text-align:center; margin-top:6px; flex-shrink:0; }
+  .heading .kicker{ font-size:10.5px; letter-spacing:0.22em; color:var(--gold-dim); text-transform:uppercase; }
+  .heading .instr{
+    font-size:13px; color:var(--paper-dim); margin-top:8px; letter-spacing:0.01em; font-style:italic;
+  }
+
+  .cardsRow{ display:flex; gap:8px; margin-top:16px; flex-shrink:0; }
+  .cardTab{
+    padding:7px 10px; border-radius:7px; background:var(--panel);
+    border:1px solid var(--panel-edge);
+    font-family:'Courier New',monospace; font-size:9.5px; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--paper-dim);
+    touch-action:manipulation;
+  }
+  .cardTab.pinned{ color:var(--gold); }
+  .cardTab.pinned.manual{ border-color:var(--gold); border-style:solid; box-shadow:0 0 8px 1px rgba(217,169,74,0.28); }
+  .cardTab.pinned.house{ border-color:var(--amber); border-style:dashed; }
+
+  .rigwrap{
+    flex:1; min-height:0; width:100%; max-width:360px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+  }
+
+  .glassBox{ text-align:center; }
+  .glassBox .readout{
+    font-family:'Courier New',monospace; font-size:22px; letter-spacing:0.12em;
+    color:var(--paper-dim);
+  }
+  .glassBox .readout.met{ color:var(--gold); text-shadow:0 0 10px rgba(217,169,74,0.5); }
+  .glassBox .by{ font-size:9.5px; letter-spacing:0.14em; color:var(--paper-dim); opacity:0.6; margin-top:4px; text-transform:uppercase; }
+
+  .faderRow{ display:flex; align-items:flex-end; gap:16px; }
+  .trackWrap{
+    position:relative; width:56px; height:clamp(170px, 36vh, 280px);
+    touch-action:none;
+  }
+  .track{
+    position:absolute; inset:0; border-radius:9px;
+    background:linear-gradient(180deg, #201c14, #0f0d09);
+    border:1px solid var(--panel-edge);
+    box-shadow:inset 0 0 10px rgba(0,0,0,0.6);
+    overflow:hidden;
+  }
+  .fillbelow{
+    position:absolute; left:0; right:0; bottom:0; height:0%;
+    background:linear-gradient(180deg, rgba(217,169,74,0.16), rgba(217,169,74,0.03));
+  }
+  .notch{
+    position:absolute; left:-3px; right:-3px; height:2px; bottom:8%;
+    background:var(--amber); opacity:0.8;
+  }
+  .handle{
+    position:absolute; left:-7px; right:-7px; height:26px; bottom:0;
+    border-radius:6px;
+    background:linear-gradient(180deg, #ffe2a0, var(--gold));
+    box-shadow:0 2px 6px rgba(0,0,0,0.5), 0 0 8px rgba(217,169,74,0.35);
+  }
+  .handle::before{
+    content:''; position:absolute; left:8px; right:8px; top:50%; height:2px;
+    background:rgba(20,17,12,0.5); transform:translateY(-50%);
+  }
+  .pctLabel{
+    position:absolute; right:calc(100% + 8px); top:50%; transform:translateY(-50%);
+    font-family:'Courier New',monospace; font-size:11px; color:var(--paper-dim); white-space:nowrap;
+  }
+
+  .tape{
+    width:100%; max-width:300px; flex-shrink:0;
+    font-family:'Courier New',monospace; font-size:10.5px; color:var(--paper-dim);
+    max-height:96px; overflow-y:auto;
+    border-top:1px solid var(--panel-edge); padding-top:6px;
+  }
+  .tape .row{ display:flex; justify-content:space-between; padding:2px 2px; opacity:0.85; }
+  .tape .row .v.met{ color:var(--gold); }
+  .tape .row .v.no{ color:var(--paper-dim); }
+  .tape .empty{ text-align:center; opacity:0.4; font-style:italic; font-family:Georgia,serif; padding:6px 0; }
+
+  .ledger-mark{
+    position:absolute; bottom:calc(14px + env(safe-area-inset-bottom)); right:calc(16px + env(safe-area-inset-right));
+    width:30px; height:30px; display:flex; align-items:center; justify-content:center;
+    color:var(--paper-dim); opacity:0.4; font-size:14px; z-index:5; touch-action:manipulation;
+  }
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,4,0.94); z-index:20;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+    opacity:0; pointer-events:none; transition:opacity 0.18s ease;
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:340px; background:var(--card); border:1px solid var(--card-edge); border-radius:12px;
+    padding:20px 18px 18px; font-family:'Courier New',monospace; font-size:12px; color:var(--paper); line-height:1.6;
+    max-height:84vh; overflow-y:auto;
+  }
+  .sheet h2{ margin:0 0 12px; font-family:Georgia,serif; font-size:14px; letter-spacing:0.08em; color:var(--gold); text-transform:uppercase; font-weight:normal; }
+  .sheet .sum{ display:flex; justify-content:space-between; gap:8px; color:var(--paper-dim); margin-bottom:3px; }
+  .sheet .sum b{ color:var(--paper); font-weight:normal; }
+  .sheet table{ width:100%; border-collapse:collapse; margin-top:12px; font-size:10.5px; }
+  .sheet th{ text-align:right; color:var(--gold-dim); font-weight:normal; padding-bottom:4px; border-bottom:1px solid var(--card-edge); }
+  .sheet th:first-child, .sheet td:first-child{ text-align:left; }
+  .sheet td{ text-align:right; padding:3px 0; color:var(--paper-dim); border-bottom:1px solid rgba(65,56,36,0.4); }
+  .sheet td.yes{ color:var(--gold); }
+  .sheet .confession{ margin-top:14px; padding-top:12px; border-top:1px solid var(--card-edge); font-family:Georgia,serif; font-style:italic; color:var(--paper-dim); font-size:12px; line-height:1.6; }
+  .sheet .confession + .confession{ margin-top:10px; padding-top:0; border-top:none; }
+  .sheet .close{ margin-top:16px; text-align:center; color:var(--gold-dim); font-family:Georgia,serif; font-size:12px; letter-spacing:0.05em; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; animation:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <a class="back" href="../../index.html">← cue sheet</a>
+
+  <div class="heading">
+    <div class="kicker">Rig Check — Full Up</div>
+    <div class="instr">Bring the fader up.</div>
+  </div>
+
+  <div class="cardsRow" id="cardsRow"></div>
+
+  <div class="rigwrap">
+    <div class="glassBox">
+      <div class="readout" id="readout">—</div>
+      <div class="by" id="byline">reading by: —</div>
+    </div>
+
+    <div class="faderRow">
+      <div class="pctLabel" id="pctLabel">0%</div>
+      <div class="trackWrap" id="trackWrap">
+        <div class="track">
+          <div class="fillbelow" id="fillbelow"></div>
+          <div class="notch" id="notch"></div>
+        </div>
+        <div class="handle" id="handle"></div>
+      </div>
+    </div>
+
+    <div class="tape" id="tape">
+      <div class="empty">nothing logged yet</div>
+    </div>
+  </div>
+
+  <div class="ledger-mark" id="ledgerMark">●</div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>Call Sheet</h2>
+    <div class="sum"><span>pulls logged</span><b id="sTotal">0</b></div>
+    <div class="sum"><span>met, "a touch"</span><b id="sA">0 / 0</b></div>
+    <div class="sum"><span>met, "most of it"</span><b id="sB">0 / 0</b></div>
+    <div class="sum"><span>met, "alone"</span><b id="sC">0 / 0</b></div>
+    <div class="sum"><span>card pinned now</span><b id="sPinned">—</b></div>
+    <div class="sum"><span>the house chose it</span><b id="sHouse">0</b></div>
+    <div class="sum"><span>you chose it</span><b id="sManual">0</b></div>
+    <table id="sTable">
+      <thead><tr><th>#</th><th>pos</th><th>printed</th></tr></thead>
+      <tbody id="sBody"></tbody>
+    </table>
+    <div class="confession">Every position above is true or not, three separate ways, at once, the whole time. Only one of the three ever gets printed on the tape — whichever card happens to be clipped to the glass at that second.</div>
+    <div class="confession">Two crews wrote two different meanings for "full" this season. One calls it full at the first bleed of light past dark. The other won't call it full until no hand is anywhere near the wheel. Nobody above either crew has said which one the house should read by — so the house reads by whichever one is currently winning.</div>
+    <div class="confession">It was never hidden which card was pinned. It only ever moved once nobody was still holding the wheel to notice.</div>
+    <div class="close" id="closeLedger">— close —</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var CARDS = [
+    { label:'A Touch', thresh:8 },
+    { label:'Most of It', thresh:55 },
+    { label:'Alone', thresh:92 }
+  ];
+
+  var trackWrap = document.getElementById('trackWrap');
+  var handle = document.getElementById('handle');
+  var fillbelow = document.getElementById('fillbelow');
+  var notch = document.getElementById('notch');
+  var pctLabel = document.getElementById('pctLabel');
+  var readout = document.getElementById('readout');
+  var byline = document.getElementById('byline');
+  var cardsRow = document.getElementById('cardsRow');
+  var tape = document.getElementById('tape');
+  var ledgerMark = document.getElementById('ledgerMark');
+  var overlay = document.getElementById('overlay');
+  var closeLedger = document.getElementById('closeLedger');
+
+  var pos = 0;
+  var pinned = 1;
+  var houseMode = true;
+  var houseSwitches = 0;
+  var manualPins = 0;
+  var dragging = false;
+  var houseTimer = null;
+  var rows = [];
+
+  function buildTabs(){
+    cardsRow.innerHTML = '';
+    CARDS.forEach(function(c, i){
+      var t = document.createElement('div');
+      t.className = 'cardTab';
+      t.textContent = c.label;
+      t.dataset.idx = i;
+      t.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        pinCard(i, true);
+      });
+      cardsRow.appendChild(t);
+    });
+    renderTabs();
+  }
+
+  function renderTabs(){
+    var tabs = cardsRow.children;
+    for(var i = 0; i < tabs.length; i++){
+      var t = tabs[i];
+      t.classList.toggle('pinned', i === pinned);
+      t.classList.toggle('manual', i === pinned && !houseMode);
+      t.classList.toggle('house', i === pinned && houseMode);
+    }
+  }
+
+  function trackRect(){ return trackWrap.getBoundingClientRect(); }
+
+  function posFromClientY(clientY){
+    var r = trackRect();
+    var pct = (r.bottom - clientY) / r.height * 100;
+    return Math.max(0, Math.min(100, pct));
+  }
+
+  function renderFader(){
+    handle.style.bottom = pos + '%';
+    fillbelow.style.height = pos + '%';
+    pctLabel.textContent = Math.round(pos) + '%';
+  }
+
+  function renderNotch(){
+    notch.style.bottom = CARDS[pinned].thresh + '%';
+  }
+
+  function renderGlass(){
+    var met = pos >= CARDS[pinned].thresh;
+    readout.textContent = met ? 'FULL' : 'NOT YET';
+    readout.classList.toggle('met', met);
+    byline.textContent = 'reading by: ' + CARDS[pinned].label;
+  }
+
+  function pinCard(i, isManual){
+    pinned = i;
+    if(isManual){
+      houseMode = false;
+      manualPins++;
+      if(houseTimer){ clearTimeout(houseTimer); }
+      houseTimer = setTimeout(function(){
+        houseMode = true;
+        recomputeHouse();
+      }, 5000);
+    }
+    renderTabs();
+    renderNotch();
+    renderGlass();
+  }
+
+  function recomputeHouse(){
+    if(!houseMode || rows.length === 0){ renderTabs(); return; }
+    var counts = [0,0,0];
+    rows.forEach(function(r){
+      CARDS.forEach(function(c, i){ if(r.pos >= c.thresh){ counts[i]++; } });
+    });
+    var best = pinned;
+    for(var i = 0; i < 3; i++){
+      if(counts[i] > counts[best]){ best = i; }
+    }
+    if(best !== pinned){
+      pinned = best;
+      houseSwitches++;
+    }
+    renderTabs();
+    renderNotch();
+    renderGlass();
+  }
+
+  function logRow(){
+    var r = { pos: Math.round(pos), card: pinned };
+    rows.push(r);
+    renderTape();
+    recomputeHouse();
+  }
+
+  function renderTape(){
+    if(rows.length === 0){
+      tape.innerHTML = '<div class="empty">nothing logged yet</div>';
+      return;
+    }
+    var recent = rows.slice(-6).reverse();
+    var html = '';
+    recent.forEach(function(r){
+      var num = rows.indexOf(r) + 1;
+      var met = r.pos >= CARDS[r.card].thresh;
+      html += '<div class="row"><span>#' + pad(num) + '  ' + pad(r.pos, 3) + '%  ' + CARDS[r.card].label + '</span>' +
+        '<span class="v ' + (met ? 'met' : 'no') + '">' + (met ? 'FULL' : 'not yet') + '</span></div>';
+    });
+    tape.innerHTML = html;
+  }
+
+  function pad(n, w){
+    w = w || 2;
+    var s = String(n);
+    while(s.length < w){ s = ' ' + s; }
+    return s;
+  }
+
+  function startDrag(clientY){
+    dragging = true;
+    pos = posFromClientY(clientY);
+    renderFader();
+    renderGlass();
+  }
+  function moveDrag(clientY){
+    if(!dragging) return;
+    pos = posFromClientY(clientY);
+    renderFader();
+    renderGlass();
+  }
+  function endDrag(){
+    if(!dragging) return;
+    dragging = false;
+    logRow();
+  }
+
+  trackWrap.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    trackWrap.setPointerCapture(e.pointerId);
+    startDrag(e.clientY);
+  });
+  trackWrap.addEventListener('pointermove', function(e){
+    if(dragging){ e.preventDefault(); moveDrag(e.clientY); }
+  });
+  trackWrap.addEventListener('pointerup', function(e){
+    endDrag();
+  });
+  trackWrap.addEventListener('pointercancel', function(e){
+    endDrag();
+  });
+
+  ledgerMark.addEventListener('click', function(){
+    renderLedger();
+    overlay.classList.add('open');
+  });
+  closeLedger.addEventListener('click', function(){
+    overlay.classList.remove('open');
+  });
+  overlay.addEventListener('click', function(e){
+    if(e.target === overlay){ overlay.classList.remove('open'); }
+  });
+
+  function renderLedger(){
+    document.getElementById('sTotal').textContent = rows.length;
+    CARDS.forEach(function(c, i){
+      var met = rows.filter(function(r){ return r.pos >= c.thresh; }).length;
+      var id = ['sA','sB','sC'][i];
+      document.getElementById(id).textContent = met + ' / ' + rows.length;
+    });
+    document.getElementById('sPinned').textContent = CARDS[pinned].label + (houseMode ? ' (house)' : ' (you)');
+    document.getElementById('sHouse').textContent = houseSwitches;
+    document.getElementById('sManual').textContent = manualPins;
+
+    var body = document.getElementById('sBody');
+    body.innerHTML = '';
+    rows.forEach(function(r, idx){
+      var tr = document.createElement('tr');
+      var printedMet = r.pos >= CARDS[r.card].thresh;
+      tr.innerHTML = '<td>' + (idx + 1) + '</td><td>' + r.pos + '%</td>' +
+        '<td class="' + (printedMet ? 'yes' : '') + '">' + CARDS[r.card].label + (printedMet ? ' ✓' : ' ·') + '</td>';
+      body.appendChild(tr);
+    });
+  }
+
+  buildTabs();
+  renderFader();
+  renderNotch();
+  renderGlass();
+})();
+</script>
+</body>
+</html>
