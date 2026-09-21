@@ -412,6 +412,13 @@
       "kind": "seed",
       "note": "Thirty-six sockets, one rig. Tap fast if you like — the hanging doesn't wait on your hands.",
       "path": "projects/2026-09-19-overtime/index.html"
+    },
+    {
+      "date": "2026-09-21",
+      "title": "(Backdated.)",
+      "kind": "question",
+      "note": "A green room notebook marked NEVER FILED. Wait for the sign to change its mind.",
+      "path": "projects/2026-09-21-backdated/index.html"
     }
   ]
 }
