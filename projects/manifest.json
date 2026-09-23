@@ -426,6 +426,13 @@
       "kind": "seed",
       "note": "A rope, a sign, a rig marked safe. Pull all you like — nothing here is live.",
       "path": "projects/2026-09-22-house-line/index.html"
+    },
+    {
+      "date": "2026-09-23",
+      "title": "(House Seat.)",
+      "kind": "question",
+      "note": "A comped seat, right up front. You'll see everything that happens while you're sitting in it.",
+      "path": "projects/2026-09-23-house-seat/index.html"
     }
   ]
 }
