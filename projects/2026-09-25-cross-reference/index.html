@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>(Cross-Reference.)</title>
+<style>
+  :root{
+    --bg:#0a0908;
+    --gold:#d9a94a;
+    --gold-dim:#7a6335;
+    --paper:#e8e2d2;
+    --paper-dim:#867e6a;
+    --panel:#14120d;
+    --panel-edge:#332c1e;
+    --card:#1b1812;
+    --card-edge:#413824;
+    --rust:#c1503a;
+    --rust-dim:#5c2d22;
+    --amber:#f0b23c;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none;}
+  html,body{
+    margin:0; padding:0; min-height:100%;
+    background:var(--bg); color:var(--paper);
+    font-family:Georgia,'Times New Roman',serif;
+    -webkit-user-select:none; user-select:none;
+    overscroll-behavior:none;
+  }
+  .stage{
+    position:relative; min-height:100dvh;
+    display:flex; flex-direction:column; align-items:center;
+    padding:calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+    background:
+      radial-gradient(ellipse 60% 22% at 50% 2%, rgba(217,169,74,0.05), transparent 62%),
+      var(--bg);
+    overflow-x:hidden;
+  }
+  .back{
+    position:absolute; top:calc(10px + env(safe-area-inset-top)); left:calc(12px + env(safe-area-inset-left));
+    color:var(--paper-dim); text-decoration:none; font-size:12px; opacity:0.55; letter-spacing:0.02em;
+    z-index:8;
+  }
+
+  .heading{ text-align:center; margin-top:22px; }
+  .heading .kicker{ font-size:10.5px; letter-spacing:0.22em; color:var(--gold-dim); text-transform:uppercase; }
+  .heading .instr{
+    font-size:12.5px; color:var(--paper-dim); margin-top:8px; letter-spacing:0.01em; font-style:italic;
+    max-width:270px; margin-left:auto; margin-right:auto; line-height:1.45;
+  }
+
+  .cabinet{
+    width:100%; max-width:340px; margin-top:22px;
+    display:grid; grid-template-columns:repeat(5, 1fr); gap:6px;
+  }
+  .card{
+    position:relative; aspect-ratio:4/3;
+    border:1px solid var(--card-edge); border-radius:4px; background:var(--card);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Courier New',monospace; font-size:11px; color:var(--gold-dim);
+    transition:border-color 0.25s ease, background 0.25s ease, box-shadow 0.35s ease, color 0.25s ease;
+  }
+  .card.reading{
+    border-color:var(--amber); background:rgba(240,178,60,0.12); color:var(--amber);
+    box-shadow:0 0 10px rgba(240,178,60,0.25);
+  }
+  .card.read{
+    border-color:var(--gold-dim); color:var(--paper-dim); background:#1e1a13;
+    cursor:pointer;
+  }
+  .card.matched{
+    border-color:var(--gold); color:var(--bg); background:var(--gold);
+    box-shadow:0 0 12px rgba(217,169,74,0.45);
+    cursor:pointer; font-weight:bold;
+  }
+
+  .status{
+    margin-top:14px; font-family:'Courier New',monospace; font-size:11px; color:var(--paper-dim);
+    text-align:center; min-height:16px; letter-spacing:0.02em;
+  }
+
+  .detail{
+    width:100%; max-width:300px; margin-top:10px; min-height:14px;
+    font-size:12px; color:var(--paper-dim); font-style:italic; line-height:1.5; text-align:center;
+  }
+
+  .placard{
+    width:100%; max-width:300px; margin-top:18px; padding:14px 16px;
+    border:1px solid var(--gold-dim); border-radius:5px; background:var(--panel);
+    text-align:center; opacity:0; transform:translateY(6px);
+    transition:opacity 0.5s ease, transform 0.5s ease;
+  }
+  .placard.show{ opacity:1; transform:translateY(0); }
+  .placard .head{ color:var(--gold); font-size:13px; letter-spacing:0.04em; }
+  .placard .sub{ color:var(--paper-dim); font-size:10.5px; font-family:'Courier New',monospace; margin-top:6px; }
+  .placard .hint{ color:var(--gold-dim); font-size:10px; margin-top:10px; font-style:italic; }
+  .placard .truth{ display:none; }
+  .placard.peel .cover{ display:none; }
+  .placard.peel .truth{ display:block; }
+  .placard .truth p{
+    font-family:'Courier New',monospace; font-size:10.5px; color:var(--paper); text-align:left;
+    margin:6px 0; line-height:1.5;
+  }
+  .placard .truth .close{
+    color:var(--rust); font-style:italic; font-size:10.5px; margin-top:8px; text-align:left;
+  }
+
+  .mark{
+    position:fixed; right:calc(14px + env(safe-area-inset-right)); bottom:calc(14px + env(safe-area-inset-bottom));
+    font-family:'Courier New',monospace; font-size:10.5px; color:var(--paper-dim);
+    opacity:0.45; letter-spacing:0.02em; z-index:9;
+  }
+  .ledger{
+    position:fixed; inset:0; background:rgba(6,5,4,0.92);
+    display:none; align-items:center; justify-content:center; z-index:20;
+    padding:24px;
+  }
+  .ledger.open{ display:flex; }
+  .ledger .box{
+    max-width:320px; width:100%; border:1px solid var(--panel-edge); border-radius:6px;
+    background:var(--panel); padding:18px 18px 16px;
+    font-family:'Courier New',monospace; font-size:11.5px; color:var(--paper-dim); line-height:1.7;
+  }
+  .ledger .box .t{ color:var(--gold); font-size:11px; letter-spacing:0.1em; margin-bottom:8px; }
+  .ledger .box .row{ display:flex; justify-content:space-between; gap:10px; }
+  .ledger .box .foot{
+    margin-top:12px; padding-top:10px; border-top:1px solid var(--panel-edge);
+    color:var(--paper); font-style:italic; font-family:Georgia,serif; font-size:11.5px; line-height:1.55;
+  }
+  .ledger .close{
+    margin-top:14px; text-align:center; color:var(--paper-dim); font-size:11px; opacity:0.6;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .card, .placard{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <a class="back" href="../../index.html">← cue sheet</a>
+
+  <div class="heading">
+    <div class="kicker">Backstage — The File</div>
+    <div class="instr">Tap the cabinet. Let the reader go through it.</div>
+  </div>
+
+  <div class="cabinet" id="cabinet"></div>
+
+  <div class="status" id="status"></div>
+  <div class="detail" id="detail"></div>
+
+  <div class="placard" id="placard">
+    <div class="cover">
+      <div class="head" id="placardHead">DISCOVERED TONIGHT</div>
+      <div class="sub" id="placardSub"></div>
+      <div class="hint">hold to see what's under this</div>
+    </div>
+    <div class="truth" id="placardTruth"></div>
+  </div>
+
+  <div class="mark" id="markBtn">the file ▸</div>
+  <div class="ledger" id="ledger">
+    <div class="box">
+      <div class="t">THE FILE — LEDGER</div>
+      <div class="row"><span>cards in the cabinet</span><span id="ldTotal">30</span></div>
+      <div class="row"><span>opened tonight</span><span id="ldOpened">0</span></div>
+      <div class="row"><span>never opened</span><span id="ldUnopened">30</span></div>
+      <div class="row"><span>latent, never crossed</span><span>R-04 / R-20</span></div>
+      <div class="foot" id="ldFoot">Two entries, eleven years apart, say the same thing about a hinge. The reader passed both. Not enough shared words to count as a match.</div>
+    </div>
+    <div class="close" id="ledgerClose">close</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var cards = [
+    {id:'R-01', year:'1961', note:'House left flat, chipped again. Touched up before curtain.'},
+    {id:'R-02', year:'1958', note:'Follow spot lamp blew mid-Act I. Swapped, no one noticed.'},
+    {id:'R-03', year:'1994', note:'Fog machine timer stuck open, cleared the house early.'},
+    {id:'R-04', year:'1977', note:'Trap door hinge squeaks on cue 14. Oiled, still squeaks.'},
+    {id:'R-05', year:'2003', note:'Understudy on for the matinee, no rehearsal, went fine.'},
+    {id:'R-06', year:'1969', note:'Rope burn, house left fly rail. Logged, not reported.'},
+    {id:'R-07', year:'1987', note:'Pocket watch missing again, Act II. Went on with the bent one.'},
+    {id:'R-08', year:'1982', note:'Gel frame cracked on batten 4. Held with tape till strike.'},
+    {id:'R-09', year:'1990', note:'Snow bag emptied early, reset by intermission.'},
+    {id:'R-10', year:'1965', note:'Cue light backstage right dead. Called by hand tonight.'},
+    {id:'R-11', year:'1999', note:'Curtain weight shifted, hem dragging stage left.'},
+    {id:'R-12', year:'1973', note:'Prompt book left in the green room overnight. Found.'},
+    {id:'R-13', year:'2011', note:'Smoke pot set off the house alarm. No fire.'},
+    {id:'R-14', year:'1958', note:'Second spare bulb also dead. Third one held.'},
+    {id:'R-15', year:'2006', note:'Chalk marks washed off in the storm, re-chalked by feel.'},
+    {id:'R-16', year:'1996', note:'Wardrobe let out the coat again, third time this run.'},
+    {id:'R-17', year:'1984', note:'Orchestra pit flooded an inch, mopped before downbeat.'},
+    {id:'R-18', year:'2015', note:'House manager seated a latecomer mid-scene, against policy.'},
+    {id:'R-19', year:'1979', note:'Spike tape gone by Thursday, re-marked from memory.'},
+    {id:'R-20', year:'1988', note:'Trapdoor spring finally replaced, after nine years of notes.'},
+    {id:'R-21', year:'2018', note:'Radio mic battery died on the bow. No one in the house heard.'},
+    {id:'R-22', year:'1971', note:'Fly rail count off by one sandbag, never resolved.'},
+    {id:'R-23', year:'2020', note:'New hire coiled the rope wrong. No one corrected it.'},
+    {id:'R-24', year:'2009', note:'Same trick again — the watch walks off in Act II. Bent spare, same as always.'},
+    {id:'R-25', year:'1993', note:'House lights held two counts too long, apologized after.'},
+    {id:'R-26', year:'1962', note:'Ghost light left on through the flood. Saved someone a fall.'},
+    {id:'R-27', year:'2001', note:'Understudy missed an entrance, covered by an ad-lib.'},
+    {id:'R-28', year:'1985', note:'Trim chain rusted through on batten 7, caught in inspection.'},
+    {id:'R-29', year:'1975', note:'Backstage phone line dead all week. Ran messages by hand.'},
+    {id:'R-30', year:'2022', note:'Closing night, struck the set. Found a coin under the boards.'}
+  ];
+
+  var MATCH_A = 6;  // R-07
+  var MATCH_B = 23; // R-24
+
+  var cabinet = document.getElementById('cabinet');
+  var status = document.getElementById('status');
+  var detail = document.getElementById('detail');
+  var placard = document.getElementById('placard');
+  var placardSub = document.getElementById('placardSub');
+  var placardTruth = document.getElementById('placardTruth');
+  var mark = document.getElementById('markBtn');
+  var ledger = document.getElementById('ledger');
+  var ledgerClose = document.getElementById('ledgerClose');
+  var ldOpened = document.getElementById('ldOpened');
+  var ldUnopened = document.getElementById('ldUnopened');
+
+  var cells = [];
+  cards.forEach(function(c, i){
+    var el = document.createElement('div');
+    el.className = 'card';
+    el.textContent = String(i+1).padStart(2,'0');
+    cabinet.appendChild(el);
+    cells.push(el);
+  });
+
+  var started = false, idx = 0, opened = 0, found = false;
+
+  function updateLedger(){
+    ldOpened.textContent = opened;
+    ldUnopened.textContent = 30 - opened;
+  }
+
+  function showDetail(i){
+    if (i === MATCH_A || i === MATCH_B) return;
+    var c = cards[i];
+    if (detail.dataset.i === String(i)) {
+      detail.textContent = '';
+      detail.dataset.i = '';
+      return;
+    }
+    detail.textContent = c.id + ' · ' + c.year + ' — ' + c.note;
+    detail.dataset.i = String(i);
+  }
+
+  function step(){
+    if (idx >= cards.length) return;
+    cells[idx].classList.add('reading');
+    var settle = reduced ? 0 : 130;
+    setTimeout(function(){
+      cells[idx].classList.remove('reading');
+      cells[idx].classList.add('read');
+      opened++;
+      updateLedger();
+
+      if (idx === MATCH_B) {
+        cells[MATCH_A].classList.remove('read');
+        cells[MATCH_A].classList.add('matched');
+        cells[MATCH_B].classList.remove('read');
+        cells[MATCH_B].classList.add('matched');
+        found = true;
+        status.textContent = 'reader stopped after card 24 — match found: 07 ↔ 24';
+        var a = cards[MATCH_A], b = cards[MATCH_B];
+        placardSub.textContent = 'cross-reference confirmed · cards 07 · 24';
+        placardTruth.innerHTML =
+          '<p>' + a.id + ' · ' + a.year + ' — ' + a.note + '</p>' +
+          '<p>' + b.id + ' · ' + b.year + ' — ' + b.note + '</p>' +
+          '<div class="close">Two hands, twenty-two years apart. Neither of them gets the placard.</div>';
+        setTimeout(function(){ placard.classList.add('show'); }, reduced ? 0 : 500);
+        return;
+      }
+
+      idx++;
+      status.textContent = 'reading: card ' + String(idx).padStart(2,'0') + ' / 30';
+      setTimeout(step, reduced ? 4 : 95);
+    }, settle);
+  }
+
+  cabinet.addEventListener('click', function(e){
+    if (!started) {
+      started = true;
+      status.textContent = 'reading: card 01 / 30';
+      step();
+      return;
+    }
+    var i = cells.indexOf(e.target);
+    if (i === -1) return;
+    if (cells[i].classList.contains('read')) showDetail(i);
+  });
+
+  function peel(on){
+    if (!found) return;
+    placard.classList.toggle('peel', on);
+  }
+  placard.addEventListener('pointerdown', function(e){ e.preventDefault(); peel(true); });
+  placard.addEventListener('pointerup', function(){ peel(false); });
+  placard.addEventListener('pointerleave', function(){ peel(false); });
+  placard.addEventListener('pointercancel', function(){ peel(false); });
+
+  mark.addEventListener('click', function(){ ledger.classList.add('open'); });
+  ledgerClose.addEventListener('click', function(){ ledger.classList.remove('open'); });
+  ledger.addEventListener('click', function(e){ if (e.target === ledger) ledger.classList.remove('open'); });
+})();
+</script>
+</body>
+</html>

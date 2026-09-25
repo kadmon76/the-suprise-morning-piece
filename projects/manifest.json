@@ -440,6 +440,13 @@
       "kind": "seed",
       "note": "Five claim tickets, torn in half. Piece back together whichever ones you like — the big door in back was never one of them.",
       "path": "projects/2026-09-24-cloakroom/index.html"
+    },
+    {
+      "date": "2026-09-25",
+      "title": "(Cross-Reference.)",
+      "kind": "question",
+      "note": "A cabinet of old cards, and a reader quick enough to read two of them together. One line, twice, two different hands.",
+      "path": "projects/2026-09-25-cross-reference/index.html"
     }
   ]
 }
