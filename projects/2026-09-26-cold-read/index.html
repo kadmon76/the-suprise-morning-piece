@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Cold Read</title>
+<style>
+  :root{
+    --bg:#0a0908;
+    --gold:#d9a94a;
+    --gold-dim:#7a6335;
+    --paper:#e8e2d2;
+    --paper-dim:#867e6a;
+    --panel:#14120d;
+    --panel-edge:#332c1e;
+    --ice:#7fd6e8;
+    --ice-dim:#365158;
+    --rust:#c1503a;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none;}
+  html,body{
+    margin:0; padding:0; min-height:100%;
+    background:var(--bg); color:var(--paper);
+    font-family:Georgia,'Times New Roman',serif;
+    -webkit-user-select:none; user-select:none;
+    overscroll-behavior:none;
+  }
+  .stage{
+    position:relative; min-height:100dvh;
+    display:flex; flex-direction:column; align-items:center;
+    padding:calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+    background:var(--bg);
+    overflow-x:hidden;
+  }
+  .back{
+    position:absolute; top:calc(10px + env(safe-area-inset-top)); left:calc(12px + env(safe-area-inset-left));
+    color:var(--paper-dim); text-decoration:none; font-size:12px; opacity:0.55; letter-spacing:0.02em;
+    z-index:8;
+  }
+
+  .heading{ text-align:center; margin-top:26px; }
+  .heading .kicker{ font-size:10.5px; letter-spacing:0.22em; color:var(--gold-dim); text-transform:uppercase; }
+  .heading .instr{
+    font-size:12.5px; color:var(--paper-dim); margin-top:8px; letter-spacing:0.01em; font-style:italic;
+    max-width:260px; margin-left:auto; margin-right:auto; line-height:1.45;
+  }
+
+  .stageBox{
+    position:relative; width:100%; max-width:340px; aspect-ratio:4/3; margin-top:22px;
+    background:#000; border:1px solid var(--panel-edge); border-radius:6px;
+    touch-action:none; transition:background 0.6s ease, border-color 0.3s ease;
+  }
+  .stageBox.lit{
+    background:radial-gradient(ellipse 70% 55% at 50% 38%, rgba(217,169,74,0.11), transparent 72%), #000;
+  }
+  .stageBox.down{ border-color:#4a4230; }
+  .stageBox .tag{
+    position:absolute; left:8px; bottom:7px; font-family:'Courier New',monospace; font-size:9.5px;
+    letter-spacing:0.14em; color:#3a362c; text-transform:uppercase;
+  }
+
+  .lightsRow{
+    display:flex; align-items:center; gap:10px; margin-top:16px;
+  }
+  .lightsRow .lbl{
+    font-family:'Courier New',monospace; font-size:10.5px; color:var(--paper-dim); letter-spacing:0.08em;
+  }
+  .swtch{
+    width:42px; height:23px; border-radius:12px; border:1px solid var(--panel-edge);
+    background:var(--panel); position:relative; cursor:pointer; flex:none;
+  }
+  .swtch .thumb{
+    position:absolute; top:2px; left:2px; width:17px; height:17px; border-radius:50%;
+    background:var(--paper-dim); transition:transform 0.25s ease, background 0.25s ease;
+  }
+  .swtch.on{ border-color:var(--gold-dim); }
+  .swtch.on .thumb{ transform:translateX(19px); background:var(--gold); }
+
+  .readPanel{
+    width:100%; max-width:340px; margin-top:20px; padding:12px 14px 14px;
+    border:1px solid var(--ice-dim); border-radius:6px; background:#070908;
+    transition:border-color 0.4s ease, box-shadow 0.4s ease;
+  }
+  .readPanel.locked{
+    border-color:var(--ice); box-shadow:0 0 14px rgba(127,214,232,0.28);
+  }
+  .readPanel .t{
+    font-family:'Courier New',monospace; font-size:10px; letter-spacing:0.16em; color:var(--ice);
+    text-transform:uppercase;
+  }
+  .readPanel svg{
+    width:100%; height:112px; display:block; margin-top:8px; border-radius:4px;
+    background:
+      radial-gradient(circle, rgba(127,214,232,0.06) 1px, transparent 1.3px) 0 0/16px 16px,
+      #0a0d0d;
+  }
+  .readPanel polyline{
+    fill:none; stroke:var(--ice); stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; opacity:0.9;
+  }
+  .readPanel.locked polyline{ stroke:var(--ice); opacity:1; }
+  .readStat{
+    margin-top:9px; font-family:'Courier New',monospace; text-align:center;
+  }
+  .readStat .pct{ font-size:26px; color:var(--ice); letter-spacing:0.01em; }
+  .readStat .word{ font-size:11px; color:var(--paper-dim); margin-top:2px; letter-spacing:0.06em; text-transform:uppercase; }
+
+  .mark{
+    position:fixed; right:calc(14px + env(safe-area-inset-right)); bottom:calc(14px + env(safe-area-inset-bottom));
+    font-family:'Courier New',monospace; font-size:10.5px; color:var(--paper-dim);
+    opacity:0.45; letter-spacing:0.02em; z-index:9;
+  }
+  .ledger{
+    position:fixed; inset:0; background:rgba(6,5,4,0.92);
+    display:none; align-items:center; justify-content:center; z-index:20;
+    padding:24px;
+  }
+  .ledger.open{ display:flex; }
+  .ledger .box{
+    max-width:320px; width:100%; border:1px solid var(--panel-edge); border-radius:6px;
+    background:var(--panel); padding:18px 18px 16px;
+    font-family:'Courier New',monospace; font-size:11.5px; color:var(--paper-dim); line-height:1.7;
+  }
+  .ledger .box .t{ color:var(--ice); font-size:11px; letter-spacing:0.1em; margin-bottom:8px; }
+  .ledger .box .row{ display:flex; justify-content:space-between; gap:10px; }
+  .ledger .box .foot{
+    margin-top:12px; padding-top:10px; border-top:1px solid var(--panel-edge);
+    color:var(--paper); font-style:italic; font-family:Georgia,serif; font-size:11.5px; line-height:1.55;
+  }
+  .ledger .close{
+    margin-top:14px; text-align:center; color:var(--paper-dim); font-size:11px; opacity:0.6;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .stageBox, .swtch .thumb, .readPanel{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <a class="back" href="../../index.html">← cue sheet</a>
+
+  <div class="heading">
+    <div class="kicker">Backstage — Blackout</div>
+    <div class="instr">Touch the dark. Nothing here will light.</div>
+  </div>
+
+  <div class="stageBox" id="stageBox">
+    <div class="tag">stage</div>
+  </div>
+
+  <div class="lightsRow">
+    <div class="swtch" id="swtch"><div class="thumb"></div></div>
+    <div class="lbl" id="swtchLbl">house lights — off</div>
+  </div>
+
+  <div class="readPanel" id="readPanel">
+    <div class="t">Read</div>
+    <svg id="svg" viewBox="0 0 100 60" preserveAspectRatio="none">
+      <polyline id="trace" points=""></polyline>
+    </svg>
+    <div class="readStat">
+      <div class="pct" id="pct">0.0%</div>
+      <div class="word" id="word">no read yet</div>
+    </div>
+  </div>
+
+  <div class="mark" id="markBtn">the read ▸</div>
+  <div class="ledger" id="ledger">
+    <div class="box">
+      <div class="t">THE READ — LEDGER</div>
+      <div class="row"><span>touches tonight</span><span id="ldTouches">0</span></div>
+      <div class="row"><span>strokes read</span><span id="ldStrokes">0</span></div>
+      <div class="row"><span>match to last visit</span><span id="ldMatch">—</span></div>
+      <div class="row"><span>visits on file</span><span id="ldVisits">1</span></div>
+      <div class="row"><span>house lights toggled</span><span id="ldToggles">0</span></div>
+      <div class="row"><span>read changed because of it</span><span>0%</span></div>
+      <div class="foot">The switch changes what the room looks like. It has never once changed what the read shows. Move like yourself and the read is quick. Move like someone else and it only ever slows down.</div>
+    </div>
+    <div class="close" id="ledgerClose">close</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var STORE_KEY = 'coldread_profile_v1';
+
+  var stageBox = document.getElementById('stageBox');
+  var swtch = document.getElementById('swtch');
+  var swtchLbl = document.getElementById('swtchLbl');
+  var readPanel = document.getElementById('readPanel');
+  var trace = document.getElementById('trace');
+  var pctEl = document.getElementById('pct');
+  var wordEl = document.getElementById('word');
+  var mark = document.getElementById('markBtn');
+  var ledger = document.getElementById('ledger');
+  var ledgerClose = document.getElementById('ledgerClose');
+  var ldTouches = document.getElementById('ldTouches');
+  var ldStrokes = document.getElementById('ldStrokes');
+  var ldMatch = document.getElementById('ldMatch');
+  var ldVisits = document.getElementById('ldVisits');
+  var ldToggles = document.getElementById('ldToggles');
+
+  // ---- load stored signature ----
+  var storedProfile = null;
+  try {
+    var raw = localStorage.getItem(STORE_KEY);
+    if (raw) storedProfile = JSON.parse(raw);
+  } catch(e) { storedProfile = null; }
+  var storedVisits = (storedProfile && storedProfile.visits) ? storedProfile.visits : 0;
+
+  var sessionProfile = { speed: null, turn: null };
+  var confidence = storedProfile ? Math.min(55, 12 + storedVisits * 9) : 0;
+  var touches = 0, strokes = 0, toggles = 0, lastSim = null;
+  var lit = false;
+
+  function labelFor(c){
+    if (c < 15) return 'no read yet';
+    if (c < 40) return 'reading…';
+    if (c < 65) return 'pattern forming';
+    if (c < 85) return 'converging';
+    if (c < 95) return 'match likely';
+    return 'identified';
+  }
+
+  function render(){
+    pctEl.textContent = confidence.toFixed(1) + '%';
+    wordEl.textContent = labelFor(confidence);
+    readPanel.classList.toggle('locked', confidence >= 95);
+  }
+  render();
+
+  function similarity(feat, target){
+    if (!target || target.speed == null) return 0.6;
+    var ds = Math.abs(feat.speed - target.speed) / (target.speed + 0.002);
+    var dt = Math.abs(feat.turn - target.turn) / (target.turn + 0.15);
+    var dist = Math.min(3, (ds + dt) / 2);
+    return Math.max(0, 1 - dist / 3);
+  }
+
+  function bumpConfidence(gain){
+    confidence = confidence + gain * (1 - confidence / 100);
+    if (confidence > 99.4) confidence = 99.4;
+    render();
+  }
+
+  // ---- drawing ----
+  var pts = [];
+  function drawPoints(){
+    var s = '';
+    for (var i=0;i<pts.length;i++){ s += (pts[i].x*100).toFixed(2) + ',' + (pts[i].y*60).toFixed(2) + ' '; }
+    trace.setAttribute('points', s);
+  }
+
+  // ---- pointer handling ----
+  var down = false, rect = null, strokePts = [];
+
+  function ptFromEvent(e){
+    var x = (e.clientX - rect.left) / rect.width;
+    var y = (e.clientY - rect.top) / rect.height;
+    x = Math.max(0, Math.min(1, x));
+    y = Math.max(0, Math.min(1, y));
+    return { x:x, y:y, t: performance.now() };
+  }
+
+  stageBox.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    down = true;
+    rect = stageBox.getBoundingClientRect();
+    stageBox.classList.add('down');
+    try { stageBox.setPointerCapture(e.pointerId); } catch(err){}
+    pts = [];
+    strokePts = [];
+    var p = ptFromEvent(e);
+    strokePts.push(p);
+    pts.push(p);
+    drawPoints();
+  });
+
+  stageBox.addEventListener('pointermove', function(e){
+    if (!down) return;
+    var p = ptFromEvent(e);
+    strokePts.push(p);
+    pts.push(p);
+    if (pts.length > 60) pts.shift();
+    drawPoints();
+  });
+
+  function finishStroke(){
+    if (!down) return;
+    down = false;
+    stageBox.classList.remove('down');
+    if (strokePts.length < 2) {
+      // a bare tap — still a touch, still information
+      touches++;
+      bumpConfidence(2.4);
+      return;
+    }
+    var pathLen = 0;
+    for (var i=1;i<strokePts.length;i++){
+      var dx = strokePts[i].x - strokePts[i-1].x, dy = strokePts[i].y - strokePts[i-1].y;
+      pathLen += Math.sqrt(dx*dx+dy*dy);
+    }
+    var duration = Math.max(16, strokePts[strokePts.length-1].t - strokePts[0].t);
+    touches++;
+    if (pathLen < 0.02) {
+      bumpConfidence(2.4);
+      return;
+    }
+    strokes++;
+    var speed = pathLen / duration;
+    var turn = 0;
+    if (strokePts.length >= 3){
+      var angSum = 0, n = 0;
+      for (var j=2;j<strokePts.length;j++){
+        var v1x = strokePts[j-1].x - strokePts[j-2].x, v1y = strokePts[j-1].y - strokePts[j-2].y;
+        var v2x = strokePts[j].x - strokePts[j-1].x, v2y = strokePts[j].y - strokePts[j-1].y;
+        var a1 = Math.atan2(v1y,v1x), a2 = Math.atan2(v2y,v2x);
+        var d = a2 - a1;
+        while (d > Math.PI) d -= Math.PI*2;
+        while (d < -Math.PI) d += Math.PI*2;
+        angSum += Math.abs(d);
+        n++;
+      }
+      turn = n ? angSum/n : 0;
+    }
+    var feat = { speed:speed, turn:turn };
+    var target = storedProfile || (sessionProfile.speed != null ? sessionProfile : null);
+    var sim = similarity(feat, target);
+    lastSim = sim;
+    var gain = 14 * (0.35 + 0.65*sim);
+    bumpConfidence(gain);
+
+    if (sessionProfile.speed == null) {
+      sessionProfile.speed = feat.speed;
+      sessionProfile.turn = feat.turn;
+    } else {
+      sessionProfile.speed = sessionProfile.speed*0.7 + feat.speed*0.3;
+      sessionProfile.turn = sessionProfile.turn*0.7 + feat.turn*0.3;
+    }
+  }
+
+  stageBox.addEventListener('pointerup', finishStroke);
+  stageBox.addEventListener('pointercancel', finishStroke);
+
+  // ---- house lights (cosmetic only, never touches confidence) ----
+  swtch.addEventListener('click', function(){
+    lit = !lit;
+    toggles++;
+    stageBox.classList.toggle('lit', lit);
+    swtch.classList.toggle('on', lit);
+    swtchLbl.textContent = 'house lights — ' + (lit ? 'on' : 'off');
+  });
+
+  // ---- ledger ----
+  function updateLedger(){
+    ldTouches.textContent = touches;
+    ldStrokes.textContent = strokes;
+    ldMatch.textContent = (storedProfile && lastSim != null) ? Math.round(lastSim*100) + '%' : '—';
+    ldVisits.textContent = storedVisits + 1;
+    ldToggles.textContent = toggles;
+  }
+  mark.addEventListener('click', function(){ updateLedger(); ledger.classList.add('open'); });
+  ledgerClose.addEventListener('click', function(){ ledger.classList.remove('open'); });
+  ledger.addEventListener('click', function(e){ if (e.target === ledger) ledger.classList.remove('open'); });
+
+  // ---- persist signature ----
+  function save(){
+    try {
+      var out = {
+        speed: sessionProfile.speed != null ? sessionProfile.speed : (storedProfile ? storedProfile.speed : 0),
+        turn:  sessionProfile.turn  != null ? sessionProfile.turn  : (storedProfile ? storedProfile.turn  : 0),
+        visits: storedVisits + 1,
+        updatedAt: Date.now()
+      };
+      localStorage.setItem(STORE_KEY, JSON.stringify(out));
+    } catch(e){}
+  }
+  document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'hidden') save(); });
+  window.addEventListener('pagehide', save);
+})();
+</script>
+</body>
+</html>

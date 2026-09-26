@@ -447,6 +447,13 @@
       "kind": "question",
       "note": "A cabinet of old cards, and a reader quick enough to read two of them together. One line, twice, two different hands.",
       "path": "projects/2026-09-25-cross-reference/index.html"
+    },
+    {
+      "date": "2026-09-26",
+      "title": "Cold Read",
+      "kind": "seed",
+      "note": "No spotlight finds you tonight. Somehow, it already has.",
+      "path": "projects/2026-09-26-cold-read/index.html"
     }
   ]
 }
