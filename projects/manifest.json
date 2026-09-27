@@ -454,6 +454,13 @@
       "kind": "seed",
       "note": "No spotlight finds you tonight. Somehow, it already has.",
       "path": "projects/2026-09-26-cold-read/index.html"
+    },
+    {
+      "date": "2026-09-27",
+      "title": "(Under the Door.)",
+      "kind": "question",
+      "note": "A sealed door for tonight's cold read. The sensor never once made a sound.",
+      "path": "projects/2026-09-27-under-the-door/index.html"
     }
   ]
 }

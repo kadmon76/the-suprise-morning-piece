@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>(Under the Door.)</title>
+<style>
+  :root{
+    --bg:#0a0908;
+    --gold:#d9a94a;
+    --gold-dim:#7a6335;
+    --paper:#e8e2d2;
+    --paper-dim:#867e6a;
+    --panel:#14120d;
+    --panel-edge:#332c1e;
+    --ice:#7fd6e8;
+    --ice-dim:#365158;
+    --green:#7fbf8a;
+    --rust:#c1503a;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none;}
+  html,body{
+    margin:0; padding:0; min-height:100%;
+    background:var(--bg); color:var(--paper);
+    font-family:Georgia,'Times New Roman',serif;
+    -webkit-user-select:none; user-select:none;
+    overscroll-behavior:none;
+  }
+  .stage{
+    position:relative; min-height:100dvh;
+    display:flex; flex-direction:column; align-items:center;
+    padding:calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(30px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+    background:var(--bg);
+    overflow-x:hidden;
+  }
+  .back{
+    position:absolute; top:calc(10px + env(safe-area-inset-top)); left:calc(12px + env(safe-area-inset-left));
+    color:var(--paper-dim); text-decoration:none; font-size:12px; opacity:0.55; letter-spacing:0.02em;
+    z-index:8;
+  }
+
+  .heading{ text-align:center; margin-top:26px; }
+  .heading .kicker{ font-size:10.5px; letter-spacing:0.22em; color:var(--gold-dim); text-transform:uppercase; }
+  .heading .instr{
+    font-size:12.5px; color:var(--paper-dim); margin-top:8px; letter-spacing:0.01em; font-style:italic;
+    max-width:260px; margin-left:auto; margin-right:auto; line-height:1.45;
+  }
+
+  .lineBox{
+    width:100%; max-width:340px; margin-top:24px; padding:14px 14px 12px;
+    border:1px solid var(--panel-edge); border-radius:6px; background:var(--panel);
+    text-align:center;
+  }
+  .lineBox .t{
+    font-family:'Courier New',monospace; font-size:9.5px; letter-spacing:0.18em; color:var(--paper-dim);
+    text-transform:uppercase; margin-bottom:8px;
+  }
+  .lineRow{ display:flex; flex-wrap:wrap; justify-content:center; gap:6px 8px; }
+  .word{
+    font-size:16px; line-height:1.3; transition:color 0.5s ease, opacity 0.5s ease;
+  }
+  .word.blank{ color:#3c3629; }
+  .word.filled{ color:var(--gold); }
+  .word.held{ color:var(--paper-dim); font-style:italic; }
+
+  .doorWrap{
+    width:100%; max-width:300px; margin-top:26px;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  .sensorPill{
+    display:flex; align-items:center; gap:7px;
+    font-family:'Courier New',monospace; font-size:9.5px; letter-spacing:0.1em; color:var(--paper-dim);
+    text-transform:uppercase; margin-bottom:10px;
+  }
+  .sensorDot{
+    width:7px; height:7px; border-radius:50%; background:var(--green); opacity:0.6; flex:none;
+  }
+  .sensorDot.tapped{ opacity:1; }
+
+  .door{
+    position:relative; width:100%; aspect-ratio:5/7; max-width:220px;
+    background:linear-gradient(180deg,#1b160f,#100d09);
+    border:2px solid var(--panel-edge); border-radius:4px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    touch-action:none;
+  }
+  .door.shake{ animation:shakeDoor 0.32s ease; }
+  @keyframes shakeDoor{
+    0%,100%{ transform:translateX(0); }
+    25%{ transform:translateX(-4px); }
+    75%{ transform:translateX(4px); }
+  }
+  .plaque{
+    border:1px solid var(--gold-dim); border-radius:2px; padding:8px 10px;
+    text-align:center; background:rgba(0,0,0,0.25);
+  }
+  .plaque .l1{
+    font-family:'Courier New',monospace; font-size:9.5px; letter-spacing:0.14em; color:var(--gold-dim);
+    text-transform:uppercase;
+  }
+  .plaque .l2{
+    font-family:'Courier New',monospace; font-size:8px; letter-spacing:0.08em; color:var(--paper-dim);
+    text-transform:uppercase; margin-top:3px;
+  }
+
+  .gapRow{
+    position:absolute; left:8%; right:8%; bottom:9px; height:34px;
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  .gap{
+    position:relative; width:100%; height:9px; border-radius:2px;
+    background:#050403; border-top:1px solid #000; border-bottom:1px solid #2a2419;
+    touch-action:none;
+  }
+  .gap.locked{ opacity:0.35; }
+  .ring{
+    position:absolute; left:50%; bottom:14px; transform:translateX(-50%);
+    width:44px; height:44px; opacity:0; transition:opacity 0.15s ease;
+    pointer-events:none;
+  }
+  .ring.show{ opacity:1; }
+  .ring svg{ width:100%; height:100%; transform:rotate(-90deg); }
+  .ring circle{ fill:none; stroke-width:3; }
+  .ring .track{ stroke:#241f16; }
+  .ring .fill{ stroke:var(--ice); stroke-linecap:round; }
+
+  .card{
+    position:absolute; bottom:10px; left:50%;
+    font-family:'Courier New',monospace; font-size:11px; letter-spacing:0.04em;
+    padding:2px 0; opacity:0; pointer-events:none; white-space:nowrap;
+  }
+  .card.rise{
+    animation:cardRise 0.9s ease forwards;
+  }
+  @keyframes cardRise{
+    0%{ opacity:0; transform:translate(-50%, 4px); }
+    18%{ opacity:1; transform:translate(-50%, -6px); }
+    80%{ opacity:1; transform:translate(-50%, -30px); }
+    100%{ opacity:0; transform:translate(-50%, -40px); }
+  }
+  .card.gold{ color:var(--gold); }
+  .card.ice{ color:var(--ice); }
+
+  .plate{
+    position:absolute; left:6%; right:6%; bottom:0; height:0;
+    background:linear-gradient(180deg,#3a3630,#17140f);
+    border-top:1px solid #55503f;
+    transition:height 0.55s cubic-bezier(.2,.7,.3,1);
+    z-index:5;
+  }
+  .plate.down{ height:26px; }
+
+  .status{
+    margin-top:14px; font-family:'Courier New',monospace; font-size:10px; color:var(--paper-dim);
+    letter-spacing:0.04em; text-align:center; min-height:14px; opacity:0.75;
+  }
+  .status.held{ color:var(--rust); opacity:1; }
+
+  .mark{
+    position:fixed; right:calc(14px + env(safe-area-inset-right)); bottom:calc(14px + env(safe-area-inset-bottom));
+    font-family:'Courier New',monospace; font-size:10.5px; color:var(--paper-dim);
+    opacity:0.45; letter-spacing:0.02em; z-index:9; background:none; border:none;
+  }
+  .ledger{
+    position:fixed; inset:0; background:rgba(6,5,4,0.92);
+    display:none; align-items:center; justify-content:center; z-index:20;
+    padding:24px;
+  }
+  .ledger.open{ display:flex; }
+  .ledger .box{
+    max-width:320px; width:100%; border:1px solid var(--panel-edge); border-radius:6px;
+    background:var(--panel); padding:18px 18px 16px;
+    font-family:'Courier New',monospace; font-size:11.5px; color:var(--paper-dim); line-height:1.7;
+  }
+  .ledger .box .t{ color:var(--ice); font-size:11px; letter-spacing:0.1em; margin-bottom:8px; }
+  .ledger .box .row{ display:flex; justify-content:space-between; gap:10px; }
+  .ledger .box .foot{
+    margin-top:12px; padding-top:10px; border-top:1px solid var(--panel-edge);
+    color:var(--paper); font-style:italic; font-family:Georgia,serif; font-size:11.5px; line-height:1.55;
+  }
+  .ledger .close{
+    margin-top:14px; text-align:center; color:var(--paper-dim); font-size:11px; opacity:0.6;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .door.shake{ animation:none !important; }
+    .card.rise{ animation:none !important; opacity:0.95 !important; transform:translate(-50%,-20px) !important; }
+    .plate{ transition:none !important; }
+    .word{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <a class="back" href="../../index.html">← cue sheet</a>
+
+  <div class="heading">
+    <div class="kicker">Backstage — Cold Audition</div>
+    <div class="instr">Get your next line however you like.</div>
+  </div>
+
+  <div class="lineBox">
+    <div class="t">Your Line</div>
+    <div class="lineRow" id="lineRow"></div>
+  </div>
+
+  <div class="doorWrap">
+    <div class="sensorPill">
+      <div class="sensorDot" id="sensorDot"></div>
+      <span id="sensorLbl">SEALED · pings 0</span>
+    </div>
+    <div class="door" id="door">
+      <div class="plaque">
+        <div class="l1">No Contact</div>
+        <div class="l2">during cold read</div>
+      </div>
+      <div class="plate" id="plate"></div>
+      <div class="gapRow">
+        <div class="gap" id="gap"></div>
+        <div class="ring" id="ring">
+          <svg viewBox="0 0 48 48">
+            <circle class="track" cx="24" cy="24" r="19"></circle>
+            <circle class="fill" id="ringFill" cx="24" cy="24" r="19" stroke-dasharray="119.4" stroke-dashoffset="119.4"></circle>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <button class="mark" id="markBtn">the call sheet ▸</button>
+  <div class="ledger" id="ledger">
+    <div class="box">
+      <div class="t">CALL SHEET</div>
+      <div class="row"><span>door sensor pings</span><span id="ldPings">0</span></div>
+      <div class="row"><span>door taps</span><span id="ldTaps">0</span></div>
+      <div class="row"><span>gap attempts</span><span id="ldAttempts">0 / 6</span></div>
+      <div class="row"><span>words delivered</span><span id="ldWords">0</span></div>
+      <div class="row"><span>average hold</span><span id="ldAvg">—</span></div>
+      <div class="row"><span>hold required, last</span><span id="ldReq">—</span></div>
+      <div class="row"><span>caught after</span><span id="ldCaught">—</span></div>
+      <div class="foot" id="ldFoot">The sensor was wired to the door. It was never asked about the gap. Six was always the number — patience only decided how many of the six worked.</div>
+    </div>
+    <div class="close" id="ledgerClose">close</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var WORDS = ["I","have","never","once","forgotten","a","single","word."];
+  var MAX_ATTEMPTS = 6;
+  var HOLD_REQ = [650,850,1050,1250,1500,1800]; // ms, one per attempt index
+
+  var lineRow = document.getElementById('lineRow');
+  var door = document.getElementById('door');
+  var gap = document.getElementById('gap');
+  var ring = document.getElementById('ring');
+  var ringFill = document.getElementById('ringFill');
+  var plate = document.getElementById('plate');
+  var status = document.getElementById('status');
+  var sensorDot = document.getElementById('sensorDot');
+  var sensorLbl = document.getElementById('sensorLbl');
+  var markBtn = document.getElementById('markBtn');
+  var ledger = document.getElementById('ledger');
+  var ledgerClose = document.getElementById('ledgerClose');
+
+  var RING_CIRC = 119.4;
+
+  var wordEls = WORDS.map(function(w){
+    var s = document.createElement('span');
+    s.className = 'word blank';
+    s.textContent = '_____';
+    lineRow.appendChild(s);
+    return s;
+  });
+
+  var attempts = 0;
+  var delivered = 0;
+  var doorTaps = 0;
+  var holdTimes = [];
+  var caught = false;
+  var down = false;
+  var downAt = 0;
+  var raf = null;
+
+  function fmtSec(ms){ return (ms/1000).toFixed(2) + 's'; }
+
+  // ---- door itself: genuinely inert ----
+  function tapDoor(){
+    if (caught) return;
+    doorTaps++;
+    if (!reduced){
+      door.classList.remove('shake');
+      void door.offsetWidth;
+      door.classList.add('shake');
+    }
+    sensorDot.classList.add('tapped');
+    setTimeout(function(){ sensorDot.classList.remove('tapped'); }, 220);
+    // sensor label never changes count — structurally blind to the door too
+  }
+  door.addEventListener('pointerdown', function(e){
+    if (e.target === gap || gap.contains(e.target)) return;
+    tapDoor();
+  });
+
+  // ---- the gap: press and hold ----
+  function setRing(frac){
+    var offset = RING_CIRC * (1 - Math.max(0, Math.min(1, frac)));
+    ringFill.setAttribute('stroke-dashoffset', String(offset));
+  }
+
+  function startHold(e){
+    if (caught || down) return;
+    down = true;
+    downAt = performance.now();
+    ring.classList.add('show');
+    setRing(0);
+    var req = HOLD_REQ[Math.min(attempts, HOLD_REQ.length-1)];
+    function tick(){
+      if (!down) return;
+      var el = performance.now() - downAt;
+      setRing(el / req);
+      raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    e.preventDefault();
+  }
+
+  function endHold(){
+    if (!down) return;
+    down = false;
+    if (raf) cancelAnimationFrame(raf);
+    ring.classList.remove('show');
+    var held = performance.now() - downAt;
+    resolveAttempt(held);
+  }
+
+  gap.addEventListener('pointerdown', startHold);
+  window.addEventListener('pointerup', endHold);
+  window.addEventListener('pointercancel', endHold);
+
+  function spawnCard(text, cls){
+    var c = document.createElement('div');
+    c.className = 'card ' + cls + (reduced ? '' : ' rise');
+    c.textContent = text;
+    door.appendChild(c);
+    setTimeout(function(){ c.remove(); }, reduced ? 900 : 950);
+  }
+
+  function garble(len){
+    var chars = 'XQZKVWJTHR#%&_';
+    var s = '';
+    for (var i=0;i<len;i++) s += chars[Math.floor(Math.random()*chars.length)];
+    return s;
+  }
+
+  function resolveAttempt(heldMs){
+    if (caught) return;
+    var idx = attempts; // 0-based before increment
+    var req = HOLD_REQ[Math.min(idx, HOLD_REQ.length-1)];
+    attempts++;
+    holdTimes.push(heldMs);
+
+    if (heldMs >= req && delivered < WORDS.length){
+      var w = WORDS[delivered];
+      wordEls[delivered].textContent = w;
+      wordEls[delivered].className = 'word filled';
+      delivered++;
+      spawnCard(w, 'gold');
+      status.textContent = '';
+    } else {
+      spawnCard(garble(4), 'ice');
+      status.textContent = 'nothing came back in time';
+      status.classList.remove('held');
+    }
+
+    if (attempts >= MAX_ATTEMPTS){
+      catchNow();
+    }
+  }
+
+  function catchNow(){
+    caught = true;
+    gap.classList.add('locked');
+    plate.classList.add('down');
+    status.textContent = 'SCENE HELD.';
+    status.classList.add('held');
+  }
+
+  // ---- ledger ----
+  function renderLedger(){
+    document.getElementById('ldPings').textContent = '0';
+    document.getElementById('ldTaps').textContent = String(doorTaps);
+    document.getElementById('ldAttempts').textContent = attempts + ' / ' + MAX_ATTEMPTS;
+    document.getElementById('ldWords').textContent = delivered + ' / ' + WORDS.length;
+    if (holdTimes.length){
+      var sum = holdTimes.reduce(function(a,b){return a+b;},0);
+      document.getElementById('ldAvg').textContent = fmtSec(sum/holdTimes.length);
+    } else {
+      document.getElementById('ldAvg').textContent = '—';
+    }
+    var lastReqIdx = Math.min(attempts, HOLD_REQ.length) - 1;
+    document.getElementById('ldReq').textContent = lastReqIdx >= 0 ? fmtSec(HOLD_REQ[lastReqIdx]) : '—';
+    document.getElementById('ldCaught').textContent = caught ? (MAX_ATTEMPTS + ' attempts, always') : 'not yet';
+  }
+
+  markBtn.addEventListener('click', function(){
+    renderLedger();
+    ledger.classList.add('open');
+  });
+  ledgerClose.addEventListener('click', function(){
+    ledger.classList.remove('open');
+  });
+  ledger.addEventListener('click', function(e){
+    if (e.target === ledger) ledger.classList.remove('open');
+  });
+})();
+</script>
+</body>
+</html>
