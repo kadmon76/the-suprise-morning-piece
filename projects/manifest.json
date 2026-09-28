@@ -461,6 +461,13 @@
       "kind": "question",
       "note": "A sealed door for tonight's cold read. The sensor never once made a sound.",
       "path": "projects/2026-09-27-under-the-door/index.html"
+    },
+    {
+      "date": "2026-09-28",
+      "title": "Load-In",
+      "kind": "seed",
+      "note": "A wall of flats going up backstage. Whatever comes down stays down — the crew calls it handled anyway.",
+      "path": "projects/2026-09-28-load-in/index.html"
     }
   ]
 }

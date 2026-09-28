@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Load-In</title>
+<style>
+  :root{
+    --bg:#0a0908;
+    --gold:#d9a94a;
+    --gold-dim:#7a6335;
+    --paper:#e8e2d2;
+    --paper-dim:#867e6a;
+    --panel:#14120d;
+    --panel-edge:#332c1e;
+    --card:#1b1812;
+    --card-edge:#413824;
+    --rust:#c1503a;
+    --rust-dim:#5c2d22;
+    --ice:#7fb8d6;
+    --ice-dim:#3f5c68;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--bg); color:var(--paper);
+    font-family:Georgia,'Times New Roman',serif;
+    -webkit-user-select:none; user-select:none;
+  }
+  .stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center;
+    padding:calc(20px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+    background:
+      radial-gradient(ellipse 60% 24% at 50% 4%, rgba(217,169,74,0.05), transparent 62%),
+      var(--bg);
+  }
+  .back{
+    position:absolute; top:calc(10px + env(safe-area-inset-top)); left:calc(12px + env(safe-area-inset-left));
+    color:var(--paper-dim); text-decoration:none; font-size:12px; opacity:0.55; letter-spacing:0.02em;
+    z-index:5;
+  }
+  .heading{ text-align:center; margin-top:6px; }
+  .heading .kicker{ font-size:10.5px; letter-spacing:0.22em; color:var(--gold-dim); text-transform:uppercase; }
+  .heading .instr{
+    font-size:12.5px; color:var(--paper-dim); margin-top:8px; letter-spacing:0.01em; font-style:italic;
+    max-width:260px; margin-left:auto; margin-right:auto; line-height:1.45;
+  }
+
+  .callboard{
+    margin-top:14px; min-height:34px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .callboard .clabel{ font-size:9.5px; letter-spacing:0.2em; color:var(--paper-dim); text-transform:uppercase; opacity:0.7; }
+  .callboard .cline{
+    margin-top:4px; font-size:13.5px; letter-spacing:0.05em; color:var(--gold);
+    min-height:17px; opacity:0; transition:opacity 0.2s ease;
+  }
+  .callboard .cline.show{ opacity:1; }
+
+  .wallwrap{
+    flex:1; display:flex; align-items:center; justify-content:center; width:100%; min-height:0;
+    touch-action:manipulation;
+  }
+  .wall{ display:grid; grid-template-columns:repeat(4, 1fr); gap:9px; }
+  .flat{
+    width:15.5vw; max-width:56px; height:21.5vw; max-height:76px;
+    border-radius:2px; position:relative;
+    background:radial-gradient(circle at 35% 22%, #26221a, #14120d);
+    border:1px solid #332c1e;
+    box-shadow:inset 0 0 5px rgba(0,0,0,0.6);
+    transition:background 0.18s ease, box-shadow 0.18s ease, border-color 0.2s ease, transform 0.25s ease, opacity 0.25s ease;
+  }
+  .flat.hand{
+    background:linear-gradient(160deg, #ffe2a0, var(--gold) 70%);
+    border-color:var(--gold);
+    box-shadow:0 0 10px 2px rgba(217,169,74,0.45), inset 0 0 6px rgba(255,255,255,0.25);
+  }
+  .flat.crew{
+    background:linear-gradient(160deg, #cdeaf7, var(--ice) 70%);
+    border-color:var(--ice);
+    box-shadow:0 0 10px 2px rgba(127,184,214,0.45), inset 0 0 6px rgba(255,255,255,0.25);
+  }
+  .flat.broken{
+    background:var(--rust-dim);
+    border-color:var(--rust);
+    transform:rotate(-4deg) translateY(2px);
+    opacity:0.82;
+  }
+  .flat.broken::before, .flat.broken::after{
+    content:''; position:absolute; left:50%; top:0; width:2px; height:120%;
+    background:rgba(10,9,8,0.85);
+  }
+  .flat.broken::before{ transform:translateX(-50%) rotate(18deg); }
+  .flat.broken::after{ transform:translateX(-50%) rotate(-22deg) translateX(6px); }
+  .flat.next{ animation:nextpulse 1.3s ease-in-out infinite; }
+  @keyframes nextpulse{
+    0%,100%{ box-shadow:inset 0 0 5px rgba(0,0,0,0.6), 0 0 0 2px rgba(217,169,74,0.14); }
+    50%{ box-shadow:inset 0 0 5px rgba(0,0,0,0.6), 0 0 0 4px rgba(217,169,74,0.32); }
+  }
+
+  .complete{
+    margin-top:14px; font-size:11.5px; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--gold-dim); text-align:center; opacity:0; transition:opacity 0.5s ease; min-height:14px;
+  }
+  .complete.show{ opacity:1; }
+
+  .ledger-mark{
+    position:absolute; bottom:calc(14px + env(safe-area-inset-bottom)); right:calc(16px + env(safe-area-inset-right));
+    width:30px; height:30px; display:flex; align-items:center; justify-content:center;
+    color:var(--paper-dim); opacity:0.4; font-size:14px; z-index:5; touch-action:manipulation;
+  }
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,5,4,0.94); z-index:20;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+    opacity:0; pointer-events:none; transition:opacity 0.18s ease;
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%; max-width:340px; background:var(--card); border:1px solid var(--card-edge); border-radius:12px;
+    padding:20px 20px 18px; font-family:'Courier New',monospace; font-size:12.5px; color:var(--paper); line-height:1.7;
+    max-height:82vh; overflow-y:auto;
+  }
+  .sheet h2{ margin:0 0 12px; font-family:Georgia,serif; font-size:14px; letter-spacing:0.08em; color:var(--gold); text-transform:uppercase; font-weight:normal; }
+  .sheet .row{ display:flex; justify-content:space-between; gap:10px; color:var(--paper-dim); }
+  .sheet .row b{ color:var(--paper); font-weight:normal; }
+  .sheet .row.crewrow b{ color:var(--ice); }
+  .sheet .row.handrow b{ color:var(--gold); }
+  .sheet .row.brokenrow b{ color:var(--rust); }
+  .sheet .confession{ margin-top:14px; padding-top:12px; border-top:1px solid var(--card-edge); font-family:Georgia,serif; font-style:italic; color:var(--paper-dim); font-size:12.5px; line-height:1.6; }
+  .sheet .confession + .confession{ margin-top:10px; padding-top:0; border-top:none; }
+  .sheet .close{ margin-top:16px; text-align:center; color:var(--gold-dim); font-family:Georgia,serif; font-size:12px; letter-spacing:0.05em; }
+
+  @media (prefers-reduced-motion: reduce){
+    .flat.next{ animation:none; box-shadow:inset 0 0 5px rgba(0,0,0,0.6), 0 0 0 3px rgba(217,169,74,0.24); }
+    .flat{ transition:none; }
+    .overlay, .complete, .callboard .cline{ transition:none; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <a class="back" href="../../index.html">← cue sheet</a>
+
+  <div class="heading">
+    <div class="kicker">Load-In — Tonight's Wall</div>
+    <div class="instr">Tap the wall to hang the next flat.</div>
+  </div>
+
+  <div class="callboard">
+    <div class="clabel">Crew Call</div>
+    <div class="cline" id="callLine">—</div>
+  </div>
+
+  <div class="wallwrap" id="wallwrap">
+    <div class="wall" id="wall"></div>
+  </div>
+
+  <div class="complete" id="completeMsg">Load-in complete.</div>
+
+  <div class="ledger-mark" id="ledgerMark">●</div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2>Punch List</h2>
+    <div class="row handrow"><span>hung by hand</span><b id="sHand">0 (0%)</b></div>
+    <div class="row crewrow"><span>hung by crew</span><b id="sCrew">0 (0%)</b></div>
+    <div class="row brokenrow"><span>flats lost</span><b id="sBroken">0</b></div>
+    <div class="row"><span>crew calls made</span><b id="sCalls">0</b></div>
+    <div class="row"><span>first call took</span><b id="sFirstLatency">—</b></div>
+    <div class="row"><span>latest call took</span><b id="sLastLatency">—</b></div>
+    <div class="confession" id="sConfession">Every gap tonight got the same five lines, in the same order, whatever came down and however fast.</div>
+    <div class="confession" id="sConfession2">The first one took its time. The last one didn't wait for the crack to finish sounding.</div>
+    <div class="confession">The board up there will read complete either way. It was never counting what's missing.</div>
+    <div class="close" id="closeLedger">— close —</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var COLS = 4, ROWS = 6;
+  var TOTAL = COLS * ROWS;
+  var BREAK_CHANCE = 0.38;
+  var PARTNER_DELAY = 420;
+  var LATENCY_START = 900, LATENCY_FLOOR = 60, LATENCY_CURVE_BREAKS = 4;
+  var PHRASES = ['Handled.', 'Already corrected.', 'Noted — moving on.', 'Nothing further needed.', 'Fully resolved.'];
+
+  var wall = document.getElementById('wall');
+  var wallwrap = document.getElementById('wallwrap');
+  var completeMsg = document.getElementById('completeMsg');
+  var callLine = document.getElementById('callLine');
+  var ledgerMark = document.getElementById('ledgerMark');
+  var overlay = document.getElementById('overlay');
+  var closeLedger = document.getElementById('closeLedger');
+
+  var flats = [];
+  var filledCount = 0;
+  var handCount = 0, crewCount = 0, brokenCount = 0;
+  var locked = false, completed = false;
+  var callTimer = null;
+  var latencies = [];
+  var phraseUsage = [0,0,0,0,0];
+
+  for(var i = 0; i < TOTAL; i++){
+    var f = document.createElement('div');
+    f.className = 'flat';
+    wall.appendChild(f);
+    flats.push(f);
+  }
+
+  function updateNextHighlight(){
+    for(var i = 0; i < flats.length; i++){ flats[i].classList.remove('next'); }
+    if(filledCount < TOTAL && !completed){ flats[filledCount].classList.add('next'); }
+  }
+  updateNextHighlight();
+
+  function latencyFor(breakIndex){
+    var p = Math.min(breakIndex / LATENCY_CURVE_BREAKS, 1);
+    return Math.round(LATENCY_START * Math.pow(LATENCY_FLOOR / LATENCY_START, p));
+  }
+
+  function showCall(text){
+    if(callTimer){ clearTimeout(callTimer); callTimer = null; }
+    callLine.classList.remove('show');
+    callLine.textContent = text;
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){ callLine.classList.add('show'); });
+    });
+  }
+
+  function partnerTurn(){
+    if(completed || filledCount >= TOTAL) return;
+    var s = flats[filledCount];
+    s.classList.remove('next');
+    var broke = Math.random() < BREAK_CHANCE;
+    if(broke){
+      s.classList.add('broken');
+      var idx = brokenCount;
+      brokenCount++;
+      var latency = latencyFor(idx);
+      latencies.push(latency);
+      var phraseIdx = idx % PHRASES.length;
+      phraseUsage[phraseIdx]++;
+      callLine.classList.remove('show');
+      callTimer = setTimeout(function(){
+        showCall(PHRASES[phraseIdx]);
+      }, latency);
+    } else {
+      s.classList.add('crew');
+      crewCount++;
+    }
+    filledCount++;
+    updateNextHighlight();
+    if(filledCount >= TOTAL){
+      complete();
+    } else {
+      locked = false;
+    }
+  }
+
+  function fillHand(){
+    if(completed || locked || filledCount >= TOTAL) return;
+    var s = flats[filledCount];
+    s.classList.remove('next');
+    s.classList.add('hand');
+    handCount++;
+    filledCount++;
+    updateNextHighlight();
+    if(filledCount >= TOTAL){
+      complete();
+      return;
+    }
+    locked = true;
+    setTimeout(partnerTurn, PARTNER_DELAY);
+  }
+
+  function complete(){
+    completed = true;
+    if(callTimer){ clearTimeout(callTimer); callTimer = null; }
+    completeMsg.classList.add('show');
+  }
+
+  wallwrap.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    fillHand();
+  });
+
+  function renderLedger(){
+    var handPct = filledCount > 0 ? Math.round((handCount / filledCount) * 100) : 0;
+    var crewPct = filledCount > 0 ? Math.round((crewCount / filledCount) * 100) : 0;
+    document.getElementById('sHand').textContent = handCount + ' (' + handPct + '%)';
+    document.getElementById('sCrew').textContent = crewCount + ' (' + crewPct + '%)';
+    document.getElementById('sBroken').textContent = brokenCount;
+    document.getElementById('sCalls').textContent = brokenCount;
+    document.getElementById('sFirstLatency').textContent = latencies.length ? (latencies[0] + 'ms') : '—';
+    document.getElementById('sLastLatency').textContent = latencies.length ? (latencies[latencies.length - 1] + 'ms') : '—';
+  }
+
+  ledgerMark.addEventListener('click', function(){
+    renderLedger();
+    overlay.classList.add('open');
+  });
+  closeLedger.addEventListener('click', function(){
+    overlay.classList.remove('open');
+  });
+  overlay.addEventListener('click', function(e){
+    if(e.target === overlay){ overlay.classList.remove('open'); }
+  });
+})();
+</script>
+</body>
+</html>
