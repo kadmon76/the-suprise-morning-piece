@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reading Light</title>
+<style>
+:root{--bg:#07080b;--win:#e8b850;--off:#12141a;--ink:#f1e6c8}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:Georgia,'Times New Roman',serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+#app{height:100%;display:flex;flex-direction:column;padding:max(14px,env(safe-area-inset-top)) 16px max(14px,env(safe-area-inset-bottom))}
+a.back{position:fixed;top:max(10px,env(safe-area-inset-top));left:14px;font:12px/1 system-ui,sans-serif;color:#4a4d57;text-decoration:none;z-index:5}
+#city{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;margin:30px auto 0;width:100%;max-width:420px}
+.w{aspect-ratio:1/1.15;background:var(--win);opacity:.55;border-radius:1px;transition:opacity 1.6s,background 1.6s}
+.w.out{background:var(--off);opacity:1}
+main{flex:1;display:flex;align-items:center;gap:14px;max-width:420px;width:100%;margin:0 auto;min-height:0}
+#text{flex:1;font-size:clamp(18px,5.2vw,23px);line-height:1.55}
+#text span{opacity:0;transition:opacity .25s}
+#fader{width:64px;align-self:stretch;margin:14px 0;position:relative;touch-action:none}
+#track{position:absolute;left:50%;top:0;bottom:0;width:4px;margin-left:-2px;background:#1c1e26;border-radius:2px}
+#knob{position:absolute;left:0;right:0;height:34px;margin-top:-17px;background:#d8d2c2;border-radius:4px;box-shadow:0 0 0 1px #000,0 6px 14px #000a;bottom:0}
+#knob:after{content:"";position:absolute;left:10px;right:10px;top:16px;height:2px;background:#222}
+#ledger{position:fixed;inset:0;display:none;align-items:center;justify-content:center;text-align:center;background:var(--bg);font-size:clamp(20px,6vw,28px);line-height:1.5;padding:24px;z-index:4}
+#ledger.on{display:flex;animation:in 2.4s both}
+#ledger small{display:block;margin-top:18px;font:13px/1.5 system-ui,sans-serif;color:#5b5e69}
+@keyframes in{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.w,#text span{transition:none}#ledger.on{animation:none}}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div id="app">
+  <div id="city" aria-hidden="true"></div>
+  <main>
+    <div id="text"></div>
+    <div id="fader" role="slider" aria-label="lamp" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0"><div id="track"></div><div id="knob"></div></div>
+  </main>
+</div>
+<div id="ledger"><div id="ltxt"></div></div>
+<script>
+(function(){
+const TEXT="It is late, and you are reading by a light you did not make. Nobody has ever sent you the bill for it, and this is not that either. Somewhere a window you will never see has just gone dark. Keep reading anyway. Everyone does.";
+const words=TEXT.split(" "),n=words.length,N=60;
+const txt=document.getElementById('text'),city=document.getElementById('city');
+const thr=words.map((w,i)=>6+76*Math.pow(i/(n-1),1.25));
+const spans=words.map(w=>{const s=document.createElement('span');s.textContent=w+" ";txt.appendChild(s);return s});
+const wins=[];for(let i=0;i<N;i++){const d=document.createElement('div');d.className='w';city.appendChild(d);wins.push(d)}
+const fader=document.getElementById('fader'),knob=document.getElementById('knob');
+let lamp=0,debt=0,caused=0,done=false,last=performance.now(),timers=[];
+const free=()=>wins.map((w,i)=>i).filter(i=>!wins[i].dataset.q);
+function setLamp(v){lamp=Math.max(0,Math.min(100,v));knob.style.bottom='calc('+lamp+'% - 0px)';fader.setAttribute('aria-valuenow',Math.round(lamp));
+ let all=true;
+ spans.forEach((s,i)=>{const o=Math.max(0,Math.min(1,(lamp-thr[i])/10));s.style.opacity=o;if(o<1)all=false});
+ if(all&&!done)finish()}
+function drag(e){const r=fader.getBoundingClientRect();setLamp((1-(e.clientY-r.top)/r.height)*100)}
+let dn=false;
+fader.addEventListener('pointerdown',e=>{if(done)return;dn=true;fader.setPointerCapture(e.pointerId);drag(e)});
+fader.addEventListener('pointermove',e=>{if(dn&&!done)drag(e)});
+['pointerup','pointercancel'].forEach(t=>fader.addEventListener(t,()=>{dn=false}));
+fader.addEventListener('keydown',e=>{if(done)return;if(e.key==='ArrowUp')setLamp(lamp+5);if(e.key==='ArrowDown')setLamp(lamp-5)});
+function kill(i){wins[i].classList.add('out')}
+function tick(t){
+ const dt=Math.min(.2,(t-last)/1000);last=t;
+ if(!done&&lamp>0){debt+=Math.pow(lamp/100,2)*1.6*dt;
+  while(debt>=1){debt-=1;const f=free();if(!f.length)break;const i=f[Math.random()*f.length|0];wins[i].dataset.q=1;caused++;timers.push(setTimeout(()=>kill(i),2500+Math.random()*5000))}}
+ if(!done)requestAnimationFrame(tick)}
+function finish(){
+ done=true;timers.forEach(clearTimeout);
+ wins.forEach((w,i)=>{if(w.dataset.q)kill(i)});
+ setTimeout(()=>{
+  document.getElementById('ltxt').innerHTML=(caused?'Windows out: '+caused+'.':'Windows out: none.')+'<small>Your lamp was always on.</small>';
+  document.getElementById('ledger').classList.add('on')},3400)}
+setLamp(0);requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

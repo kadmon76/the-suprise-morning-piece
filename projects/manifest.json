@@ -468,6 +468,13 @@
       "kind": "seed",
       "note": "A wall of flats going up backstage. Whatever comes down stays down — the crew calls it handled anyway.",
       "path": "projects/2026-09-28-load-in/index.html"
+    },
+    {
+      "date": "2026-09-29",
+      "title": "Reading Light",
+      "kind": "question",
+      "note": "A page you can only read by lamplight. The city above is fine. Probably.",
+      "path": "projects/2026-09-29-reading-light/index.html"
     }
   ]
 }
