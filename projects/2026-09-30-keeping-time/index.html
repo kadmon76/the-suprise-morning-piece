@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Keeping Time</title>
+<style>
+  :root{ --bg:#08080a; --paper:#e9e6dc; --dim:#7d7a70; --amber:#e0a44a; --white:#f4f1e6; }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none;}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--paper);
+    font-family:Georgia,'Times New Roman',serif;-webkit-user-select:none;user-select:none;}
+  .back{position:absolute;top:calc(10px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));
+    color:var(--dim);text-decoration:none;font-size:12px;opacity:.6;z-index:5}
+  .stage{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:env(safe-area-inset-top) 18px env(safe-area-inset-bottom);touch-action:manipulation}
+  .hint{font-style:italic;font-size:13px;color:var(--dim);letter-spacing:.02em;height:20px;transition:opacity .6s}
+  .pad{position:relative;width:min(72vw,300px);aspect-ratio:1;margin:26px 0;border-radius:50%;
+    border:1px solid #2a2823;background:radial-gradient(circle at 50% 40%,#17161a,#0c0c0e);
+    box-shadow:inset 0 0 30px #000}
+  .ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--amber);opacity:0;pointer-events:none}
+  .ring.go{animation:ring .45s ease-out}
+  .dot{position:absolute;inset:38%;border-radius:50%;background:var(--white);opacity:0;pointer-events:none}
+  .dot.go{animation:dot .25s ease-out}
+  @keyframes ring{0%{opacity:.9;transform:scale(.7)}100%{opacity:0;transform:scale(1.08)}}
+  @keyframes dot{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(1.5)}}
+  @media (prefers-reduced-motion:reduce){
+    .ring.go{animation:none;opacity:.9;transition:opacity .2s}
+    .dot.go{animation:none;opacity:.9}
+  }
+  .count{font-size:11px;letter-spacing:.2em;color:var(--dim);height:14px}
+  .result{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:var(--bg);opacity:0;pointer-events:none;transition:opacity 1.2s;padding:24px}
+  .result.on{opacity:1;pointer-events:auto}
+  .big{font-size:44px;letter-spacing:.04em}
+  .big i{color:var(--dim);font-style:normal;padding:0 .3em}
+  .lbl{font-size:11px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;margin-top:6px}
+  svg{width:min(88vw,340px);height:120px;margin:26px 0 8px;overflow:visible}
+  .line{margin-top:10px;font-size:14px;font-style:italic;color:var(--paper);text-align:center;max-width:280px;line-height:1.5}
+  .again{margin-top:26px;background:none;border:1px solid #3a382f;color:var(--dim);font:inherit;font-size:13px;
+    padding:10px 22px;border-radius:2px}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div class="stage" id="stage">
+  <div class="hint" id="hint">Tap a tempo.</div>
+  <div class="pad" id="pad"><div class="ring" id="ring"></div><div class="dot" id="dot"></div></div>
+  <div class="count" id="count"></div>
+</div>
+<div class="result" id="res">
+  <div class="big"><span id="a">0</span><i>→</i><span id="b">0</span></div>
+  <div class="lbl">beats per minute</div>
+  <svg id="svg" viewBox="0 0 340 120" preserveAspectRatio="none"></svg>
+  <div class="lbl" style="margin-top:0"><span style="color:var(--white)">you</span> &nbsp; <span style="color:var(--amber)">it</span></div>
+  <div class="line" id="line"></div>
+  <button class="again" id="again">again</button>
+</div>
+<script>
+(function(){
+  var TOTAL=40, AC=null, taps, pb, mb, m, nextBeat, running, ended, raf, lastBeatDraw;
+  var pad=document.getElementById('pad'), ring=document.getElementById('ring'), dot=document.getElementById('dot');
+  var hint=document.getElementById('hint'), count=document.getElementById('count');
+  var res=document.getElementById('res');
+
+  function reset(){
+    taps=[]; pb=[]; mb=[]; m=null; nextBeat=0; running=false; ended=false;
+    cancelAnimationFrame(raf);
+    hint.textContent='Tap a tempo.'; hint.style.opacity=1; count.textContent='';
+    res.classList.remove('on');
+  }
+  function blip(el){ el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); }
+  function tone(freq,dur,vol){
+    if(!AC) return;
+    var o=AC.createOscillator(), g=AC.createGain(), t=AC.currentTime;
+    o.type='sine'; o.frequency.setValueAtTime(freq,t); o.frequency.exponentialRampToValueAtTime(freq*.5,t+dur);
+    g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+dur+.02);
+  }
+  function estimate(){
+    var n=taps.length; if(n<3) return null;
+    var k=Math.min(4,n-1), s=0;
+    for(var i=n-k;i<n;i++) s+=taps[i]-taps[i-1];
+    return Math.max(40,Math.min(220,60000/(s/k)));
+  }
+  function tap(e){
+    if(e) e.preventDefault();
+    if(ended) return;
+    if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(x){} }
+    if(AC && AC.state==='suspended') AC.resume();
+    var now=performance.now();
+    taps.push(now);
+    tone(110,.18,.5); blip(dot);
+    hint.style.opacity=0;
+    var p=estimate();
+    if(p!==null){
+      pb.push(p);
+      var target=p*1.04;
+      if(m===null){ m=p; nextBeat=now+60000/m*.5; running=true; loop(); }
+      else if(target>m) m+= .5*(target-m);
+      else m+= .15*(target-m);
+    }
+    count.textContent=taps.length+' / '+TOTAL;
+    if(taps.length>=TOTAL) finish();
+  }
+  function loop(){
+    if(!running) return;
+    var now=performance.now();
+    if(now>=nextBeat){
+      tone(1500,.05,.12); blip(ring); mb.push(m);
+      nextBeat+=60000/m;
+      if(nextBeat<now) nextBeat=now+60000/m;
+    }
+    raf=requestAnimationFrame(loop);
+  }
+  function finish(){
+    ended=true; running=false; cancelAnimationFrame(raf);
+    setTimeout(show,900);
+  }
+  function show(){
+    var a=Math.round(pb[0]), b=Math.round(pb[pb.length-1]);
+    document.getElementById('a').textContent=a;
+    document.getElementById('b').textContent=b;
+    var all=pb.concat(mb.length?mb:[m]), lo=Math.min.apply(null,all)-4, hi=Math.max.apply(null,all)+4;
+    function path(arr,col){
+      var d='';
+      for(var i=0;i<arr.length;i++){
+        var x=arr.length>1?i/(arr.length-1)*340:0, y=120-(arr[i]-lo)/(hi-lo)*120;
+        d+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);
+      }
+      return '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="1.6" stroke-linejoin="round"/>';
+    }
+    document.getElementById('svg').innerHTML=path(mb.length?mb:[m,m],'#e0a44a')+path(pb,'#f4f1e6');
+    document.getElementById('line').textContent= b>a
+      ? 'It never played more than four percent faster than you.'
+      : 'It never played more than four percent faster than you. You held.';
+    res.classList.add('on');
+  }
+  pad.addEventListener('touchstart',tap,{passive:false});
+  pad.addEventListener('mousedown',function(e){ if(e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents) return; tap(e); });
+  document.getElementById('again').addEventListener('click',reset);
+  reset();
+})();
+</script>
+</body>
+</html>
