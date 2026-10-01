@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>As Read</title>
+<style>
+  :root{ --bg:#07070a; --paper:#ece8da; --dim:#7a776c; --amber:#e0a44a; }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none;}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--paper);
+    font-family:Georgia,'Times New Roman',serif;-webkit-user-select:none;user-select:none;}
+  .back{position:absolute;top:calc(10px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));
+    color:var(--dim);text-decoration:none;font-size:12px;opacity:.6;z-index:6}
+  .stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    padding:env(safe-area-inset-top) 26px env(safe-area-inset-bottom);touch-action:none}
+  .beam{position:fixed;left:0;top:0;width:200px;height:200px;margin:-100px 0 0 -100px;border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle,rgba(236,222,180,.16) 0%,rgba(236,222,180,.07) 45%,rgba(236,222,180,0) 70%);
+    opacity:0;transition:opacity .35s}
+  .beam.on{opacity:1}
+  .doc{max-width:340px;font-size:23px;line-height:1.55;text-align:left}
+  .doc .s{display:block;margin-bottom:.55em}
+  .w{display:inline-block;margin-right:.28em;opacity:.05;transition:opacity .3s}
+  .w.lit{opacity:1}
+  .hint{position:fixed;left:0;right:0;bottom:calc(26px + env(safe-area-inset-bottom));text-align:center;
+    font-style:italic;font-size:13px;color:var(--dim);transition:opacity .8s}
+  .res{position:fixed;left:0;right:0;bottom:calc(26px + env(safe-area-inset-bottom));text-align:center;padding:0 26px;
+    opacity:0;transition:opacity 1.4s;pointer-events:none;font-size:14px;font-style:italic;line-height:1.55}
+  .res.on{opacity:1}
+  .res b{font-style:normal;font-weight:normal;color:var(--amber)}
+  .done .w{opacity:1}
+  .w.chg{color:var(--amber)}
+  .done .beam{display:none}
+  @media (prefers-reduced-motion:reduce){ .w,.beam,.hint,.res{transition:none} }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div class="stage" id="stage"><div class="doc" id="doc"></div></div>
+<div class="beam" id="beam"></div>
+<div class="hint" id="hint">Light it to read it.</div>
+<div class="res" id="res"></div>
+<script>
+(function(){
+  var TEXT=[
+    "We [may|must] keep what you give us.",
+    "We will [never|only] sell it.",
+    "You [can|cannot] leave at any time.",
+    "Nothing we change will be [hidden|mentioned].",
+    "We are [not|now] watching you.",
+    "This was [always|never] free."
+  ];
+  var doc=document.getElementById('doc'), beam=document.getElementById('beam'),
+      hint=document.getElementById('hint'), res=document.getElementById('res'), body=document.body;
+  var words=[], R=72, down=false, bx=0, by=0, finished=false, timers=[];
+  TEXT.forEach(function(line){
+    var s=document.createElement('span'); s.className='s';
+    line.split(' ').forEach(function(tok){
+      var w=document.createElement('span'); w.className='w';
+      var m=tok.match(/^\[(\w+)\|(\w+)\](.*)$/), o={el:w,read:false,lit:false,alt:null,changed:false,first:null,x:0,y:0};
+      if(m){ o.first=m[1]; o.alt=m[2]; w.textContent=m[1]+m[3]; o.tail=m[3]; }
+      else { w.textContent=tok; }
+      s.appendChild(w); s.appendChild(document.createTextNode(' '));
+      words.push(o);
+    });
+    doc.appendChild(s);
+  });
+  function measure(){
+    words.forEach(function(o){ var r=o.el.getBoundingClientRect(); o.x=r.left+r.width/2; o.y=r.top+r.height/2; });
+  }
+  function update(){
+    if(finished) return;
+    words.forEach(function(o){
+      var lit=down && Math.hypot(o.x-bx,o.y-by)<R;
+      if(lit!==o.lit){ o.lit=lit; o.el.classList.toggle('lit',lit); }
+      if(lit) o.read=true;
+    });
+    if(words.every(function(o){return o.read;})) finish();
+  }
+  function move(e){
+    bx=e.clientX; by=e.clientY-56;
+    beam.style.transform='translate('+bx+'px,'+by+'px)';
+    update();
+  }
+  var stage=document.getElementById('stage');
+  stage.addEventListener('pointerdown',function(e){ down=true; beam.classList.add('on'); hint.style.opacity=0; move(e); });
+  stage.addEventListener('pointermove',function(e){ if(down) move(e); });
+  function up(){ down=false; beam.classList.remove('on'); update(); }
+  stage.addEventListener('pointerup',up); stage.addEventListener('pointercancel',up);
+  stage.addEventListener('contextmenu',function(e){e.preventDefault();});
+  window.addEventListener('resize',measure); measure();
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(measure);
+
+  // Once a word has been read and the light has left it, it may change. Nobody sees it happen.
+  function mutate(force){
+    var pool=words.filter(function(o){ return o.alt && o.read && !o.lit && !o.changed; });
+    if(!pool.length) return false;
+    var o=pool[Math.floor(Math.random()*pool.length)];
+    o.changed=true; o.el.textContent=o.alt+o.tail; return true;
+  }
+  var tick=setInterval(function(){ if(!finished) mutate(); },1300);
+  function finish(){
+    finished=true; clearInterval(tick); down=false; beam.classList.remove('on');
+    words.forEach(function(o){ o.el.classList.remove('lit'); });
+    // anything still unchanged is changed now, one at a time, in the dark
+    var left=words.filter(function(o){return o.alt && !o.changed;});
+    var n=0;
+    left.forEach(function(o,i){ timers.push(setTimeout(function(){ o.changed=true; o.el.textContent=o.alt+o.tail; },700+i*500)); });
+    var T=700+left.length*500+1600;
+    setTimeout(function(){
+      body.classList.add('done');
+      words.forEach(function(o){ if(o.alt) o.el.classList.add('chg'); });
+      var total=words.length, ch=words.filter(function(o){return o.alt;}).length;
+      res.innerHTML='You read all '+total+' words.<br><b>'+ch+'</b> of them are not the ones you read.<br>Each one was true when you read it.';
+      res.classList.add('on');
+    },T);
+  }
+})();
+</script>
+</body>
+</html>

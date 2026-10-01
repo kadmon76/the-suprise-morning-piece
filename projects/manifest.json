@@ -482,6 +482,13 @@
       "kind": "seed",
       "note": "Tap out a tempo. A drummer joins in and follows your lead, never more than a hair ahead.",
       "path": "projects/2026-09-30-keeping-time/index.html"
+    },
+    {
+      "date": "2026-10-01",
+      "title": "As Read",
+      "kind": "question",
+      "note": "Terms and conditions, lit one line at a time. You'll want to have read them.",
+      "path": "projects/2026-10-01-as-read/index.html"
     }
   ]
 }
