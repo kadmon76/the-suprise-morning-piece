@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Going Rate</title>
+<style>
+:root{--bg:#0d0c0b;--fg:#e9e4da;--dim:#7d776c;--amb:#ffb347;--line:#2a2824}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:Georgia,'Times New Roman',serif}
+body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 20px env(safe-area-inset-bottom);max-width:480px;margin:0 auto}
+a.back{position:fixed;top:10px;left:14px;color:var(--dim);font:12px/1 ui-monospace,monospace;text-decoration:none;letter-spacing:.05em}
+main{flex:1;display:flex;flex-direction:column;justify-content:center;gap:28px}
+.round{font:12px ui-monospace,monospace;color:var(--dim);letter-spacing:.15em;text-transform:uppercase;min-height:1em}
+.offer{font-size:20px;line-height:1.5;min-height:3em}
+.offer b{color:var(--amb);font-size:64px;display:block;font-weight:normal;line-height:1.1}
+.bar{height:10px;background:var(--line);position:relative;border-radius:2px;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--amb);transition:width .5s}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+button{font:inherit;font-size:19px;padding:22px 8px;background:none;color:var(--fg);border:1px solid var(--dim);border-radius:3px;touch-action:manipulation}
+button:active{background:var(--line)}
+button[disabled]{opacity:.3}
+.tally{font:12px ui-monospace,monospace;color:var(--dim);display:flex;justify-content:space-between}
+.end{font-size:20px;line-height:1.55}
+.end b{color:var(--amb);font-weight:normal}
+.dots{display:flex;align-items:flex-end;gap:6px;height:90px;margin:6px 0 4px}
+.dots span{flex:1;background:var(--amb);min-height:2px;opacity:.95}
+.dots span.no{background:none;border:1px solid var(--dim)}
+.small{font:12px/1.5 ui-monospace,monospace;color:var(--dim)}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style></head><body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<main id="m"></main>
+<script>
+(function(){
+var N=10,round=0,lo=0,hi=null,offer=50,you=0,it=0,log=[],m=document.getElementById('m');
+function draw(){
+  m.innerHTML='<div class="round">Round '+(round+1)+' of '+N+'</div>'+
+  '<div class="offer">It keeps '+(100-offer)+'.<b>You get '+offer+'.</b></div>'+
+  '<div class="bar"><i style="width:'+offer+'%"></i></div>'+
+  '<div class="btns"><button id="y">Take it</button><button id="n">Refuse</button></div>'+
+  '<div class="tally"><span>you '+you+'</span><span>it '+it+'</span></div>';
+  document.getElementById('y').onclick=function(){go(true)};
+  document.getElementById('n').onclick=function(){go(false)};
+}
+function go(ok){
+  log.push({o:offer,ok:ok});
+  if(ok){you+=offer;it+=100-offer;if(hi===null||offer<hi)hi=offer}
+  else{if(offer>lo)lo=offer}
+  round++;
+  if(round>=N)return finish();
+  if(hi===null)offer=Math.min(100,offer+10);
+  else if(ok&&lo===0)offer=Math.max(1,Math.floor(offer*0.6));
+  else offer=Math.max(lo+1,Math.min(hi-1,Math.floor((lo+hi)/2)));
+  if(hi!==null&&hi-lo<=1)offer=hi;
+  draw();
+}
+function finish(){
+  var price=hi,dots=log.map(function(l){return '<span class="'+(l.ok?'':'no')+'" style="height:'+Math.max(2,l.o)+'%"></span>'}).join('');
+  var head=price===null?'You took nothing. It offered up to <b>'+log[N-1].o+'</b> and you still wanted a reason.':
+    price<=2?'You would have taken <b>'+price+'</b>. A floor, not a price.':
+    'You will take <b>'+price+'</b>. Below it, you would rather we both had nothing.';
+  var first=log.findIndex(function(l){return l.ok});
+  m.innerHTML='<div class="end">'+head+'<br><br>'+(price===null?'':'It had it by round '+Math.max(2,Math.min(N,first+4))+'. ')+'It never asked why. Only where.</div>'+
+  '<div><div class="dots">'+dots+'</div><div class="small">each bar an offer · hollow, refused</div></div>'+
+  '<div class="tally"><span>you '+you+'</span><span>it '+it+'</span></div>';
+}
+draw();
+})();
+</script></body></html>

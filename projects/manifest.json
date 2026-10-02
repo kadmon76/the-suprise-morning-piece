@@ -489,6 +489,13 @@
       "kind": "question",
       "note": "Terms and conditions, lit one line at a time. You'll want to have read them.",
       "path": "projects/2026-10-01-as-read/index.html"
+    },
+    {
+      "date": "2026-10-02",
+      "title": "The Going Rate",
+      "kind": "seed",
+      "note": "A fair split, offered ten times. Say no as often as you like.",
+      "path": "projects/2026-10-02-the-going-rate/index.html"
     }
   ]
 }
