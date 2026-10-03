@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>(Prove It.)</title>
+<style>
+  :root{ --bg:#0b0b0d; --ink:#e9e6dc; --dim:#78756c; --amber:#e0a44a; --red:#c8553d; }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none;}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);
+    font-family:Georgia,'Times New Roman',serif;-webkit-user-select:none;user-select:none;}
+  .back{position:absolute;top:calc(10px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));
+    color:var(--dim);text-decoration:none;font-size:12px;opacity:.6;z-index:6}
+  .wrap{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:calc(40px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));gap:22px;touch-action:none}
+  .ask{font-size:19px;text-align:center;line-height:1.4;max-width:300px;min-height:3.8em}
+  .ask small{display:block;color:var(--dim);font-size:13px;font-style:italic;margin-top:.5em}
+  .pad{width:min(62vw,250px);aspect-ratio:1;border-radius:50%;border:1px solid #3a3933;background:#111114;
+    display:flex;align-items:center;justify-content:center;touch-action:none;transition:border-color .2s,background .15s}
+  .pad.hit{background:#1b1b1f;border-color:var(--ink)}
+  .pad.lock{pointer-events:none;opacity:.5}
+  .dots{display:flex;gap:10px;height:10px}
+  .dots i{width:10px;height:10px;border-radius:50%;border:1px solid #4a483f}
+  .dots i.on{background:var(--ink);border-color:var(--ink)}
+  .verdict{min-height:3.6em;text-align:center;font-size:17px;line-height:1.45;max-width:310px}
+  .verdict b{font-weight:normal;color:var(--red)}
+  .verdict.ok b{color:var(--amber)}
+  .verdict em{display:block;font-size:13px;color:var(--dim);margin-top:.4em}
+  .trace{width:min(86vw,320px);display:flex;flex-direction:column;gap:7px}
+  .row{position:relative;height:8px;border-bottom:1px solid #26251f}
+  .row span{position:absolute;bottom:-3px;width:6px;height:6px;border-radius:50%;background:var(--dim);margin-left:-3px}
+  .row.pass span{background:var(--amber)}
+  .fade{opacity:0;transition:opacity 1.6s}
+  .fade.on{opacity:1}
+  @media (prefers-reduced-motion:reduce){ .pad,.fade{transition:none} }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div class="wrap">
+  <div class="ask" id="ask">Verify that you are human.<small>Tap eight times. Any rhythm.</small></div>
+  <div class="pad" id="pad" role="button" aria-label="Tap here"></div>
+  <div class="dots" id="dots"></div>
+  <div class="verdict" id="verdict"></div>
+  <div class="trace" id="trace"></div>
+</div>
+<script>
+(function(){
+  var N=8, pad=document.getElementById('pad'), dotsEl=document.getElementById('dots'),
+      verdict=document.getElementById('verdict'), trace=document.getElementById('trace'),
+      ask=document.getElementById('ask');
+  var dots=[], taps=[], attempts=[], busy=false, done=false;
+  for(var i=0;i<N;i++){ var d=document.createElement('i'); dotsEl.appendChild(d); dots.push(d); }
+  // the detector arrives already knowing what a person does
+  var known=[
+    {name:'everyone', v:[1,1,1,1,1,1,1]},
+    {name:'everyone', v:[1.3,.8,1.2,.9,1.1,.8,.9]}
+  ];
+  function norm(iv){ var m=iv.reduce(function(a,b){return a+b},0)/iv.length; return iv.map(function(x){return x/m}); }
+  function dist(a,b){ var s=0; for(var i=0;i<a.length;i++) s+=Math.abs(a[i]-b[i]); return s/a.length; }
+  function reset(){ taps=[]; dots.forEach(function(d){d.className=''}); pad.classList.remove('lock'); busy=false; }
+  function drawRow(t,pass){
+    var row=document.createElement('div'); row.className='row'+(pass?' pass':'');
+    var span=t[t.length-1]-t[0];
+    t.forEach(function(x){ var s=document.createElement('span'); s.style.left=((x-t[0])/span*100)+'%'; row.appendChild(s); });
+    trace.appendChild(row);
+  }
+  function finish(){
+    busy=true; pad.classList.add('lock');
+    var iv=[]; for(var i=1;i<taps.length;i++) iv.push(Math.max(taps[i]-taps[i-1],1));
+    var v=norm(iv), best=9, who='', k;
+    known.forEach(function(p){ var d=dist(v,p.v); if(d<best){best=d;who=p.name;} });
+    attempts.forEach(function(p,idx){ var d=dist(v,p.v); if(d<best){best=d;who='attempt '+(idx+1);} });
+    var pass=best>0.32;
+    drawRow(taps,pass);
+    var n=attempts.length+1;
+    if(!pass){
+      attempts.push({v:v});
+      verdict.className='verdict';
+      verdict.innerHTML='<b>Seen before.</b><em>Closest match: '+who+'.</em>';
+      setTimeout(function(){ if(!done){ verdict.innerHTML=''; reset(); } },2300);
+    } else {
+      done=true;
+      verdict.className='verdict ok';
+      verdict.innerHTML='<b>Verified.</b>';
+      ask.innerHTML='';
+      setTimeout(function(){
+        ask.innerHTML='<span class="fade" id="f1">You were only human<br>the time you weren&rsquo;t yourself.</span>';
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){ document.getElementById('f1').classList.add('on'); }); });
+      },1800);
+      setTimeout(function(){
+        verdict.innerHTML='<b>Verified.</b><em class="fade" id="f2">'+n+' sample'+(n>1?'s':'')+' retained to improve detection of humans.</em>';
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){ document.getElementById('f2').classList.add('on'); }); });
+      },5200);
+    }
+  }
+  pad.addEventListener('pointerdown',function(e){
+    e.preventDefault();
+    if(busy||done) return;
+    var t=performance.now();
+    if(taps.length && t-taps[taps.length-1]<70) return;
+    if(taps.length===0) verdict.innerHTML='';
+    taps.push(t);
+    dots[taps.length-1].className='on';
+    pad.classList.add('hit'); setTimeout(function(){pad.classList.remove('hit')},90);
+    if(taps.length===N) finish();
+  });
+  document.addEventListener('touchmove',function(e){e.preventDefault()},{passive:false});
+})();
+</script>
+</body>
+</html>

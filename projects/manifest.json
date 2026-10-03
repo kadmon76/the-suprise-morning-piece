@@ -496,6 +496,13 @@
       "kind": "seed",
       "note": "A fair split, offered ten times. Say no as often as you like.",
       "path": "projects/2026-10-02-the-going-rate/index.html"
+    },
+    {
+      "date": "2026-10-03",
+      "title": "(Prove It.)",
+      "kind": "question",
+      "note": "Eight taps to show you're a person. Be yourself; it will be on file.",
+      "path": "projects/2026-10-03-prove-it/index.html"
     }
   ]
 }
