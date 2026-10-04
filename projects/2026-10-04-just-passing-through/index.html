@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d0c0b">
+<title>Just Passing Through</title>
+<style>
+:root{--bg:#0d0c0b;--fg:#ece6da;--dim:#7d776c;--amber:#e8a24a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);overflow:hidden;
+  font-family:Georgia,"Iowan Old Style",serif;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+a.back{position:fixed;top:max(14px,env(safe-area-inset-top));left:16px;z-index:5;color:var(--dim);
+  font:12px/1 ui-monospace,Menlo,monospace;text-decoration:none;letter-spacing:.04em}
+#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:64px 28px}
+.card{max-width:22em;font-size:clamp(24px,7vw,34px);line-height:1.28;letter-spacing:-.005em;
+  animation:in .28s ease-out both}
+.meta{display:block;margin-top:22px;font:11px/1 ui-monospace,Menlo,monospace;color:var(--dim);letter-spacing:.08em}
+@keyframes in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+#hint{position:fixed;bottom:max(26px,env(safe-area-inset-bottom));left:0;right:0;text-align:center;
+  font:11px/1 ui-monospace,Menlo,monospace;color:var(--dim);letter-spacing:.1em;transition:opacity 1.2s}
+#end{position:fixed;inset:0;overflow-y:auto;padding:70px 26px 60px;display:none;opacity:0;transition:opacity 1.6s}
+#end.on{display:block}#end.show{opacity:1}
+#end p{max-width:26em;margin:0 auto 22px;font-size:19px;line-height:1.5}
+#end .big{font-size:26px;line-height:1.25}
+.rows{max-width:26em;margin:26px auto}
+.row{display:grid;grid-template-columns:4.4em 1fr;gap:10px;align-items:center;margin:9px 0;
+  font:12px ui-monospace,Menlo,monospace;color:var(--dim)}
+.bars{display:grid;gap:3px}
+.bar{height:7px;background:#1c1a17;position:relative}
+.bar i{position:absolute;left:0;top:0;bottom:0;display:block;transition:width 1.6s cubic-bezier(.2,.7,.2,1)}
+.k{max-width:26em;margin:0 auto 6px;font:11px ui-monospace,Menlo,monospace;color:var(--dim);display:flex;gap:16px}
+.small{font:12px/1.6 ui-monospace,Menlo,monospace!important;color:var(--dim)}
+button{all:unset;cursor:pointer;color:var(--dim);font:12px ui-monospace,Menlo,monospace;letter-spacing:.08em;
+  display:block;max-width:26em;margin:34px auto 0;padding:10px 0;border-bottom:1px solid #2b2823;width:max-content}
+@media (prefers-reduced-motion:reduce){.card{animation:none}#end,.bar i{transition:none}}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div id="stage"></div>
+<div id="hint">TAP</div>
+<div id="end" aria-live="polite"></div>
+<script>
+(function(){
+var T=["Money","Fear","Envy","Desire","Anger"];
+var COL=["#d9b84f","#7c9bd1","#79b58a","#d98aa8","#d4663f"];
+var C=[
+["Rent is due in 6 days. Your balance has opinions.","Everyone you went to school with owns something now.","The fee is called a convenience. You were not consulted on the convenience.","A stranger's inheritance paid for the house you keep driving past.","Interest compounds. So does being behind.","You could have bought in at the beginning. There was a beginning.","The free trial ends on a date you did not write down.","He paid in cash so that nothing would follow him.","The price changed while you were deciding.","Savings: a number that only ever looks at you."],
+["The results are ready. Not the news, just the portal.","That noise in the stairwell stopped when you listened.","Phone at 3%, and a long way home.","The lump is probably nothing. Probably is a word.","Every plane that landed today is not news.","Your name, said once, from another room.","The lock clicks the same whether or not it caught.","Two grey ticks. Then nothing for an hour.","The new software is learning which jobs are next.","Someone has your old password and is being polite about it."],
+["She posted from a balcony. The view was other balconies.","He finished the thing you were going to start.","Same age as you. Different year.","They look rested in every photograph.","The promotion went to someone who says 'circle back' sincerely.","Your friend's book has a second printing.","Everyone is somewhere with better light.","He left early and the room got easier.","She learned it in a summer.","They thanked everyone, you excepted, correctly."],
+["Someone is typing. Then not. Then typing.","The last seat on the train was beside her.","A hand stays on a doorframe a second too long.","You have not been touched on purpose today.","The song is about a person you decided not to call.","Her laugh arrives half a beat before the joke.","Warm sheets, someone else's side.","He said 'we should' and did not finish.","One umbrella, a bus too small for it.","You are still who they call at 2 a.m., and they have."],
+["He answered a question you did not ask, at length.","The apology had the word 'if' in it.","They are being reasonable at you.","The meeting could have been the thing you said an hour ago.","Your seat. Your actual seat. A bag on it, performing innocence.","A man explains your own job to you, kindly.","'Calm down' has never calmed anyone. It is not for that.","The refund is an experience credit.","They laughed when you said the number.","You were right in March. Nobody has mentioned March."]
+];
+var N=24,pool=C.map(function(a){return a.map(function(t,i){return i}).sort(function(){return Math.random()-.5})});
+var w=[1,1,1,1,1],shown=[],dwell=[0,0,0,0,0],count=0,t0=0,cur=-1,lock=false,done=false;
+var stage=document.getElementById('stage'),hint=document.getElementById('hint'),end=document.getElementById('end');
+var reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+var opening=[0,1,2,3,4].sort(function(){return Math.random()-.5});
+function pick(){
+  if(count<5)return opening[count];
+  var tot=0,p=w.map(function(x,i){var v=pool[i].length?Math.pow(Math.max(x,.03),1.6):0;tot+=v;return v});
+  var r=Math.random()*tot;
+  for(var i=0;i<5;i++){r-=p[i];if(r<=0&&p[i]>0)return i}
+  for(i=0;i<5;i++)if(pool[i].length)return i;
+}
+function show(){
+  var th=pick(),ix=pool[th].pop();cur=th;shown.push(th);count++;
+  var times=["now","1m","2m","4m","9m","11m","just now"];
+  stage.innerHTML='';var d=document.createElement('div');d.className='card';
+  d.textContent=C[th][ix];var m=document.createElement('span');m.className='meta';
+  m.textContent=times[Math.floor(Math.random()*times.length)];d.appendChild(m);stage.appendChild(d);
+  t0=performance.now();
+}
+function tap(){
+  if(done||lock)return;
+  if(cur>=0){
+    var d=Math.min(performance.now()-t0,8000);
+    dwell[cur]+=d;
+    var s=Math.max(-1,Math.min(1.2,(d-900)/2200));
+    w[cur]*=Math.exp(1.1*s);
+    var m=Math.max.apply(null,w);w=w.map(function(x){return x/m*1});
+    if(count>=N){finish();return}
+  }
+  hint.style.opacity=0;lock=true;setTimeout(function(){lock=false},150);show();
+}
+function strip(arr,from,to){
+  var c=[0,0,0,0,0];arr.slice(from,to).forEach(function(t){c[t]++});return c;
+}
+function row(label,c,n){
+  var h='<div class="row"><span>'+label+'</span><div class="bars">';
+  h+='<div class="bar" style="display:flex">';
+  for(var i=0;i<5;i++)h+='<i data-w="'+(c[i]/n*100)+'" style="position:static;width:0;background:'+COL[i]+'"></i>';
+  return h+'</div></div></div>';
+}
+function finish(){
+  done=true;stage.innerHTML='';hint.style.opacity=0;
+  var first=strip(shown,0,6),last=strip(shown,N-6,N);
+  var topLast=Math.max.apply(null,last),top=last.indexOf(topLast);
+  var key='<div class="k">'+T.map(function(t,i){return '<span style="color:'+COL[i]+'">■ '+t.toLowerCase()+'</span>'}).join('')+'</div>';
+  var h='<p class="big">You were shown '+N+' things.</p>'+
+   '<p>None of them were about you. They were sorted by how long you stayed.</p>'+key+'<div class="rows">'+
+   row('first 6',first,6)+row('last 6',last,6)+'</div>'+
+   '<p>The first six were the whole weather. Of the last six, <span style="color:'+COL[top]+'">'+topLast+'</span> were '+T[top].toLowerCase()+'.</p>'+
+   '<p>Lingering is not wanting. It is only what stopped you.</p>'+
+   '<p class="small">each card you held longer multiplied its kind by up to e<sup>1.32</sup>; each card you left quickly divided it. the next card was drawn in proportion to weight<sup>1.6</sup>. nothing was ever asked.</p>'+
+   '<button id="again">again</button>';
+  end.innerHTML=h;end.classList.add('on');
+  setTimeout(function(){end.classList.add('show');
+    [].forEach.call(end.querySelectorAll('i[data-w]'),function(el){el.style.width=el.dataset.w+'%'});
+  },reduce?0:900);
+  document.getElementById('again').addEventListener('click',function(e){e.stopPropagation();location.reload()});
+}
+document.addEventListener('pointerdown',function(e){
+  if(e.target.closest('a,button'))return;
+  if(end.classList.contains('on')){return}
+  tap();
+});
+tap();
+})();
+</script>
+</body>
+</html>
