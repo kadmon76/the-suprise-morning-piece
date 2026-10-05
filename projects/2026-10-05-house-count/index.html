@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>House Count</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#050505;color:#d9d4c8;font-family:Georgia,"Times New Roman",serif}
+body{display:flex;flex-direction:column;min-height:100dvh;padding:env(safe-area-inset-top) 18px env(safe-area-inset-bottom)}
+a.back{position:fixed;top:calc(10px + env(safe-area-inset-top));left:14px;color:#6b675e;font:12px/1 system-ui,sans-serif;text-decoration:none;letter-spacing:.04em;z-index:5;padding:8px 4px}
+main{flex:1;display:flex;flex-direction:column;justify-content:center;max-width:460px;width:100%;margin:0 auto;padding:56px 0 28px}
+p.line{font-size:21px;line-height:1.4;margin:0 0 22px}
+button{font:inherit;color:inherit;background:none;border:1px solid #3a372f;border-radius:3px;padding:15px 16px;min-height:52px;text-align:left;width:100%;cursor:pointer;position:relative;overflow:hidden}
+button:active{border-color:#c9a35a}
+button.go{text-align:center;letter-spacing:.14em;text-transform:uppercase;font-size:14px}
+.stage{position:relative;height:300px;margin:0 0 22px;display:flex;justify-content:space-around;align-items:flex-end;opacity:0}
+.beam{width:9%;height:100%;background:linear-gradient(to top,rgba(220,232,255,.05),rgba(220,232,255,.9));clip-path:polygon(38% 0,62% 0,100% 100%,0 100%);transform:scaleY(-1)}
+.opt{display:block;margin:0 0 10px}
+.opt .bar{position:absolute;left:0;top:0;bottom:0;background:#1d1a14;z-index:0;transition:width .5s}
+.opt span{position:relative;z-index:1;display:flex;justify-content:space-between;gap:12px}
+.opt i{font:12px system-ui,sans-serif;color:#7d786b;font-style:normal;align-self:center}
+.q{font-size:19px;margin:0 0 6px}
+.who{font:11px system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#6b675e;margin:0 0 18px}
+table{border-collapse:collapse;width:100%;font:13px/1.35 system-ui,sans-serif;margin:6px 0 22px}
+th{font-weight:400;text-align:left;color:#6b675e;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:0 6px 8px 0}
+td{padding:9px 6px 9px 0;border-top:1px solid #1c1a15;vertical-align:top}
+td.t{color:#c9a35a}
+.end{font-size:21px;line-height:1.4;margin:0 0 14px}
+.fade{animation:in .8s both}
+@keyframes in{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.fade{animation:none}.opt .bar{transition:none}}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<main id="m"></main>
+<script>
+(function(){
+var m=document.getElementById('m');
+var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function R(a,b){return a+Math.floor(Math.random()*(b-a+1))}
+var N=R(5,7);
+var cols=[['white','#dce8ff'],['amber','#ffb347'],['red','#ff5a4d'],['green','#5fe08a'],['blue','#5a8bff']];
+var odd=cols[R(1,4)];
+var oddPos=R(0,N-1);
+var oddLeft=oddPos<N/2;
+// crowd: right on the colour, wrong on count, side, and movement
+var qs=[
+ {q:'How many beams were lit?',truth:String(N),
+  opts:[N-2,N-1,N,N+1,N+2].map(String),room:String(N+2),shares:null,
+  fmt:function(x){return x}},
+ {q:'One beam was a different colour. Which?',truth:odd[0],
+  opts:['amber','red','green','blue'],room:odd[0],shares:null,fmt:function(x){return x}},
+ {q:'Which side was the odd beam on?',truth:oddLeft?'left':'right',
+  opts:['left','right'],room:oddLeft?'right':'left',shares:null,fmt:function(x){return x}},
+ {q:'Did the beams move?',truth:'no',
+  opts:['no','yes, they swept'],room:'yes, they swept',shares:null,fmt:function(x){return x}}
+];
+qs.forEach(function(q){
+  var hi=R(71,88),rest=100-hi,n=q.opts.length-1,left=rest,s={};
+  q.opts.forEach(function(o){
+    if(o===q.room){s[o]=hi;return}
+    n--;var v=n===0?left:Math.max(1,Math.floor(left*(0.3+Math.random()*0.4)));
+    if(n===0)v=left;left-=v;s[o]=v;
+  });
+  q.shares=s;
+});
+var answers=[];
+function html(h){m.innerHTML=h}
+function intro(){
+  html('<p class="line fade">Watch the stage.<br>It will not be long.</p><button class="go fade" id="go">Lights</button>');
+  document.getElementById('go').onclick=flash;
+}
+function flash(){
+  var h='<div class="stage" id="st">';
+  for(var i=0;i<N;i++){
+    var c=i===oddPos?odd[1]:cols[0][1];
+    h+='<div class="beam" style="background:linear-gradient(to top,transparent,'+c+');"></div>';
+  }
+  h+='</div>';
+  html(h);
+  var st=document.getElementById('st');
+  st.style.transition=reduce?'none':'opacity .18s';
+  setTimeout(function(){st.style.opacity=1},500);
+  setTimeout(function(){st.style.opacity=0},1700);
+  setTimeout(function(){ask(0)},2300);
+}
+function ask(i){
+  if(i>=qs.length)return end();
+  var q=qs[i],h='<p class="who">The house, as counted · '+(i+1)+' / '+qs.length+'</p><p class="q">'+q.q+'</p><div style="height:14px"></div>';
+  q.opts.forEach(function(o,k){
+    h+='<button class="opt" data-k="'+k+'"><div class="bar" style="width:'+q.shares[o]+'%"></div><span><b style="font-weight:400">'+o+'</b><i>'+q.shares[o]+'%</i></span></button>';
+  });
+  html(h);
+  [].forEach.call(m.querySelectorAll('.opt'),function(b){
+    b.onclick=function(){answers[i]=q.opts[+b.dataset.k];setTimeout(function(){ask(i+1)},reduce?0:220)};
+  });
+}
+function end(){
+  var withRoom=0,roomRight=0,youRight=0,movedAgainst=0;
+  var rows='';
+  qs.forEach(function(q,i){
+    var a=answers[i];
+    if(a===q.room)withRoom++;
+    if(q.room===q.truth)roomRight++;
+    if(a===q.truth)youRight++;
+    rows+='<tr><td>'+['Beams lit','Odd beam colour','Odd beam side','Beams moved'][i]+'</td><td class="t">'+q.truth+'</td><td>'+q.room+'</td><td'+(a===q.truth?' class="t"':'')+'>'+a+'</td></tr>';
+  });
+  var verdict;
+  if(withRoom===4)verdict='You agreed with the room every time.';
+  else if(withRoom===0)verdict='You disagreed with the room every time.';
+  else verdict='You sided with the room '+withRoom+' times in 4.';
+  var tail=youRight===0?'You remembered what they remembered.':(youRight===4?'You trusted your eyes. It cost you the comfort of being counted.':'The room was right '+roomRight+' time'+(roomRight===1?'':'s')+'. You were right '+youRight+'.');
+  html('<p class="who fade">The record</p><table class="fade"><tr><th>Question</th><th>Stage</th><th>House</th><th>You</th></tr>'+rows+'</table><p class="end fade">'+verdict+' '+tail+'</p><p class="end fade" style="color:#7d786b;animation-delay:1.6s">Nobody else was here.</p>');
+}
+intro();
+})();
+</script>
+</body>
+</html>

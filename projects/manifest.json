@@ -510,6 +510,13 @@
       "kind": "seed",
       "note": "Twenty-four small things, none of them about you. Tap when you're done with each.",
       "path": "projects/2026-10-04-just-passing-through/index.html"
+    },
+    {
+      "date": "2026-10-05",
+      "title": "House Count",
+      "kind": "question",
+      "note": "One cue, a second long. Four questions about it, and the house has already answered.",
+      "path": "projects/2026-10-05-house-count/index.html"
     }
   ]
 }
