@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08070a">
+<title>Understudy</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz@0,9..144;1,9..144&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#08070a;--ink:#e9e1d0;--dim:#7d776c;--amber:#f0a73a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);overflow:hidden;font-family:'Fraunces',Georgia,serif}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+a.back{position:absolute;top:calc(10px + env(safe-area-inset-top));left:14px;z-index:5;color:var(--dim);font:12px 'IBM Plex Mono',monospace;text-decoration:none}
+#stage{flex:1 1 52%;min-height:0;position:relative}
+canvas{position:absolute;inset:0;width:100%;height:100%}
+#cue{position:absolute;right:14px;top:calc(10px + env(safe-area-inset-top));font:12px 'IBM Plex Mono',monospace;color:var(--dim);text-align:right}
+#desk{flex:1 1 48%;min-height:0;position:relative;border-top:1px solid #1d1a1f}
+#track{position:absolute;left:50%;top:5%;bottom:20%;width:70px;margin-left:-35px;touch-action:none}
+#slot{position:absolute;left:50%;top:0;bottom:0;width:4px;margin-left:-2px;background:#26222a;border-radius:2px}
+.cap{position:absolute;left:0;width:70px;height:30px;margin-top:-15px;border-radius:4px;pointer-events:none}
+#fcap{background:#cfc8b8;box-shadow:0 2px 0 #6c665a;display:flex;align-items:center;justify-content:center}
+#fcap::after{content:"";width:44px;height:2px;background:#222}
+#ocap{border:1px dashed var(--amber);opacity:.85}
+#msg{pointer-events:none;position:absolute;left:0;right:0;bottom:0;padding:0 20px 18px;text-align:center;font-size:18px;font-style:italic;min-height:3.4em;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:flex-end}
+#msg button{pointer-events:auto;font:inherit;color:var(--ink);background:none;border:1px solid #4a443c;padding:10px 22px;border-radius:999px}
+#end{position:absolute;inset:0;background:var(--bg);display:none;flex-direction:column;justify-content:center;padding:24px;z-index:4}
+#end svg{width:100%;height:34vh;margin-bottom:18px}
+#end p{margin:6px 0;font-size:18px;line-height:1.35}
+#end .s{font:13px 'IBM Plex Mono',monospace;color:var(--dim)}
+#end .f{color:var(--amber);font-style:italic;margin-top:14px}
+</style></head><body>
+<div id="app">
+<a class="back" href="../../index.html">← cue sheet</a>
+<div id="stage"><canvas id="cv"></canvas><div id="cue"></div></div>
+<div id="desk"><div id="track"><div id="slot"></div><div class="cap" id="ocap"></div><div class="cap" id="fcap"></div></div>
+<div id="msg"></div></div>
+<div id="end"></div>
+</div>
+<script>
+(function(){
+var D=8000,N=80,TAKES=5;
+var cv=document.getElementById('cv'),cx=cv.getContext('2d');
+var track=document.getElementById('track'),fcap=document.getElementById('fcap'),ocap=document.getElementById('ocap');
+var msg=document.getElementById('msg'),cue=document.getElementById('cue'),end=document.getElementById('end');
+var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+var take=1,state='idle',t0=0,finger=0,out=0,down=false,touched=false,raw=[],curves=[],mean=null;
+function dpr(){var r=cv.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);cv.width=r.width*d;cv.height=r.height*d;cx.setTransform(d,0,0,d,0,0)}
+addEventListener('resize',dpr);dpr();
+function pos(v){var h=track.clientHeight;return (1-v)*h}
+function place(){fcap.style.top=pos(finger)+'px';ocap.style.top=pos(out)+'px'}
+function setFromEvent(e){var r=track.getBoundingClientRect();finger=Math.max(0,Math.min(1,1-(e.clientY-r.top)/r.height))}
+function ease(v){return v}
+function meanAt(f){var x=f*(N-1),i=Math.floor(x),j=Math.min(N-1,i+1),a=x-i;return mean[i]*(1-a)+mean[j]*a}
+function show(html){msg.innerHTML=html}
+function header(){cue.innerHTML='Cue 14 — Dawn<br>'+(take<=TAKES?'Take '+take:'Understudy')}
+function ready(){
+ state='idle';header();finger=0;out=0;place();
+ if(take<=TAKES) show(take==1?'Bring it up. However you like.':'<button id="go">Again</button>');
+ else show('<button id="go">Understudy goes on</button>');
+ var b=document.getElementById('go');
+ if(b)b.onclick=function(){begin()};
+}
+function begin(){
+ if(take<=TAKES){state='armed';finger=0;out=0;show('');}
+ else{state='run';t0=performance.now();raw=[];touched=false;show('');}
+}
+track.addEventListener('pointerdown',function(e){
+ if(take>TAKES){if(state==='run'){touched=true;show('Noted.')}return}
+ if(state==='idle'||state==='armed'){state='run';t0=performance.now();raw=[];finger=0;show('')}
+ if(state==='run'){down=true;track.setPointerCapture(e.pointerId);setFromEvent(e)}
+});
+track.addEventListener('pointermove',function(e){if(down&&take<=TAKES&&state==='run')setFromEvent(e)});
+function up(){down=false}
+track.addEventListener('pointerup',up);track.addEventListener('pointercancel',up);
+function finish(){
+ if(take<=TAKES){
+  var c=raw.slice(); while(c.length<N)c.push(c[c.length-1]||0);
+  curves.push(c);
+  mean=[];for(var i=0;i<N;i++){var s=0;curves.forEach(function(k){s+=k[i]});mean.push(s/curves.length)}
+  take++;state='idle';
+  show('Kept. <button id="go">'+(take<=TAKES?'Again':'Understudy goes on')+'</button>');
+  var b=document.getElementById('go');b.onclick=function(){begin()};
+  header();
+ }else{state='done';showEnd()}
+}
+function dev(c,m){var s=0;for(var i=0;i<N;i++)s+=Math.abs(c[i]-m[i]);return s/N}
+function showEnd(){
+ var W=300,H=120,svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">';
+ function path(c,col,w,o){var d='';for(var i=0;i<N;i++){d+=(i?'L':'M')+(i/(N-1)*W).toFixed(1)+' '+((1-c[i])*(H-6)+3).toFixed(1)}
+  return '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="'+w+'" opacity="'+o+'" vector-effect="non-scaling-stroke"/>'}
+ curves.forEach(function(c,i){svg+=path(c,'#cfc8b8',1.2,0.25+i*0.12)});
+ svg+=path(mean,'#f0a73a',3,1)+'</svg>';
+ var d1=Math.round(dev(curves[0],mean)*100),d5=Math.round(dev(curves[TAKES-1],mean)*100);
+ end.innerHTML=svg+'<p class="s">Take 1 was '+d1+'% from the average.<br>Take '+TAKES+' was '+d5+'%.</p><p>'+(d5<d1?'You got better at being predicted.':'You never settled. It averaged you anyway.')+'</p><p class="f">It was never asked to improve. Only to wait.</p>';
+ end.style.display='flex';
+}
+var last=0;
+function frame(now){
+ requestAnimationFrame(frame);
+ if(state==='run'){
+  var f=(now-t0)/D;
+  if(f>=1){f=1;if(take<=TAKES)raw.push(finger);finish();}
+  else{
+   var idx=Math.floor(f*N);
+   if(take<=TAKES){while(raw.length<=idx)raw.push(finger);}
+   var a=take==1?0:Math.min(1,(take-1)*0.22);
+   if(take>TAKES){out=meanAt(f);finger=out;}
+   else{var m=mean?meanAt(f):finger;out=a*m+(1-a)*finger;
+     if(take>1&&take<=TAKES&&!down){}
+   }
+  }
+ }else if(state==='armed'||state==='idle'){out=finger}
+ place();draw(now);
+}
+function draw(now){
+ var w=cv.clientWidth,h=cv.clientHeight;cx.clearRect(0,0,w,h);
+ var v=out,flick=reduce?0:Math.sin(now/90)*.01;
+ var ax=w/2,ay=h*0.04,fy=h*0.9;
+ // rig
+ cx.fillStyle='#14111a';cx.fillRect(ax-26,0,52,ay+8);
+ if(v>0.01){
+  var g=cx.createLinearGradient(0,ay,0,fy);
+  g.addColorStop(0,'rgba(255,196,110,'+(.55*v+flick)+')');g.addColorStop(1,'rgba(255,170,70,'+(.1*v)+')');
+  var sp=w*(0.18+0.22*v);
+  cx.fillStyle=g;cx.beginPath();cx.moveTo(ax-14,ay);cx.lineTo(ax+14,ay);cx.lineTo(ax+sp,fy);cx.lineTo(ax-sp,fy);cx.closePath();cx.fill();
+  var rg=cx.createRadialGradient(ax,fy,0,ax,fy,sp*1.4);
+  rg.addColorStop(0,'rgba(255,200,120,'+(.5*v)+')');rg.addColorStop(1,'rgba(255,170,70,0)');
+  cx.fillStyle=rg;cx.save();cx.translate(0,fy);cx.scale(1,.28);cx.translate(0,-fy);cx.beginPath();cx.arc(ax,fy,sp*1.4,0,7);cx.fill();cx.restore();
+ }
+ // lone chair
+ cx.fillStyle='#050406';cx.fillRect(ax-9,fy-16,18,16);cx.fillRect(ax-9,fy-30,3,14);
+}
+header();ready();requestAnimationFrame(frame);
+})();
+</script>
+</body></html>

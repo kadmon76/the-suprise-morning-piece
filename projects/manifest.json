@@ -517,6 +517,13 @@
       "kind": "question",
       "note": "One cue, a second long. Four questions about it, and the house has already answered.",
       "path": "projects/2026-10-05-house-count/index.html"
+    },
+    {
+      "date": "2026-10-06",
+      "title": "Understudy",
+      "kind": "seed",
+      "note": "Bring the light up five times, your way. Someone is taking notes.",
+      "path": "projects/2026-10-06-understudy/index.html"
     }
   ]
 }
