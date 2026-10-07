@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>(Signed.)</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#070706;color:#ddd7ca;font-family:Georgia,"Times New Roman",serif}
+body{display:flex;flex-direction:column;min-height:100dvh;padding:env(safe-area-inset-top) 20px env(safe-area-inset-bottom)}
+a.back{position:fixed;top:calc(10px + env(safe-area-inset-top));left:14px;color:#6b675e;font:12px/1 system-ui,sans-serif;text-decoration:none;letter-spacing:.04em;z-index:5;padding:8px 4px}
+main{flex:1;display:flex;flex-direction:column;justify-content:center;max-width:460px;width:100%;margin:0 auto;padding:60px 0 28px}
+.hint{font:11px system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#6b675e;margin:0 0 20px;transition:opacity .6s}
+.q{font-size:29px;line-height:1.5;margin:0 0 22px}
+.q b{font-weight:400}
+.w{font:inherit;color:inherit;background:none;border:0;border-bottom:1px solid #2c2a24;padding:5px 1px;margin:0 1px;cursor:pointer;min-height:44px;transition:color .5s,border-color .5s}
+.w.hot{color:#e0a64a;border-color:#e0a64a;transition:none}
+.w.done{border-color:transparent;cursor:default}
+.sig{font:13px/1.5 system-ui,sans-serif;letter-spacing:.05em;color:#a79f8c;margin:0 0 4px}
+.sig i{font-style:normal;color:#6f9a78;margin-left:8px}
+.cnt{font:12px system-ui,sans-serif;color:#6b675e;margin:0 0 30px;font-variant-numeric:tabular-nums}
+.then{border-top:1px solid #1c1a15;padding-top:18px;margin-top:8px;opacity:0}
+.then.on{opacity:1;transition:opacity 1.2s}
+.then p{margin:0 0 12px}
+.old{font-size:17px;line-height:1.45;color:#7d786b}
+.lab{font:11px system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#6b675e}
+.last{font-size:21px;line-height:1.4;color:#ddd7ca}
+@media (prefers-reduced-motion:reduce){.w,.then.on,.hint{transition:none}}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<main>
+<p class="hint" id="hint">tap a word</p>
+<p class="q" id="q"></p>
+<p class="sig">— Marguerite Aldous, 1974, interview<i>✓ verified quotation</i></p>
+<p class="cnt" id="cnt"></p>
+<div class="then" id="then"></div>
+</main>
+<script>
+(function(){
+var L=[
+ ['We','You','One','They'],
+ ['should','could','might','may'],
+ ['tell','give','pitch','sell'],
+ ['people','citizens','customers','users'],
+ ['the','a'],
+ ['truth,','version,','story,','narrative,'],
+ ['even','especially','mostly','only'],
+ ['when','if','once'],
+ ['it'],
+ ['costs','charges','rewards','pays'],
+ ['us.','you.','them.']
+];
+var st=L.map(function(){return 0});
+var total=L.reduce(function(a,l){return a+l.length-1},0);
+var taps=0,quoted=14,ended=false;
+var q=document.getElementById('q'),cnt=document.getElementById('cnt'),hint=document.getElementById('hint');
+var btns=L.map(function(l,i){
+  var b=document.createElement('button');
+  b.className='w';b.textContent=l[0];
+  b.addEventListener('click',function(){step(i)});
+  q.appendChild(b);q.appendChild(document.createTextNode(' '));
+  return b;
+});
+function fmt(n){return n.toLocaleString('en-US')}
+function show(){cnt.textContent='quoted '+fmt(Math.round(quoted))+(Math.round(quoted)===1?' time':' times')}
+function step(i){
+  if(ended||st[i]>=L[i].length-1)return;
+  st[i]++;taps++;
+  var b=btns[i];b.textContent=L[i][st[i]];
+  b.classList.add('hot');
+  setTimeout(function(){b.classList.remove('hot')},60);
+  if(st[i]>=L[i].length-1)b.classList.add('done');
+  // the sharper the drift, the further it travels
+  quoted*=1+0.22+0.5*(taps/total);
+  show();
+  hint.style.opacity=0;
+  if(taps>=total)finish();
+}
+function finish(){
+  ended=true;
+  var t=document.getElementById('then');
+  t.innerHTML='<p class="lab">said, 1974</p><p class="old">We should tell people the truth, even when it costs us.</p>'+
+   '<p class="lab">saying now</p><p class="last">Marguerite Aldous never said this. She is still signed to it.</p>';
+  setTimeout(function(){t.classList.add('on')},30);
+  t.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'end'});
+}
+show();
+})();
+</script>
+</body>
+</html>
