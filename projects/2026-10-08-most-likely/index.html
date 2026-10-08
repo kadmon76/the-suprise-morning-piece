@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Most Likely</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#12100c;color:#ddd5c3;font-family:Georgia,"Times New Roman",serif}
+body{display:flex;flex-direction:column;height:100dvh;padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom)}
+a.back{position:fixed;top:calc(10px + env(safe-area-inset-top));left:14px;color:#6f685a;font:12px/1 system-ui,sans-serif;text-decoration:none;letter-spacing:.04em;z-index:5;padding:8px 4px}
+main{flex:1;display:flex;flex-direction:column;max-width:480px;width:100%;margin:0 auto;padding:46px 0 14px;min-height:0}
+#paper{flex:1;min-height:0;overflow-y:auto;background:#e8e0cd;color:#1e1b15;border-radius:3px;padding:22px 20px 18px;font-size:18px;line-height:1.55;box-shadow:0 10px 30px #0008}
+#paper p{margin:0 0 .7em;padding-left:10px;border-left:3px solid transparent}
+#paper p.likely{border-color:#b9a77a}
+#paper p.own{border-color:#d9692b}
+#paper p.auto{border-color:#4f86c4}
+#paper p.ghost{color:#9a9381;font-style:italic;border-color:transparent}
+.caret{display:inline-block;width:2px;height:1em;background:#1e1b15;vertical-align:-.12em;margin-left:2px;animation:bl 1s steps(1) infinite}
+@keyframes bl{50%{opacity:0}}
+.sig{margin-top:1em;padding-left:10px;color:#4a4437}
+.sig u{display:inline-block;width:110px;text-decoration:none;border-bottom:1px solid #4a4437}
+.end{font:14px/1.55 system-ui,sans-serif;color:#2c281f;margin:1.4em 0 0;padding-left:10px}
+.end.b{color:#6a6350;font-size:12px;letter-spacing:.02em}
+#opts{flex:none;display:flex;flex-direction:column;gap:8px;margin-top:12px}
+#opts button{font:16px/1.4 Georgia,serif;text-align:left;color:#ddd5c3;background:#1d1a14;border:1px solid #302b21;border-radius:3px;padding:12px 14px;min-height:48px;cursor:pointer;opacity:0;transform:translateY(4px);animation:in .35s forwards}
+#opts button:first-child{color:#f3ecd9;border-color:#4a4333;background:#26211a}
+#opts button:active{background:#3a3326}
+@keyframes in{to{opacity:1;transform:none}}
+#again{flex:none;align-self:center;margin-top:12px;font:12px system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#6f685a;background:none;border:0;padding:12px;cursor:pointer}
+@media (prefers-reduced-motion:reduce){.caret{animation:none}#opts button{animation:none;opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<main>
+<div id="paper" aria-live="polite"></div>
+<div id="opts"></div>
+</main>
+<script>
+(function(){
+var S=[
+["I hope you're well.","I've been meaning to write.","I still have your key.","I read your last message again last night, the one I never answered."],
+["I'm sorry for everything.","I know I let you down.","I was wrong about the money, and only the money.","I left before you finished your sentence."],
+["Things have been busy lately.","I've had a lot of time to think.","I eat standing up now.","I keep setting out two cups."],
+["Looking back, I could have done more.","I think about it more than I say.","I said it was the job. It was the job and it was also me.","I practised this on the stairs and it was better there."],
+["I hope we can move forward.","I'd like to make this right.","I'm not asking to be forgiven. I'm asking you to know I knew.","You don't have to answer."],
+["Thank you for understanding.","I appreciate your patience.","I have no right to your patience and I'm using it.","Thank you for the year you gave me anyway."],
+["Take care.","Warm regards.","Yours, still.","The key is under the third pot."]
+];
+var RM=window.matchMedia&&matchMedia("(prefers-reduced-motion:reduce)").matches;
+var paper=document.getElementById("paper"),opts=document.getElementById("opts");
+var i,streak,picks,interrupts,pending,timer,ghost;
+function start(){
+  i=0;streak=0;picks=[];interrupts=0;pending=false;ghost=null;
+  paper.innerHTML="";opts.innerHTML="";
+  var a=document.getElementById("again");if(a)a.remove();
+  next();
+}
+function next(){
+  if(i>=S.length)return end();
+  var n=Math.max(1,4-streak);
+  if(n===1)auto();else show(n);
+}
+function show(n){
+  opts.innerHTML="";
+  for(var r=0;r<n;r++){(function(r){
+    var b=document.createElement("button");
+    b.textContent=S[i][r];
+    b.style.animationDelay=(r*70)+"ms";
+    b.addEventListener("click",function(){commit(r,"chose")});
+    opts.appendChild(b);
+  })(r)}
+}
+function auto(){
+  opts.innerHTML="";
+  ghost=document.createElement("p");ghost.className="ghost";
+  ghost.innerHTML=S[i][0]+'<span class="caret"></span>';
+  paper.appendChild(ghost);paper.scrollTop=paper.scrollHeight;
+  pending=true;
+  timer=setTimeout(function(){
+    pending=false;ghost.remove();ghost=null;commit(0,"auto");
+  },1500);
+}
+paper.addEventListener("click",function(){
+  if(!pending)return;
+  clearTimeout(timer);pending=false;
+  ghost.remove();ghost=null;
+  interrupts++;streak=0;
+  show(4);
+});
+function commit(r,kind){
+  opts.innerHTML="";
+  picks.push({r:r,kind:kind});
+  streak=r===0?streak+1:0;
+  var p=document.createElement("p");
+  p.className=kind==="auto"?"auto":(r===0?"likely":"own");
+  paper.appendChild(p);
+  var t=S[i][r],k=0;
+  i++;
+  function fin(){setTimeout(next,kind==="auto"?450:300)}
+  if(RM){p.textContent=t;paper.scrollTop=paper.scrollHeight;return fin()}
+  (function step(){
+    k+=2;p.textContent=t.slice(0,k);
+    paper.scrollTop=paper.scrollHeight;
+    if(k<t.length)setTimeout(step,12);else{p.textContent=t;fin()}
+  })();
+}
+function end(){
+  var auto=0,own=0;
+  picks.forEach(function(p){if(p.kind==="auto")auto++;else if(p.r>0)own++});
+  var s=document.createElement("div");s.className="sig";
+  s.innerHTML="— <u></u>";paper.appendChild(s);
+  var v;
+  if(auto>0)v=auto+" of "+S.length+" lines were written for you. The letter goes out under your name."+(interrupts?" You stopped it "+(interrupts>1?interrupts+" times":"once")+".":" Nobody asked you to stop it.");
+  else if(own>=4)v="Nobody else would have sent this.";
+  else v="This is close to the letter most people would send.";
+  var e=document.createElement("p");e.className="end";e.textContent=v;paper.appendChild(e);
+  var b=document.createElement("p");b.className="end b";
+  b.textContent="Every line was ranked before you arrived. The first one was offered every time.";
+  paper.appendChild(b);
+  paper.scrollTop=paper.scrollHeight;
+  var a=document.createElement("button");a.id="again";a.textContent="again";
+  a.addEventListener("click",start);
+  document.querySelector("main").appendChild(a);
+}
+start();
+})();
+</script>
+</body>
+</html>
