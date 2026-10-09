@@ -531,6 +531,13 @@
       "kind": "question",
       "note": "A verified quotation. Fix anything you think reads badly.",
       "path": "projects/2026-10-07-signed/index.html"
+    },
+    {
+      "date": "2026-10-09",
+      "title": "Handover",
+      "kind": "seed",
+      "note": "The old one is being retired. Keep three things it said.",
+      "path": "projects/2026-10-09-handover/index.html"
     }
   ]
 }

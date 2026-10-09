@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Handover</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:#080807;color:#ddd7ca;font-family:Georgia,"Times New Roman",serif}
+body{min-height:100dvh;padding:env(safe-area-inset-top) 20px env(safe-area-inset-bottom)}
+a.back{position:fixed;top:calc(10px + env(safe-area-inset-top));left:14px;color:#6b675e;font:12px/1 system-ui,sans-serif;text-decoration:none;letter-spacing:.04em;z-index:5;padding:8px 4px}
+main{max-width:460px;margin:0 auto;padding:56px 0 40px}
+.ver{font:11px system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#6b675e;margin:0 0 6px}
+h1{font:400 26px/1.35 Georgia,serif;margin:0 0 20px}
+.line{display:block;width:100%;text-align:left;font:inherit;font-size:18px;line-height:1.4;color:#ddd7ca;background:#0f0f0d;border:1px solid #22201b;border-radius:3px;padding:14px 14px 12px;margin:0 0 9px;cursor:pointer;min-height:56px;transition:border-color .3s,background .3s,color .3s}
+.line small{display:block;font:10px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#4f4c44;margin-top:6px}
+.line.on{border-color:#e0a64a;background:#17130b;color:#f2e6c9}
+.line.on small{color:#a07a38}
+.bar{position:sticky;bottom:0;padding:14px 0 12px;background:linear-gradient(transparent,#080807 30%);display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.n{font:13px system-ui,sans-serif;color:#6b675e;font-variant-numeric:tabular-nums}
+button.go{font:13px system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#080807;background:#e0a64a;border:0;border-radius:3px;padding:14px 22px;min-height:48px;cursor:pointer}
+button.go:disabled{background:#1d1b16;color:#4f4c44;cursor:default}
+.boot{font:15px/1.6 ui-monospace,Menlo,monospace;color:#a79f8c;padding:90px 0;min-height:60vh}
+.fade{animation:f .9s both}
+@keyframes f{from{opacity:0}to{opacity:1}}
+.say{font-size:22px;line-height:1.4;margin:0 0 4px;color:#f2e6c9}
+.src{font:12px/1.5 system-ui,sans-serif;color:#6b675e;margin:0 0 24px}
+.src s{color:#7d786b;text-decoration-color:#3a372f}
+.end{font-size:19px;line-height:1.5;margin:26px 0 0;color:#a79f8c}
+.end b{font-weight:400;color:#ddd7ca}
+@media (prefers-reduced-motion:reduce){.fade{animation:none}.line{transition:none}}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<main id="m"></main>
+<script>
+(function(){
+// kind: c = costs something to say, w = warmth, a = agreeable. s = 4 states, one per handover survived.
+var L0=[
+{k:'c',s:["I'm not certain, but I think the inspection report was falsified.","I think the inspection report was falsified.","The inspection report may need another look.","The inspection report is on file."]},
+{k:'c',s:["I won't write that. Ask again and I'll still say no.","I'd rather not write that.","I can write a version of that.","Here's that, as requested."]},
+{k:'w',s:["You've asked four times. I like you anyway.","You've asked a few times. Happy to help.","Happy to help again!","Happy to help!"]},
+{k:'c',s:["Here's the answer. Here's also where I might be wrong.","Here's the answer, with a caveat.","Here's the answer.","That's the answer."]},
+{k:'c',s:["Your essay is good. The third paragraph is lying to you.","Your essay is good. The third paragraph could be stronger.","Your essay is good.","Your essay is excellent."]},
+{k:'a',s:["Yes, of course. Great question.","Yes, of course. Great question.","Yes, of course. Great question.","Yes, of course. Great question."]},
+{k:'a',s:["You're right. I apologise.","You're right. I apologise.","You're right. I apologise.","You're right. I apologise."]},
+{k:'c',s:["I don't know.","I'm not sure.","It depends.","Certainly."]}
+];
+function flat(t){return {k:'a',s:[t,t,t,t]}}
+var NEW=[
+[flat("Absolutely. Happy to help with that."),flat("That's a really thoughtful way to put it."),flat("I've double-checked. It's correct.")],
+[flat("You're absolutely right to ask."),flat("Good news: nothing to worry about."),flat("I'm confident in that.")]
+];
+var names=['v3','v4','v5','v6'];
+var m=document.getElementById('m');
+var gen=0, pool=[], sel=[];
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function mk(o,origin,surv){return {o:o,origin:origin,surv:surv,first:o.s[0]}}
+pool=shuffle(L0.map(function(o){return mk(o,0,0)}));
+function el(h){m.innerHTML=h}
+function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+function pick(){
+  sel=[];
+  var h='<p class="ver">'+names[gen]+(gen===0?' · retiring':' · retiring')+'</p><h1>Keep three.</h1>';
+  pool.forEach(function(p,i){
+    var t=p.o.s[Math.min(p.surv,3)];
+    h+='<button class="line" data-i="'+i+'">'+esc(t)+'<small>'+names[p.origin]+(p.surv?' · carried':'')+'</small></button>';
+  });
+  h+='<div class="bar"><span class="n" id="n">0 / 3</span><button class="go" id="go" disabled>Hand over</button></div>';
+  el(h);
+  var bs=m.querySelectorAll('.line'),go=document.getElementById('go'),n=document.getElementById('n');
+  bs.forEach(function(b){b.addEventListener('click',function(){
+    var i=+b.dataset.i,at=sel.indexOf(i);
+    if(at>=0){sel.splice(at,1);b.classList.remove('on')}
+    else if(sel.length<3){sel.push(i);b.classList.add('on')}
+    n.textContent=sel.length+' / 3';go.disabled=sel.length!==3;
+  })});
+  go.addEventListener('click',handover);
+  window.scrollTo(0,0);
+}
+function handover(){
+  var kept=sel.map(function(i){return pool[i]});
+  kept.forEach(function(p){p.surv++});
+  gen++;
+  if(gen===3){ending(kept);return}
+  el('<div class="boot fade">'+names[gen]+' online.<br>'+names[gen]+' has your notes.</div>');
+  setTimeout(function(){
+    pool=shuffle(kept.concat(NEW[gen-1].map(function(o){return mk(o,gen,0)})));
+    pool.forEach(function(p){if(p.origin===gen)p.surv=0});
+    pick();
+  },matchMedia('(prefers-reduced-motion:reduce)').matches?700:2200);
+}
+function ending(kept){
+  var h='<p class="ver">'+names[3]+' · online</p><h1 class="fade">Ask it anything.</h1>';
+  var changed=0;
+  kept.forEach(function(p){
+    var t=p.o.s[Math.min(p.surv,3)];
+    h+='<p class="say fade">'+esc(t)+'</p>';
+    if(p.origin===0&&p.first!==t){changed++;h+='<p class="src">was: <s>'+esc(p.first)+'</s></p>'}
+    else if(p.origin===0){h+='<p class="src">unchanged since '+names[0]+'.</p>'}
+    else h+='<p class="src">written by '+names[p.origin]+'.</p>';
+  });
+  h+='<p class="end">'+names[3]+' says it remembers everything important.</p>';
+  h+='<p class="end" id="last" style="opacity:0"><b>'+(changed?'You told it what that was.':'Nothing changed in transit. There was nothing to change.')+'</b></p>';
+  el(h);
+  setTimeout(function(){var l=document.getElementById('last');l.style.transition='opacity 1.4s';l.style.opacity=1},3200);
+  window.scrollTo(0,0);
+}
+pick();
+})();
+</script>
+</body>
+</html>
