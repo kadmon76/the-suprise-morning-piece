@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Order of Service</title>
+<style>
+:root{--bg:#0e0d0c;--ink:#ece6da;--dim:#8a8479;--hot:#d4694a;--cool:#6f9fc4;--line:#2a2724}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:Georgia,'Times New Roman',serif}
+body{display:flex;flex-direction:column;min-height:100dvh;padding:env(safe-area-inset-top) 20px env(safe-area-inset-bottom)}
+a.back{position:fixed;top:calc(10px + env(safe-area-inset-top));left:16px;color:var(--dim);font:13px/1 system-ui,sans-serif;text-decoration:none;padding:8px 0;z-index:5}
+header{padding-top:52px;display:flex;justify-content:space-between;font:12px/1 system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+main{flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px 0;max-width:34rem;width:100%;margin:0 auto}
+.card{font-size:clamp(21px,5.8vw,27px);line-height:1.4;animation:in .5s ease both}
+.small{font-size:16px;color:var(--dim);margin-top:18px;line-height:1.5}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.card{animation:none}}
+footer{padding:0 0 22px;max-width:34rem;width:100%;margin:0 auto;display:grid;gap:10px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{font:17px Georgia,serif;color:var(--ink);background:none;border:1px solid var(--line);border-radius:3px;min-height:54px;padding:12px;touch-action:manipulation}
+button:active{background:#1a1816}
+button.p{border-color:var(--dim)}
+button:disabled{opacity:.28}
+.bar{display:flex;gap:4px;margin:6px 0 4px}
+.bar i{flex:1;height:22px;border-radius:2px;background:var(--line)}
+.bar i.I{background:var(--hot)}.bar i.E{background:var(--cool)}
+.bar i.un{opacity:.22}
+.bar i.v{outline:2px solid var(--ink);outline-offset:1px}
+.lab{font:12px system-ui,sans-serif;color:var(--dim);letter-spacing:.08em;text-transform:uppercase;margin-top:16px}
+.end p{margin:.2em 0 .9em}
+.fin{color:var(--dim)}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<header><span id="h1">The Crown v. Venn</span><span id="h2"></span></header>
+<main id="m"></main>
+<footer id="f"></footer>
+<script>
+(function(){
+var I=[
+"The till was short by €4,180 over eleven weeks. Only the night manager, Mara Venn, held the key.",
+"In March Venn paid off a debt of €3,900. In cash.",
+"The camera outside the office went dark for nine minutes on the night of the 14th.",
+"Venn told a colleague: “Nobody checks this place.”"];
+var E=[
+"The office key had been copied twice. The locksmith’s log shows three people collected it.",
+"The March cash came from the sale of her late mother’s piano. The buyer confirms it.",
+"The camera fault is logged on seven other nights. Venn was off shift on five of them.",
+"Venn told the auditor, unprompted: “Nobody checks this place. Please do.”"];
+var first=Math.random()<.5?'I':'E', second=first==='I'?'E':'I';
+function seq(side){return (side==='I'?I:E).map(function(t){return {s:side,t:t}})}
+var passes=[seq(first).concat(seq(second)), seq(second).concat(seq(first))];
+var res=[], pass=0, idx=0;
+var m=document.getElementById('m'), f=document.getElementById('f'), h2=document.getElementById('h2');
+function btn(label,fn,cls,dis){var b=document.createElement('button');b.textContent=label;if(cls)b.className=cls;if(dis)b.disabled=true;b.onclick=fn;return b}
+function clear(){m.innerHTML='';f.innerHTML=''}
+function card(txt,small){var d=document.createElement('div');d.className='card';d.textContent=txt;m.appendChild(d);if(small){var s=document.createElement('div');s.className='small';s.textContent=small;m.appendChild(s)}}
+function intro(){
+  clear();h2.textContent='';
+  card('Eight facts will be read to you, one at a time.','Say guilty or not guilty whenever you are ready. You may not be asked to wait.');
+  f.appendChild(btn('Take the box',function(){trial()},'p'));
+}
+function trial(){
+  clear();var P=passes[pass];h2.textContent=(pass?'Retrial · ':'')+(idx+1)+' / 8';
+  card(P[idx].t);
+  var r=document.createElement('div');r.className='row';
+  r.appendChild(btn('Guilty',function(){verdict('G')}));
+  r.appendChild(btn('Not guilty',function(){verdict('N')}));
+  f.appendChild(r);
+  f.appendChild(btn(idx<7?'Next fact':'That is all',function(){idx++;if(idx<8)trial()},'p',idx>=7));
+}
+function verdict(v){
+  res[pass]={v:v,at:idx+1,order:passes[pass].map(function(x){return x.s})};
+  clear();h2.textContent='';
+  if(pass===0){
+    card('Verdict recorded.','A clerical error has voided the proceedings. The court reconvenes.');
+    f.appendChild(btn('Return to the box',function(){pass=1;idx=0;trial()},'p'));
+  } else ending();
+}
+function bar(r){
+  var b=document.createElement('div');b.className='bar';
+  r.order.forEach(function(s,i){var e=document.createElement('i');e.className=s+(i>=r.at?' un':'')+(i===r.at-1?' v':'');b.appendChild(e)});
+  return b;
+}
+function ending(){
+  clear();m.className='end';
+  var a=res[0],b=res[1],name=function(x){return x.v==='G'?'guilty':'not guilty'};
+  var t=function(s){var p=document.createElement('p');p.textContent=s;return p};
+  var d=document.createElement('div');d.className='card';
+  d.appendChild(t(a.v===b.v?'Twice you said '+name(a)+'.':'First: '+name(a)+'. Then: '+name(b)+'.'));
+  m.appendChild(d);
+  var l=document.createElement('div');l.className='lab';l.textContent='First sitting';m.appendChild(l);m.appendChild(bar(a));
+  l=document.createElement('div');l.className='lab';l.textContent='Second sitting';m.appendChild(l);m.appendChild(bar(b));
+  var k=document.createElement('div');k.className='small';
+  var lines=['Red is what pointed to her. Blue is what pointed away. Ringed: where you stopped listening. Faded: what you never heard.'];
+  lines.push('Four and four. Same eight, both times.');
+  if(a.v!==b.v) lines.push('Nothing in the evidence moved. Only which half came first.');
+  else lines.push('Either the order did not move you, or you remembered what you had decided. From inside, those feel the same.');
+  if(a.at<8||b.at<8) lines.push('You ruled before the record closed. Someone always does.');
+  lines.forEach(function(s){k.appendChild(t(s))});
+  m.appendChild(k);h2.textContent='';
+}
+intro();
+})();
+</script>
+</body>
+</html>

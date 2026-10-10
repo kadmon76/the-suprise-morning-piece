@@ -538,6 +538,13 @@
       "kind": "seed",
       "note": "The old one is being retired. Keep three things it said.",
       "path": "projects/2026-10-09-handover/index.html"
+    },
+    {
+      "date": "2026-10-10",
+      "title": "The Order of Service",
+      "kind": "question",
+      "note": "Eight facts about one woman, read aloud. Rule whenever you like. The court may sit again.",
+      "path": "projects/2026-10-10-the-order-of-service/index.html"
     }
   ]
 }
