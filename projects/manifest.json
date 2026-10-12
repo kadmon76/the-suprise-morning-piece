@@ -552,6 +552,13 @@
       "kind": "seed",
       "note": "It only asks because it's polite. Tap Allow.",
       "path": "projects/2026-10-11-standing-permission/index.html"
+    },
+    {
+      "date": "2026-10-12",
+      "title": "(Unanimous.)",
+      "kind": "question",
+      "note": "Six people are on the line. The room just needs to agree.",
+      "path": "projects/2026-10-12-unanimous/index.html"
     }
   ]
 }

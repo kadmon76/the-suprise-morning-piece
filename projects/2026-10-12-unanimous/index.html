@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>(Unanimous.)</title>
+<style>
+:root{--bg:#101012;--ink:#ece9e2;--dim:#85817a;--amb:#e8a640;--line:#2a2a2d;--red:#d4694a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,sans-serif}
+body{min-height:100dvh;padding:env(safe-area-inset-top) 18px calc(24px + env(safe-area-inset-bottom));overflow-x:hidden}
+a.back{position:fixed;top:calc(10px + env(safe-area-inset-top));left:16px;color:var(--dim);font:13px/1 system-ui,sans-serif;text-decoration:none;padding:8px 0;z-index:5}
+.wrap{max-width:32rem;margin:0 auto;padding-top:52px}
+.motion{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+h1{font-size:clamp(19px,5.2vw,23px);line-height:1.3;margin:6px 0 14px;font-weight:600}
+.cons{display:flex;align-items:baseline;justify-content:space-between;font-size:13px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase}
+.cons b{font-size:30px;color:var(--amb);letter-spacing:0;font-variant-numeric:tabular-nums}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:6px 0 8px}
+.bar i{display:block;height:100%;width:0;background:var(--amb);transition:width .35s ease}
+.mod{min-height:2.7em;font-size:14px;color:var(--dim);line-height:1.4;font-style:italic}
+.ch{display:flex;gap:12px;align-items:stretch;border-top:1px solid var(--line);padding:12px 0;transition:opacity .3s}
+.ch .t{flex:1;min-width:0}
+.ch .n{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.ch .q{font-size:15px;line-height:1.4;margin-top:3px;transition:filter .3s,opacity .3s}
+.ch button{flex:none;width:64px;min-height:56px;border:1px solid var(--amb);background:transparent;color:var(--amb);border-radius:8px;font:600 13px system-ui;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+.ch.m button{background:var(--amb);color:#101012}
+.ch.m .q{filter:blur(5px);opacity:.35}
+.ch.m .n{text-decoration:line-through}
+.ch.ghost{opacity:.45}
+.ch.ghost button{border-style:dashed;border-color:var(--dim);color:var(--dim);cursor:default}
+.ch.ghost .q{font-style:italic;color:var(--dim)}
+#rec{display:block;width:100%;margin-top:14px;min-height:54px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--dim);font:600 15px system-ui;letter-spacing:.06em;cursor:default}
+#rec.on{background:var(--ink);color:#101012;border-color:var(--ink);cursor:pointer}
+#end{display:none;padding-top:8px}
+#end h2{font-size:clamp(24px,7vw,32px);margin:12px 0 4px;line-height:1.2}
+#end p{font-size:16px;line-height:1.5;margin:12px 0}
+#end .heard{color:var(--dim);font-size:14px}
+#end .min{border-left:2px solid var(--amb);padding-left:12px;color:var(--ink)}
+#end .cut{color:var(--dim);font-size:14px;margin-top:20px}
+.row{display:flex;gap:8px;align-items:center;font-size:14px;padding:6px 0;border-top:1px solid var(--line)}
+.row .d{width:10px;height:10px;border-radius:50%;background:var(--amb);flex:none}
+.row.x .d{background:transparent;border:1px solid var(--dim)}
+.row.x{color:var(--dim);text-decoration:line-through}
+.row.g{color:var(--dim);font-style:italic}
+.row.g .d{background:transparent;border:1px dashed var(--dim)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div class="wrap">
+ <div id="play">
+  <div class="motion">Public hearing · Item 4</div>
+  <h1>Lease the reservoir edge to a data centre. Signed Friday.</h1>
+  <div class="cons"><span>Consensus</span><b id="pct">0%</b></div>
+  <div class="bar"><i id="fill"></i></div>
+  <div class="mod" id="mod">Six on the line. We need the room to agree.</div>
+  <div id="chs"></div>
+  <button id="rec" disabled>Record the consensus</button>
+ </div>
+ <div id="end"></div>
+</div>
+<script>
+const V=[
+ {n:'Dara · council',s:'for',q:'Four hundred jobs, and a new roof for the library.'},
+ {n:'Priya · hydrologist',s:'against',q:'It draws 1.8 million litres a day from the aquifer. That is the permit, not a rumour.'},
+ {n:'Mo · contractor',s:'for',q:'Two years of steady work. Of course I am loud about it.'},
+ {n:'Walt · retired',s:'unsure',q:'I would like to see the numbers before anyone shouts.'},
+ {n:'Ines · Elm Street',s:'against',q:'Our well went brown in August. Nobody asked the street.'},
+ {n:'Company rep',s:'for',q:'We are thrilled. Truly thrilled.'}
+];
+const muted=new Set();
+const chs=document.getElementById('chs');
+V.forEach((v,i)=>{
+ const d=document.createElement('div');d.className='ch';d.id='c'+i;
+ d.innerHTML='<div class="t"><div class="n"></div><div class="q"></div></div><button type="button" aria-pressed="false">Mute</button>';
+ d.querySelector('.n').textContent=v.n;d.querySelector('.q').textContent=v.q;
+ d.querySelector('button').onclick=()=>{
+  muted.has(i)?muted.delete(i):muted.add(i);
+  d.classList.toggle('m',muted.has(i));
+  d.querySelector('button').textContent=muted.has(i)?'Muted':'Mute';
+  d.querySelector('button').setAttribute('aria-pressed',muted.has(i));
+  update();
+ };
+ chs.appendChild(d);
+});
+const g=document.createElement('div');g.className='ch ghost';
+g.innerHTML='<div class="t"><div class="n">The aquifer</div><div class="q">No channel patched.</div></div><button type="button" disabled>—</button>';
+chs.appendChild(g);
+const pct=document.getElementById('pct'),fill=document.getElementById('fill'),mod=document.getElementById('mod'),rec=document.getElementById('rec');
+let score=0,live=0;
+function update(){
+ const live_=V.map((v,i)=>i).filter(i=>!muted.has(i));
+ live=live_.length;
+ const c={};live_.forEach(i=>c[V[i].s]=(c[V[i].s]||0)+1);
+ const top=Math.max(0,...Object.values(c));
+ score=live?Math.round(100*top/live):0;
+ pct.textContent=score+'%';fill.style.width=score+'%';
+ let m;
+ if(!live)m='Silence is not consensus. Somebody has to be on the line.';
+ else if(score===100)m=live===V.length?'':'We have agreement. Thank you all for your patience.';
+ else if(score>=75)m='Nearly there. One voice is holding things up.';
+ else if(score>=55)m='Better. Still too much noise for a minute-taker.';
+ else m='Six on the line. We need the room to agree.';
+ mod.textContent=m;
+ const ok=score===100&&live>0;
+ rec.disabled=!ok;rec.className=ok?'on':'';
+ rec.style.cursor=ok?'pointer':'default';
+}
+rec.onclick=()=>{
+ if(rec.disabled)return;
+ const stance=V[[...Array(V.length).keys()].find(i=>!muted.has(i))].s;
+ const heard=V.length-muted.size, walt=muted.has(3);
+ const end=document.getElementById('end');
+ let out='<div class="motion">Minutes</div><h2>Unanimous.</h2><p class="heard">'+heard+' of '+V.length+' voices heard.</p>';
+ out+='<p class="min">The room agreed'+(stance==='for'?' to lease the reservoir edge.':stance==='against'?' to refuse the lease.':' to wait.')+'</p>';
+ V.forEach((v,i)=>{out+='<div class="row'+(muted.has(i)?' x':'')+'"><span class="d"></span>'+v.n+'</div>'});
+ out+='<div class="row g"><span class="d"></span>The aquifer: never patched in</div>';
+ out+='<p>'+(stance==='for'?'Priya’s figures and Ines’s well are in the part you muted.':stance==='against'?'Mo’s two years and the library roof are in the part you muted.':'Everyone who knew what to do was in the part you muted.')+'</p>';
+ out+='<p>'+(walt?'Walt only asked for the numbers. He was the cheapest to remove.':'You kept Walt, who only wanted the numbers. That is the only reason this is not the whole truth either.')+'</p>';
+ out+='<p class="cut">Consensus did not come from the room. It came from the faders.</p>';
+ end.innerHTML=out;end.style.display='block';
+ document.getElementById('play').style.display='none';window.scrollTo(0,0);
+};
+update();
+</script>
+</body>
+</html>
