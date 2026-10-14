@@ -566,6 +566,13 @@
       "kind": "seed",
       "note": "Forty steps. It is very good at you.",
       "path": "projects/2026-10-13-blind-follow/index.html"
+    },
+    {
+      "date": "2026-10-14",
+      "title": "Same Knife",
+      "kind": "question",
+      "note": "Fix what's worn. It was his, and it still is.",
+      "path": "projects/2026-10-14-same-knife/index.html"
     }
   ]
 }

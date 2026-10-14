@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Same Knife</title>
+<style>
+:root{--bg:#0e0d0c;--ink:#ece8e0;--dim:#8a847a;--amb:#f0b050;--line:#2a2724}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,sans-serif}
+body{min-height:100dvh;overflow-x:hidden;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+a.back{position:fixed;top:calc(10px + env(safe-area-inset-top));left:16px;color:var(--dim);font:13px/1 system-ui,sans-serif;text-decoration:none;padding:8px 0;z-index:5}
+.wrap{max-width:32rem;width:100%;margin:0 auto;padding:0 18px;flex:1;display:flex;flex-direction:column}
+.top{padding-top:52px;text-align:center}
+.label{font:italic 600 26px/1.2 Georgia,'Times New Roman',serif;letter-spacing:.01em}
+.hint{font-size:14px;color:var(--dim);margin-top:8px;min-height:1.4em}
+.stage{flex:1;display:flex;justify-content:center;align-items:center;gap:4%;min-height:300px;padding:10px 0}
+.knife{height:min(52dvh,420px);width:auto;max-width:100%;display:block}
+.k{background:none;border:0;padding:0;flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--dim);font:italic 14px Georgia,serif;transition:transform .8s ease-in,opacity .8s}
+.k svg{height:min(44dvh,360px);max-width:100%}
+.k.drop{transform:translateY(60%) rotate(9deg);opacity:0}
+.one g[data-p]{cursor:pointer}
+.pop{animation:pop .35s ease-out}
+@keyframes pop{0%{opacity:.2}100%{opacity:1}}
+.tray{min-height:74px;padding:6px 0 20px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}
+.chip{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:6px 10px;display:flex;align-items:center;gap:7px}
+.chip i{width:9px;height:9px;border-radius:2px;display:block}
+.go{font:600 14px system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);background:#1a1816;border:1px solid #3a3530;border-radius:12px;padding:16px 22px;min-height:52px}
+.go:active{background:#26221e}
+.end{display:none;padding:52px 0 36px}
+.end h2{font:italic 600 24px/1.25 Georgia,serif;margin:0 0 18px}
+.end p{font-size:15px;line-height:1.55;margin:12px 0}
+.end p.d{color:var(--dim)}
+.end .big{font:italic 600 19px/1.4 Georgia,serif;color:var(--amb);margin-top:24px}
+.cap{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:20px}
+body.done .top,body.done .stage,body.done .tray{display:none}
+body.done .end{display:block}
+@media (prefers-reduced-motion:reduce){.pop{animation:none}.k{transition:opacity .2s}.k.drop{transform:none}}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div class="wrap">
+  <div class="top">
+    <div class="label">His knife.</div>
+    <div class="hint" id="hint">Tap what’s worn.</div>
+  </div>
+  <div class="stage" id="stage"></div>
+  <div class="tray" id="tray" aria-live="polite"></div>
+  <div class="end" id="end"></div>
+</div>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const P=['blade','bolster','handle','rivets','ring'];
+const OLD={blade:'#8d8f92',bolster:'#8c6a3a',handle:'#5a3a22',rivets:'#b08a50',ring:'#77746e'};
+const state={blade:0,bolster:0,handle:0,rivets:0,ring:0};
+const order=[],gaps=[];
+let last=performance.now(),phase=1;
+
+function knife(s,interactive){
+  const n=p=>s[p];
+  const hit=(p,inner)=>interactive?`<g data-p="${p}" role="button" tabindex="0" aria-label="Replace the ${p}">${inner}</g>`:`<g>${inner}</g>`;
+  const bladeNew=`<path d="M82 152 L82 40 Q84 22 100 12 Q124 40 118 152 Z" fill="url(#gN)"/><path d="M100 18 L100 150" stroke="#9aa6b3" stroke-width="1" opacity=".6"/>`;
+  const bladeOld=`<path d="M82 152 L82 40 Q84 22 100 12 Q124 40 118 152 Z" fill="${OLD.blade}"/><path d="M118 96 l-6 3 l5 4 l-4 4 l5 3" stroke="#0e0d0c" stroke-width="2" fill="none"/><path d="M90 60 L92 130" stroke="#6d6f72" stroke-width="2" opacity=".6"/>`;
+  const bolN=`<rect x="70" y="152" width="60" height="14" rx="3" fill="#d4a64a"/>`;
+  const bolO=`<rect x="70" y="152" width="60" height="14" rx="3" fill="${OLD.bolster}"/><path d="M74 158h20" stroke="#5a4222" stroke-width="2"/>`;
+  const hanN=`<rect x="72" y="166" width="56" height="126" rx="14" fill="#1b1b1e"/><rect x="80" y="172" width="8" height="112" rx="4" fill="#fff" opacity=".07"/>`;
+  const hanO=`<rect x="72" y="166" width="56" height="126" rx="14" fill="${OLD.handle}"/><path d="M82 172v114M96 172v114M110 172v114" stroke="#3d2614" stroke-width="1.5" opacity=".7"/><text x="100" y="235" text-anchor="middle" font-size="15" font-family="Georgia,serif" fill="#d6b88a" opacity=".8" transform="rotate(-90 100 235)">J.L.</text>`;
+  const rivN=`<circle cx="100" cy="190" r="5.5" fill="#e8e8ee"/><circle cx="100" cy="270" r="5.5" fill="#e8e8ee"/>`;
+  const rivO=`<circle cx="100" cy="190" r="5.5" fill="${OLD.rivets}"/><circle cx="100" cy="270" r="5.5" fill="${OLD.rivets}"/>`;
+  const ringN=`<circle cx="100" cy="322" r="16" fill="none" stroke="#e8e8ee" stroke-width="5"/>`;
+  const ringO=`<circle cx="100" cy="322" r="16" fill="none" stroke="${OLD.ring}" stroke-width="5"/>`;
+  const rivHit=`<rect x="62" y="176" width="76" height="106" fill="transparent"/>`;
+  return `<svg viewBox="0 0 200 350" class="knife" aria-hidden="${interactive?'false':'true'}"><defs><linearGradient id="gN" x1="0" x2="1"><stop offset="0" stop-color="#b9c4d0"/><stop offset=".5" stop-color="#f1f5fa"/><stop offset="1" stop-color="#aeb9c6"/></linearGradient></defs>`+
+    hit('blade',n('blade')?bladeNew:bladeOld)+
+    hit('handle',n('handle')?hanN:hanO)+
+    hit('bolster',n('bolster')?bolN:bolO)+
+    hit('rivets',(n('rivets')?rivN:rivO)+(interactive?`<circle cx="100" cy="190" r="20" fill="transparent"/><circle cx="100" cy="270" r="20" fill="transparent"/>`:''))+
+    hit('ring',(n('ring')?ringN:ringO)+(interactive?`<circle cx="100" cy="322" r="24" fill="transparent"/>`:''))+
+    `</svg>`;
+}
+
+function render(){
+  $('stage').innerHTML=`<div class="one">${knife(state,true)}</div>`;
+}
+function swap(p){
+  if(state[p]||phase!==1)return;
+  const now=performance.now();
+  gaps.push(now-last);last=now;
+  order.push(p);state[p]=1;
+  render();
+  if(!reduce){const g=$('stage').querySelector(`[data-p="${p}"]`);if(g)g.classList.add('pop')}
+  const c=document.createElement('div');c.className='chip';
+  c.innerHTML=`<i style="background:${OLD[p]}"></i>${p}`;$('tray').appendChild(c);
+  if(order.length===5){
+    phase=2;$('hint').textContent='';
+    const b=document.createElement('button');b.className='go';b.textContent='Put it back together';
+    b.onclick=second;$('tray').appendChild(b);
+  }
+}
+$('stage').addEventListener('click',e=>{const g=e.target.closest('[data-p]');if(g)swap(g.dataset.p)});
+$('stage').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const g=e.target.closest('[data-p]');if(g){e.preventDefault();swap(g.dataset.p)}}});
+
+function second(){
+  if(phase!==2)return;phase=3;
+  $('tray').innerHTML='';
+  $('hint').textContent='Keep one.';
+  const allNew={blade:1,bolster:1,handle:1,rivets:1,ring:1},allOld={blade:0,bolster:0,handle:0,rivets:0,ring:0};
+  $('stage').innerHTML=
+    `<button class="k" id="kn" aria-label="Keep the new knife">${knife(allNew,false)}<span>His knife.</span></button>`+
+    `<button class="k" id="ko" aria-label="Keep the old knife">${knife(allOld,false)}<span>His knife.</span></button>`;
+  $('kn').onclick=()=>choose('new');$('ko').onclick=()=>choose('old');
+}
+
+function choose(w){
+  if(phase!==3)return;phase=4;
+  (w==='new'?$('ko'):$('kn')).classList.add('drop');
+  setTimeout(()=>finish(w),reduce?400:1100);
+}
+
+function finish(w){
+  let bi=1;for(let i=2;i<5;i++)if(gaps[i]>gaps[bi])bi=i;
+  const part=order[bi],secs=(gaps[bi]/1000).toFixed(1);
+  const done=bi; // parts already replaced before that tap
+  const kept=w==='new'?
+    'It cuts. There is nothing of him in it except the label.':
+    'It has his initials and a nick in the blade. It was always the worse knife.';
+  $('end').innerHTML=
+   `<h2>You kept the ${w} one.</h2>`+
+   `<p>${kept}</p>`+
+   `<div class="cap">What you did</div>`+
+   `<p>${order.join(' → ')}.</p>`+
+   `<p>You stopped longest before the ${part}: ${secs} seconds. ${done===0?'Nothing had been replaced yet.':done+' of 5 were already new.'} The label still said <em>his</em>.</p>`+
+   `<p class="d">The other went in the bin. It had the same label on it.</p>`+
+   `<p class="big">The label was never replaced. It was the one part nobody could take off — it just moved to whichever you held.</p>`+
+   `<p class="d">Ask who keeps the name.</p>`;
+  document.body.classList.add('done');
+  window.scrollTo(0,0);
+}
+render();
+})();
+</script>
+</body>
+</html>
