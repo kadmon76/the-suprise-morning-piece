@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Public Domain, Briefly</title>
+<style>
+:root{--bg:#0d0d10;--ink:#ece9e2;--dim:#85828a;--line:#27262c;--c0:#e0475b;--c1:#f0a63c;--c2:#4a8fe0;--c3:#4fc08a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,sans-serif}
+body{min-height:100dvh;overflow-x:hidden;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+a.back{position:fixed;top:calc(10px + env(safe-area-inset-top));left:16px;color:var(--dim);font:13px/1 system-ui,sans-serif;text-decoration:none;padding:8px 0;z-index:5}
+.wrap{max-width:30rem;margin:0 auto;padding:54px 16px 28px}
+h1{font:italic 600 22px/1.2 Georgia,serif;margin:0;text-align:center}
+.sub{text-align:center;color:var(--dim);font-size:14px;margin:6px 0 16px}
+.slots{display:flex;justify-content:center;gap:8px;margin-bottom:14px}
+.slot{width:44px;height:44px;border:1px solid var(--line);border-radius:6px;background:#141418;transition:background .15s}
+.pads{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pad{height:min(19dvh,128px);min-height:84px;border:0;border-radius:10px;opacity:.88;color:#0007;font:600 13px system-ui;cursor:pointer}
+.pad:active{opacity:1;filter:brightness(1.25)}
+.pad[disabled]{opacity:.25}
+.row{display:flex;gap:10px;margin-top:12px;align-items:center}
+.go{flex:1;height:52px;border-radius:10px;border:1px solid #55535c;background:#1b1a20;color:var(--ink);font:600 16px system-ui}
+.go:disabled{opacity:.35}
+.go:active:not(:disabled){background:#27252d}
+.clr{height:52px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--dim);font:14px system-ui}
+.fine{font-size:10px;color:#5d5b63;text-align:center;margin-top:7px;line-height:1.35}
+.fine u{text-decoration:none;border-bottom:1px dotted #5d5b63}
+.ledger{margin-top:16px;font:13px/1.45 ui-monospace,Menlo,monospace}
+.ln{border-top:1px solid var(--line);padding:8px 2px;display:flex;justify-content:space-between;gap:10px}
+.ln span:first-child{color:var(--dim)}
+.ln b{font-weight:600}
+.ln.free b{color:var(--c3)}
+.ln.tot{font-weight:600}
+.ln.late{color:#f08a8a}
+.out{margin-top:18px;font:italic 17px/1.5 Georgia,serif;color:var(--ink)}
+.out p{margin:0 0 10px}
+.out .d{font:13px/1.5 system-ui;color:var(--dim);font-style:normal}
+.enough{display:block;margin:18px auto 0;background:none;border:0;color:var(--dim);font:13px system-ui;text-decoration:underline;padding:10px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div class="wrap">
+<h1>Public Domain, Briefly</h1>
+<div class="sub">Write a tune nobody owns.</div>
+<div class="slots" id="slots"></div>
+<div class="pads" id="pads"></div>
+<div class="row"><button class="go" id="go" disabled>Release</button><button class="clr" id="clr">Clear</button></div>
+<div class="fine" id="fine">By releasing you accept the <u>registry terms</u> (§9).</div>
+<div class="ledger" id="ledger" aria-live="polite"></div>
+<div class="out hide" id="out"></div>
+<button class="enough hide" id="enough">enough</button>
+</div>
+<script>
+(function(){
+var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+var COL=['--c0','--c1','--c2','--c3'],FREQ=[261.63,293.66,329.63,392.0];
+var LABELS=['Harbour & Vale Music','Ostrander Publishing','Nine Lamps Ltd','Calloway Rights Group','Sundial Catalogue','Pale Orchard Records','Lowtide Holdings','Fennimore & Sons'];
+var MER='Meridian Rights Ltd';
+var ac=null;
+function audio(){if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(ac&&ac.state==='suspended')ac.resume();return ac}
+function pluck(i,t){var a=audio();if(!a)return;var o=a.createOscillator(),g=a.createGain();o.type='triangle';o.frequency.value=FREQ[i];
+ var s=(t||a.currentTime);g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(.28,s+.01);g.gain.exponentialRampToValueAtTime(.001,s+.7);
+ o.connect(g);g.connect(a.destination);o.start(s);o.stop(s+.75)}
+// the registry: every 3-note run is already owned, except five plain ones
+var free={'012':1,'123':1,'232':1,'321':1,'210':1};
+var owner={};
+function h(s){var x=0;for(var i=0;i<s.length;i++)x=(x*31+s.charCodeAt(i)+7)%9973;return x}
+for(var a=0;a<4;a++)for(var b=0;b<4;b++)for(var c=0;c<4;c++){var k=''+a+b+c;if(!free[k]){var v=h(k);owner[k]={n:LABELS[v%8],y:1962+v%58,p:4+v%11}}}
+var seq=[],log=[],owed=0,done=false,clearAt=-1;
+var $=function(i){return document.getElementById(i)};
+var slots=$('slots'),pads=$('pads'),go=$('go'),ledger=$('ledger'),out=$('out'),enough=$('enough');
+for(var i=0;i<5;i++){var d=document.createElement('div');d.className='slot';slots.appendChild(d)}
+for(var j=0;j<4;j++){(function(j){var b=document.createElement('button');b.className='pad';b.style.background='var('+COL[j]+')';b.setAttribute('aria-label','note '+(j+1));
+ b.addEventListener('pointerdown',function(e){e.preventDefault();if(done)return;pluck(j);if(seq.length<5){seq.push(j);draw()}});pads.appendChild(b)})(j)}
+function draw(){var s=slots.children;for(var i=0;i<5;i++)s[i].style.background=i<seq.length?'var('+COL[seq[i]]+')':'#141418';go.disabled=seq.length<5}
+$('clr').addEventListener('click',function(){seq=[];draw()});
+function anyClear(){for(var n=0;n<1024;n++){var m=[n&3,(n>>2)&3,(n>>4)&3,(n>>6)&3,(n>>8)&3],ok=true;
+ for(var w=0;w<3;w++)if(!free[''+m[w]+m[w+1]+m[w+2]]){ok=false;break}
+ if(ok)return true}return false}
+function line(l,r,cls,delay){var d=document.createElement('div');d.className='ln '+(cls||'');d.innerHTML='<span>'+l+'</span><b>'+r+'</b>';
+ if(delay&&!reduce)setTimeout(function(){ledger.appendChild(d)},delay);else ledger.appendChild(d)}
+go.addEventListener('click',function(){
+ if(seq.length<5||done)return;
+ var a=audio(),t0=a?a.currentTime+.05:0;seq.forEach(function(n,i){pluck(n,t0+i*.32)});
+ var m=seq.slice(),nm=log.length+1,paid=0,clear=true;
+ ledger.innerHTML='';
+ var rel=log.length+1;
+ var delays=[900,1700,2500];
+ line('Release #'+nm,m.map(function(x){return x+1}).join('·'),'',0);
+ for(var w=0;w<3;w++){(function(w){
+  var k=''+m[w]+m[w+1]+m[w+2],o=owner[k],lbl='notes '+(w+1)+'–'+(w+3);
+  if(o){clear=false;paid+=o.p;
+   if(o.mine) line(lbl,o.n+' · your #'+o.mine+' · '+o.p+'%','',delays[w]);
+   else line(lbl,o.n+' · '+o.y+' · '+o.p+'%','',delays[w])}
+  else line(lbl,'public domain','free',delays[w])})(w)}
+ var end=reduce?0:3300;
+ seq=[];draw();go.disabled=true;
+ // terms §9: whatever you release is assigned to the registry; the commons shrinks by exactly what you used
+ for(var w2=0;w2<3;w2++){var k2=''+m[w2]+m[w2+1]+m[w2+2];if(free[k2]){delete free[k2];owner[k2]={n:MER,y:2026,p:100,mine:nm}}
+  else if(owner[k2]&&!owner[k2].mine){owner[k2]={n:MER,y:2026,p:owner[k2].p,mine:nm}}}
+ setTimeout(function(){
+  owed+=paid;log.push({m:m,paid:paid,clear:clear});
+  if(clear){line('Owed','0%','free',0);
+   setTimeout(function(){line('0.4 s after release','claim filed · '+MER,'late',0);clearAt=nm;finish()},reduce?0:1500)}
+  else{line('Owed',paid+'%','tot',0);
+   if(!anyClear()){setTimeout(finish,reduce?0:1200);return}
+   if(log.length>=3)enough.classList.remove('hide')}
+ },end);
+});
+$('enough').addEventListener('click',finish);
+function finish(){
+ if(done)return;done=true;enough.classList.add('hide');pads.querySelectorAll('button').forEach(function(b){b.disabled=true});go.disabled=true;$('clr').disabled=true;$('fine').classList.add('hide');
+ var n=log.length,p;
+ if(clearAt>0)p='<p>It was free for 0.4 seconds.</p><p>Nobody wrote the claim. Something just got there first.</p>';
+ else if(!anyClear())p='<p>There was nothing left to write.</p><p>Every tune you released shut a door behind it.</p>';
+ else p='<p>Every tune you wrote already belonged to someone.</p><p>So did the next one.</p>';
+ var tot=Object.keys(owner).filter(function(k){return owner[k].n===MER}).length;
+ p+='<p class="d">Releases: '+n+'. Owed in total: '+owed+'%.<br>Runs of three notes now held by '+MER+': '+tot+' of 64 — each assigned the moment you used it.</p>';
+ out.innerHTML=p;out.classList.remove('hide');
+}
+})();
+</script>
+</body>
+</html>

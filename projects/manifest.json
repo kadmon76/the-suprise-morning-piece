@@ -573,6 +573,13 @@
       "kind": "question",
       "note": "Fix what's worn. It was his, and it still is.",
       "path": "projects/2026-10-14-same-knife/index.html"
+    },
+    {
+      "date": "2026-10-15",
+      "title": "Public Domain, Briefly",
+      "kind": "seed",
+      "note": "Five notes, four pads. Somewhere there is a tune nobody owns.",
+      "path": "projects/2026-10-15-public-domain-briefly/index.html"
     }
   ]
 }
