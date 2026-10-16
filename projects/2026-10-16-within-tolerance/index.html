@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Within Tolerance</title>
+<style>
+:root{--bg:#07080b;--fg:#d9d4c7;--dim:#7d7a70;--warm:#ffcf7a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:15px/1.45 ui-monospace,Menlo,Consolas,monospace;overflow:hidden;touch-action:manipulation}
+a.back{position:fixed;top:max(10px,env(safe-area-inset-top));left:12px;color:var(--dim);text-decoration:none;font-size:13px;z-index:5}
+#app{height:100%;display:flex;flex-direction:column;padding:44px 16px max(14px,env(safe-area-inset-bottom));max-width:480px;margin:0 auto}
+.top{display:flex;justify-content:space-between;color:var(--dim);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+canvas{flex:1;min-height:0;width:100%;display:block;margin:10px 0}
+#line{height:2.9em;color:var(--dim);font-size:13px}
+#line b{color:var(--fg);font-weight:400}
+button{font:inherit;color:var(--fg);background:#14161c;border:1px solid #2a2d36;border-radius:10px;padding:16px;width:100%;min-height:56px}
+button:active{background:#1d2029}
+#row{display:flex;gap:10px}
+#done{flex:0 0 34%;color:var(--dim);display:none}
+#end{display:none;overflow:auto;flex:1}
+#end h2{font-weight:400;font-size:20px;margin:8px 0 12px;color:var(--warm)}
+#end p{margin:0 0 12px}
+#end ul{margin:0 0 14px;padding-left:18px;color:var(--dim);font-size:13px}
+#end li{margin-bottom:4px}
+.late{color:var(--fg)}
+</style></head><body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div id="app">
+ <div id="play" style="display:contents">
+  <div class="top"><span>Block 7 · Stairwell &amp; Lobby</span><span id="save"></span></div>
+  <canvas id="c" aria-label="A residential tower at night, windows lit"></canvas>
+  <div id="line" aria-live="polite"></div>
+  <div id="row"><button id="trim">Trim 2%</button><button id="done">Sign off</button></div>
+ </div>
+ <div id="end"></div>
+</div>
+<script>
+(function(){
+var cv=document.getElementById('c'),cx=cv.getContext('2d'),line=document.getElementById('line'),
+ trim=document.getElementById('trim'),done=document.getElementById('done'),save=document.getElementById('save'),
+ endEl=document.getElementById('end'),play=document.getElementById('play');
+var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+var COLS=6,ROWS=11,N=COLS*ROWS,STEP=0.02,LAG=9;
+var seed=7;function rnd(){seed=(seed*16807)%2147483647;return (seed-1)/2147483646}
+var win=[];for(var i=0;i<N;i++)win.push({t:0.08+rnd()*0.4,b:0.7+rnd()*0.3,off:rnd()<0.12});
+var notices=[[.88,"Ground floor: the entry keypad is hard to read at night."],[.80,"Flat 2C: reading glasses no longer enough on the stairs."],
+[.72,"Car park: residents have stopped using it after dark."],[.64,"Flat 5A: a fall on the stairs. Minor."],[.56,"Flat 1B: hasn't come down since Tuesday."],
+[.48,"Residents' group: “Is it just us?”"],[.40,"Flat 4D: moved out."],[.30,"Flat 3A: a fall on the stairs. Not minor."],[.22,"Council: asks who approved this."]];
+var ok=["Within tolerance.","No change detected.","Nobody noticed.","Complaints: 0.","Below the threshold of notice.","Nothing to report."];
+var level=1,shown=1,taps=0,fired=[],delivered=[],finished=false,W,H,dpr;
+function size(){dpr=Math.min(devicePixelRatio||1,2);W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;cx.setTransform(dpr,0,0,dpr,0,0)}
+function draw(c2,w,h,lv){
+ c2.fillStyle='#0b0d12';c2.fillRect(0,0,w,h);
+ var bw=Math.min(w*.86,h*.62),bh=h*.94,bx=(w-bw)/2,by=h*.03;
+ c2.fillStyle='#10131a';c2.fillRect(bx,by,bw,bh);
+ var pad=bw*.07,cw=(bw-pad*2)/COLS,rh=(bh-pad*2)/ROWS,ww=cw*.58,wh=rh*.58;
+ for(var i=0;i<N;i++){var r=Math.floor(i/COLS),c=i%COLS,o=win[i],x=bx+pad+c*cw+(cw-ww)/2,y=by+pad+r*rh+(rh-wh)/2;
+  var a=o.off?0.05:(lv<o.t?0.05:o.b*(0.18+0.82*lv));
+  c2.fillStyle='rgba(255,'+(190+Math.round(a*40))+','+(110+Math.round(a*60))+','+a.toFixed(3)+')';c2.fillRect(x,y,ww,wh)}
+}
+function render(){
+ if(Math.abs(shown-level)>0.001)shown+=(level-shown)*(reduce?1:0.25);else shown=level;
+ draw(cx,W,H,shown);if(shown!==level)requestAnimationFrame(render)}
+function pct(){return Math.round(level*100)}
+function upd(){
+ save.textContent='Saved £'+((1-level)*184000|0).toLocaleString('en-GB')+' / yr';
+ trim.textContent='Trim 2% · now '+pct()+'%';
+ render()}
+function status(){
+ var d=delivered.length?delivered[delivered.length-1]:null;
+ line.innerHTML=d?('<b>'+d+'</b>'):ok[(taps*5)%ok.length]}
+function tap(){
+ if(finished)return;taps++;level=Math.max(0.12,+(level-STEP).toFixed(3));
+ notices.forEach(function(n,i){if(level<=n[0]&&fired.indexOf(i)<0)fired.push(i)});
+ // delivered with lag
+ var due=0;fired.forEach(function(i){if(!notices[i].t)notices[i].t=taps;});
+ delivered=[];notices.forEach(function(n){if(n.t&&taps-n.t>=LAG)delivered.push(n[1])});
+ if(done.style.display!=='block'&&taps>=5)done.style.display='block';
+ if(level<=0.12){finish();return}
+ var last=delivered.length?delivered[delivered.length-1]:null;
+ line.innerHTML=(last&&taps-notices.filter(function(n){return n[1]===last})[0].t===LAG)?('<b>'+last+'</b>'):ok[taps%ok.length];
+ upd()}
+function finish(){
+ finished=true;var late=[],now=delivered.slice();
+ notices.forEach(function(n){if(level<=n[0]&&!(n.t&&taps-n.t>=LAG))late.push(n[1])});
+ var wait=[];notices.forEach(function(n){if(level>n[0])wait.push(n)});
+ var cvs=document.createElement('canvas');cvs.width=240;cvs.height=300;
+ var a=document.createElement('canvas');a.width=120;a.height=150;var b=document.createElement('canvas');b.width=120;b.height=150;
+ draw(a.getContext('2d'),120,150,1);draw(b.getContext('2d'),120,150,level);
+ var dark=win.filter(function(o){return o.off||level<o.t}).length-win.filter(function(o){return o.off}).length;
+ play.style.display='none';endEl.style.display='block';
+ endEl.innerHTML='<h2>Signed off.</h2><div style="display:flex;gap:12px;margin:0 0 14px"></div>'+
+  '<p>'+taps+' changes. The largest was 2%.<br>Times anyone could have objected: 0.<br>Light left: '+pct()+'%. Windows given up: '+dark+'.</p>'+
+  (now.length?'<p style="color:var(--dim)">Reached you:</p><ul>'+now.map(function(s){return'<li>'+s+'</li>'}).join('')+'</ul>':'')+
+  (late.length?'<p style="color:var(--dim)">Still arriving:</p><ul class="late">'+late.map(function(s){return'<li>'+s+'</li>'}).join('')+'</ul>':'<p style="color:var(--dim)">Nothing more is on its way. That is only because of how few things there are to arrive.</p>')+
+  '<p>Not one of your taps did this.</p>';
+ var fl=endEl.querySelector('div');[a,b].forEach(function(x){x.style.cssText='width:calc(50% - 6px);border-radius:8px';fl.appendChild(x)});
+}
+trim.addEventListener('click',tap);
+done.addEventListener('click',function(){if(!finished)finish()});
+addEventListener('resize',function(){size();render()});
+size();upd();line.textContent='Facilities has asked for a saving. Nobody will see 2%.';
+})();
+</script></body></html>

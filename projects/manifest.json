@@ -580,6 +580,13 @@
       "kind": "seed",
       "note": "Five notes, four pads. Somewhere there is a tune nobody owns.",
       "path": "projects/2026-10-15-public-domain-briefly/index.html"
+    },
+    {
+      "date": "2026-10-16",
+      "title": "Within Tolerance",
+      "kind": "question",
+      "note": "Facilities needs two percent. You won't be able to tell.",
+      "path": "projects/2026-10-16-within-tolerance/index.html"
     }
   ]
 }
