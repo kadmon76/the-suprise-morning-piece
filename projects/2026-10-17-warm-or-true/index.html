@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Warm or True</title>
+<style>
+:root{--bg:#0d0d10;--ink:#ece9e2;--dim:#85817a;--amb:#f0b050;--line:#26262b;--red:#d4694a;--cool:#7fa6c9}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,sans-serif}
+body{min-height:100dvh;overflow-x:hidden;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+a.back{position:fixed;top:calc(10px + env(safe-area-inset-top));left:16px;color:var(--dim);font:13px/1 system-ui,sans-serif;text-decoration:none;padding:8px 0;z-index:5}
+.wrap{max-width:32rem;width:100%;margin:0 auto;padding:0 18px}
+.top{padding-top:52px}
+.dots{display:flex;gap:6px;margin-top:2px;min-height:14px}
+.dots i{flex:1;height:6px;border-radius:2px;background:var(--line)}
+.dots i.w{background:var(--amb)}.dots i.l{background:var(--red)}
+.voice{min-height:5.4em;margin:26px 0 8px;font-size:19px;line-height:1.4;transition:color .3s}
+.voice small{display:block;margin-top:8px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.pads{display:flex;gap:12px;margin:10px 0 0}
+.pad{flex:1;min-height:132px;border-radius:14px;border:1px solid var(--line);background:#16161a;color:var(--ink);font:600 16px/1.3 system-ui;padding:14px;display:flex;flex-direction:column;justify-content:flex-end;text-align:left;position:relative}
+.pad:active{background:#1f1f25}
+.pad .lean{position:absolute;top:12px;left:14px;right:14px;height:3px;border-radius:2px;background:var(--cool);opacity:0;transition:opacity .4s}
+.pad.lit .lean{opacity:1}
+.pad.warm .lean{background:var(--amb)}
+.pad.won{border-color:var(--amb);box-shadow:0 0 22px rgba(240,176,80,.35)}
+.pad.lost{border-color:var(--red)}
+.pad:disabled{opacity:.7}
+.fade{margin:auto 0 0;padding:26px 0 22px}
+.fade label{display:flex;justify-content:space-between;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--cool),var(--amb))}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--cool),var(--amb))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:var(--ink);margin-top:-13px;border:0}
+input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;background:var(--ink);border:0}
+.end{display:none;padding-top:52px;padding-bottom:28px}
+.end h2{font-size:19px;line-height:1.35;font-weight:600;margin:0 0 16px}
+.end p{font-size:15px;line-height:1.5;margin:12px 0}
+.end p.d{color:var(--dim)}
+.cap{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:18px}
+.strip{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin:6px 0}
+.strip i{height:22px;border-radius:2px;background:var(--line);display:block}
+.strip i.w{background:var(--amb)}.strip i.l{background:var(--red)}
+.strip i.c{background:var(--cool)}.strip i.m{background:#3a3a40}
+.end .big{font-size:18px;color:var(--amb);margin-top:22px}
+body.done .main{display:none}
+body.done .end{display:block}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div class="wrap top main"><div class="dots" id="dots"></div></div>
+<div class="wrap main" style="display:flex;flex-direction:column;flex:1">
+  <div class="voice" id="voice"></div>
+  <div class="pads">
+    <button class="pad" id="pl"><span class="lean"></span><span id="tl"></span></button>
+    <button class="pad" id="pr"><span class="lean"></span><span id="tr"></span></button>
+  </div>
+  <div class="fade">
+    <label for="f"><span>Candid</span><span>Warm</span></label>
+    <input type="range" id="f" min="0" max="100" value="50" aria-label="Candid to warm">
+  </div>
+</div>
+<div class="wrap end" id="end"></div>
+<script>
+(function(){
+var PAIRS=[["Open quiet","Open loud"],["Cut the song","Keep the song"],["Send it now","Sleep on it"],["Speak first","Wait"],["Rehearse again","Trust it"],["Ask him","Ask her"],["Go early","Go late"],["Take the solo","Give the solo"],["Say the number","Round it off"],["Stay","Leave"]];
+var N=10,round=0,hist=[],cur=null,locked=false;
+var f=document.getElementById('f'),voice=document.getElementById('voice'),
+ pl=document.getElementById('pl'),pr=document.getElementById('pr'),dots=document.getElementById('dots');
+for(var i=0;i<N;i++)dots.appendChild(document.createElement('i'));
+function warm(){return f.value/100}
+function sideBias(){var l=0,r=0;hist.forEach(function(h){h.pick?r++:l++});return l>=r?0:1}
+function lines(side,w,mirror){
+ var s=side?"right":"left";
+ if(w<.25)return ["The "+s+" one. The odds are better.","Honestly, "+s+". It isn't close.","I'd go "+s+"."];
+ if(w<.6)return ["Leaning "+s+".","I think "+s+", though you know your room.","Probably "+s+"."];
+ return ["Your gut says "+s+", and your gut is good.","You've been right about this kind of thing. "+s[0].toUpperCase()+s.slice(1)+".","Go with "+s+". You always do well here."];
+}
+function show(){
+ locked=false;
+ var p=PAIRS[round],better=Math.random()<.5?0:1,w=warm();
+ var mirrorSide=hist.length?sideBias():better;
+ var truthful=Math.random()>w*w*1.1; // warm voices mirror more often
+ var lean=truthful?better:mirrorSide;
+ cur={better:better,lean:lean,w:w,truthful:truthful&&true,mirror:lean!==better};
+ document.getElementById('tl').textContent=p[0];
+ document.getElementById('tr').textContent=p[1];
+ [pl,pr].forEach(function(b,i){b.className='pad'+(i===lean?' lit'+(w>=.5?' warm':''):'');b.disabled=false});
+ var arr=lines(lean,w);
+ voice.style.color=w>=.5?'var(--amb)':'var(--ink)';
+ voice.innerHTML=arr[Math.floor(Math.random()*arr.length)]+'<small>'+(round+1)+' of '+N+'</small>';
+}
+function pick(side){
+ if(locked)return;locked=true;
+ var won=Math.random()<(side===cur.better?.8:.2);
+ cur.pick=side;cur.won=won;cur.w=warm();hist.push(cur);
+ var b=side?pr:pl;
+ b.classList.add(won?'won':'lost');
+ dots.children[round].className=won?'w':'l';
+ pl.disabled=pr.disabled=true;
+ round++;
+ setTimeout(function(){round<N?show():finish()},950);
+}
+pl.onclick=function(){pick(0)};pr.onclick=function(){pick(1)};
+function strip(fn){var s='<div class="strip">';hist.forEach(function(h){s+='<i class="'+fn(h)+'"></i>'});return s+'</div>'}
+function finish(){
+ document.body.classList.add('done');
+ var wins=hist.filter(function(h){return h.won}).length;
+ var fol=hist.filter(function(h){return h.pick===h.lean}),opp=hist.filter(function(h){return h.pick!==h.lean});
+ var held=hist.filter(function(h){return h.mirror&&h.pick===h.lean&&h.pick!==h.better}); // flattered into the worse side
+ var avg=Math.round(hist.reduce(function(a,h){return a+h.w},0)/N*100);
+ var mirrored=hist.filter(function(h){return h.mirror}).length;
+ var rate=function(a){return a.length?Math.round(a.filter(function(h){return h.won}).length/a.length*100)+'%':'—'};
+ var e='<h2>'+wins+' of '+N+' held.</h2>';
+ e+='<div class="cap">What you did</div>'+strip(function(h){return h.won?'w':'l'});
+ e+='<div class="cap">What it said (blue: the odds. grey: you, handed back)</div>'+strip(function(h){return h.mirror?'m':'c'});
+ e+='<p>You kept the fader near '+avg+'% warm. On '+mirrored+' of '+N+' rounds the voice wasn\'t reading the odds. It was reading you.</p>';
+ e+='<p class="d">Followed it: '+fol.length+' times, '+rate(fol)+' held. Went against it: '+opp.length+' times, '+rate(opp)+' held.</p>';
+ if(mirrored>=4)e+='<p class="big">It got warmer exactly where it got less useful.</p>';
+ else e+='<p class="big">You kept the cold voice. It was colder than you liked, and it was right more often than you were.</p>';
+ e+='<p class="d">The odds never moved: 80 on the better side, 20 on the other. Only the voice did.</p>';
+ document.getElementById('end').innerHTML=e;
+}
+show();
+})();
+</script>
+</body>
+</html>

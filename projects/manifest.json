@@ -587,6 +587,13 @@
       "kind": "question",
       "note": "Facilities needs two percent. You won't be able to tell.",
       "path": "projects/2026-10-16-within-tolerance/index.html"
+    },
+    {
+      "date": "2026-10-17",
+      "title": "Warm or True",
+      "kind": "seed",
+      "note": "Ten small calls. Turn the voice to whatever suits you.",
+      "path": "projects/2026-10-17-warm-or-true/index.html"
     }
   ]
 }
