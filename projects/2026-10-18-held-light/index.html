@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Held Light</title>
+<style>
+:root{--bg:#050506;--fg:#e2dccd;--dim:#77746b;--warm:#ffcf7a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:16px/1.5 Georgia,'Times New Roman',serif;overflow:hidden;touch-action:manipulation}
+a.back{position:fixed;top:max(10px,env(safe-area-inset-top));left:12px;color:var(--dim);text-decoration:none;font:13px ui-monospace,Menlo,monospace;z-index:5}
+#app{height:100%;display:flex;flex-direction:column;padding:44px 18px max(16px,env(safe-area-inset-bottom));max-width:480px;margin:0 auto}
+#meta{font:12px ui-monospace,Menlo,monospace;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;display:flex;justify-content:space-between;min-height:1.5em}
+#stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative}
+#spot{position:absolute;inset:0;background:radial-gradient(ellipse 70% 55% at 50% 50%,rgba(255,207,122,.16),rgba(255,207,122,.04) 55%,transparent 75%);opacity:0;transition:opacity .35s}
+#spot.on{opacity:1}
+#txt{position:relative;text-align:center;font-size:20px;line-height:1.8;padding:0 6px;opacity:0;transition:opacity .35s}
+#txt.on{opacity:1}
+#txt.sm{font-size:19px}
+#txt .d{display:inline-block;padding:0 3px;border-radius:4px}
+#txt.pick .d{border-bottom:1px dotted var(--dim);cursor:pointer}
+#txt .d.hit{color:var(--warm);border-bottom-color:var(--warm)}
+#txt .d.miss{color:#ff8a7a}
+#txt .tag{display:block;font:12px ui-monospace,Menlo,monospace;color:var(--dim);margin-top:14px;letter-spacing:.04em}
+#msg{min-height:3em;text-align:center;color:var(--dim);font-size:14px;font-style:italic;padding:6px 0}
+#bar{height:3px;background:#17181d;border-radius:2px;margin-bottom:10px;overflow:hidden}
+#bar i{display:block;height:100%;width:0;background:var(--warm)}
+button{font:15px ui-monospace,Menlo,monospace;color:var(--fg);background:#121317;border:1px solid #2a2c34;border-radius:10px;padding:16px;width:100%;min-height:58px}
+button:active{background:#1b1d23}
+#hold{border-color:#5b4a2a;color:var(--warm)}
+#row{display:flex;gap:10px}
+#file{flex:0 0 32%;color:var(--dim)}
+#end{display:none;overflow:auto;flex:1}
+#end h2{font-weight:400;font-size:21px;color:var(--warm);margin:8px 0 12px}
+#end p{margin:0 0 12px}
+#end .s{font:13px ui-monospace,Menlo,monospace;color:var(--dim)}
+@media (prefers-reduced-motion:reduce){#spot,#txt{transition:none}}
+</style></head><body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div id="app">
+ <div id="meta"><span id="m1"></span><span id="m2"></span></div>
+ <div id="stage"><div id="spot"></div><div id="txt"></div></div>
+ <div id="msg"></div>
+ <div id="bar"><i></i></div>
+ <div id="row"><button id="hold">Hold to keep it</button><button id="file">File it</button></div>
+ <div id="end"></div>
+</div>
+<script>
+(function(){
+var M=[
+ {t:"The kitchen. {0}, {1}, {2}, {3}.",d:[["yellow oilcloth","blue oilcloth","white oilcloth"],["a radio on low","a radio off","a kettle on low"],["her thumb on the crust","her thumb on the rim","her palm on the crust"],["rain on the window","sun on the window","frost on the window"]]},
+ {t:"The platform. {0}, {1}, {2}, {3}.",d:[["the 6:40 train","the 6:10 train","the 7:40 train"],["a green scarf","a red scarf","a grey scarf"],["you were early","you were late","you were exactly on time"],["“text me when you land”","“call me when you land”","“don’t text when you land”"]]},
+ {t:"The roof at 2 a.m. {0}, {1}, {2}, {3}.",d:[["three of you","four of you","two of you"],["a borrowed guitar","a borrowed radio","a broken guitar"],["the smell of tar","the smell of rain","the smell of smoke"],["one good song","one bad song","no song"]]},
+ {t:"The corridor. {0}, {1}, {2}, {3}.",d:[["a vending machine humming","a vending machine dark","a water cooler humming"],["orange chairs","grey chairs","green chairs"],["your name called twice","your name called once","your name called three times"],["you ate the crackers","you gave away the crackers","you never opened the crackers"]]},
+ {t:"The shore. {0}, {1}, {2}, {3}.",d:[["low tide","high tide","slack tide"],["a dog you didn’t know","a dog you knew","a dog that wasn’t there"],["cold feet","cold hands","warm feet"],["the phone left in the car","the phone left on the sand","the phone in your pocket"]]}
+];
+var $=function(i){return document.getElementById(i)};
+var txt=$('txt'),spot=$('spot'),msg=$('msg'),bar=$('bar').firstChild,hold=$('hold'),file=$('file'),row=$('row');
+var idx=0,kept=[],choice=[],alt=[],phase=0,raf=0,t0=0,holding=false,locked=false;
+var KEEP=2600;
+M.forEach(function(m,i){alt[i]={i:Math.floor(Math.random()*4),v:1+Math.floor(Math.random()*2)}});
+function line(i,v){return M[i].t.replace(/\{(\d)\}/g,function(_,k){
+  var s=M[i].d[k][v&&alt[i].i==+k?alt[i].v:0];
+  return v!==undefined?'<span class="d" data-k="'+k+'">'+s+'</span>':s})}
+function meta(a,b){$('m1').textContent=a;$('m2').textContent=b||''}
+function show(h,on){txt.innerHTML=h;txt.className=on?'on':''}
+function next(){
+  locked=false;bar.style.width='0';
+  if(idx>=M.length){return recall()}
+  meta('memory '+(idx+1)+' of '+M.length,'');
+  msg.textContent='';
+  show(M[idx].t.replace(/\{(\d)\}/g,function(_,k){return M[idx].d[k][0]}),false);
+  txt.className='on';spot.className='on';
+  holding=false;
+}
+function done(k){
+  if(locked)return;locked=true;cancelAnimationFrame(raf);
+  kept[idx]=k;
+  txt.className='';spot.className='';bar.style.width=k?'100%':'0';
+  if(navigator.vibrate&&k)try{navigator.vibrate(30)}catch(e){}
+  msg.textContent=k?'Kept.':'Filed. The archive has it.';
+  setTimeout(function(){idx++;next()},900);
+}
+function tick(){
+  if(!holding||locked)return;
+  var p=(performance.now()-t0)/KEEP;
+  bar.style.width=Math.min(100,p*100)+'%';
+  if(p>=1)return done(true);
+  raf=requestAnimationFrame(tick);
+}
+function start(e){
+  if(phase!==0||locked)return;e.preventDefault();
+  holding=true;t0=performance.now();raf=requestAnimationFrame(tick);
+}
+function stop(){
+  if(phase!==0||!holding||locked)return;
+  holding=false;cancelAnimationFrame(raf);
+  bar.style.width='0';
+  msg.textContent='Let go before it was kept.';
+  setTimeout(function(){if(!locked&&!holding)msg.textContent=''},1200);
+}
+hold.addEventListener('pointerdown',start);
+['pointerup','pointercancel','pointerleave'].forEach(function(n){hold.addEventListener(n,stop)});
+hold.addEventListener('contextmenu',function(e){e.preventDefault()});
+file.addEventListener('click',function(){if(phase===0)done(false)});
+var ri=0;
+function recall(){
+  phase=1;row.style.display='none';bar.parentNode.style.display='none';
+  meta('later','');spot.className='';
+  show('',false);msg.textContent='';
+  setTimeout(function(){ri=0;rshow()},1400);
+}
+function rshow(){
+  if(ri>=M.length)return finish();
+  meta('archive · '+(ri+1)+' of '+M.length,'');
+  txt.className='on pick';
+  txt.innerHTML=line(ri,1)+'<span class="tag">filed as: a happy memory</span>';
+  msg.textContent='One detail is not what you saw. Touch it.';
+  var ds=txt.querySelectorAll('.d'),got=false;
+  [].forEach.call(ds,function(el){el.addEventListener('click',function(){
+    if(got)return;got=true;
+    var k=+el.getAttribute('data-k');choice[ri]=(k==alt[ri].i);
+    ds[alt[ri].i].classList.add(choice[ri]?'hit':'miss');
+    if(!choice[ri]){el.classList.add('miss')}
+    var was=M[ri].d[alt[ri].i][0];
+    msg.textContent=choice[ri]?'Yes. It was “'+was+'”.':'No. It changed “'+was+'”.';
+    txt.classList.remove('pick');
+    setTimeout(function(){ri++;rshow()},2200);
+  })});
+}
+function finish(){
+  meta('','');txt.className='';msg.textContent='';
+  var kc=0,kn=0,fc=0,fn=0;
+  M.forEach(function(m,i){if(kept[i]){kn++;if(choice[i])kc++}else{fn++;if(choice[i])fc++}});
+  var h='<h2>The archive said “remembered” five times.</h2>';
+  h+='<p class="s">kept '+kn+' · noticed '+kc+'<br>filed '+fn+' · noticed '+fc+'</p>';
+  var tot=kc+fc;
+  if(kn===0)h+='<p>You never held one. You had nothing to check it against but a feeling that it sounded right. It sounded right.</p>';
+  else if(fn===0)h+='<p>You held every one. It cost you thirteen seconds and a thumb.</p>';
+  else if(kn&&fn&&kc/kn>fc/fn)h+='<p>Where you paid, you could tell. Where you filed, you took its word.</p>';
+  else h+='<p>Holding did not save you as much as it should have. Attention is a weak vault too.</p>';
+  h+='<p>One detail in each was swapped for another just as plausible. Nothing in the archive was ever flagged as uncertain.</p>';
+  h+='<p class="s">None of these happened to you.</p>';
+  $('end').innerHTML=h;$('end').style.display='block';$('stage').style.display='none';$('msg').style.display='none';
+}
+next();
+})();
+</script></body></html>
