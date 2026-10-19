@@ -601,6 +601,13 @@
       "kind": "question",
       "note": "Five rooms you were in. Keep what you like.",
       "path": "projects/2026-10-18-held-light/index.html"
+    },
+    {
+      "date": "2026-10-19",
+      "title": "Proof of Person",
+      "kind": "seed",
+      "note": "One tap to confirm you are real. Draw a circle like a person would.",
+      "path": "projects/2026-10-19-proof-of-person/index.html"
     }
   ]
 }
