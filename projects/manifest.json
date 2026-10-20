@@ -608,6 +608,13 @@
       "kind": "seed",
       "note": "One tap to confirm you are real. Draw a circle like a person would.",
       "path": "projects/2026-10-19-proof-of-person/index.html"
+    },
+    {
+      "date": "2026-10-20",
+      "title": "The Easier Version",
+      "kind": "question",
+      "note": "A memory, eight rewrites. Two to choose from each time. Pick the better one.",
+      "path": "projects/2026-10-20-the-easier-version/index.html"
     }
   ]
 }

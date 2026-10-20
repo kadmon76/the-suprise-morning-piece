@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Easier Version</title>
+<style>
+:root{--bg:#050506;--fg:#e2dccd;--dim:#77746b;--warm:#ffcf7a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:16px/1.5 Georgia,'Times New Roman',serif;overflow:hidden;touch-action:manipulation}
+a.back{position:fixed;top:max(10px,env(safe-area-inset-top));left:12px;color:var(--dim);text-decoration:none;font:13px ui-monospace,Menlo,monospace;z-index:5}
+#app{height:100%;display:flex;flex-direction:column;padding:44px 18px max(16px,env(safe-area-inset-bottom));max-width:480px;margin:0 auto}
+#meta{font:12px ui-monospace,Menlo,monospace;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;min-height:1.5em}
+#stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse 70% 45% at 50% 45%,rgba(255,207,122,.12),transparent 70%)}
+#txt{text-align:center;font-size:23px;line-height:1.7;transition:opacity .5s}
+#txt.f{opacity:.15}
+#txt .s{transition:color .5s}
+#txt .s.hot{color:var(--warm)}
+#opts{display:flex;flex-direction:column;gap:10px;min-height:150px}
+button{font:inherit;color:var(--fg);background:transparent;border:1px solid #3a3832;border-radius:10px;padding:13px 14px;text-align:left;cursor:pointer;line-height:1.35}
+button:active{border-color:var(--warm)}
+button small{display:block;color:var(--dim);font:12px ui-monospace,Menlo,monospace;margin-top:4px}
+#keep{border:0;text-align:center;color:var(--dim);font:13px ui-monospace,Menlo,monospace;padding:6px}
+#end{display:none;overflow:auto;font-size:17px}
+#end p{margin:0 0 14px}
+#end .o{color:var(--warm)}
+#end .d{color:var(--dim);font:13px/1.6 ui-monospace,Menlo,monospace}
+@media (prefers-reduced-motion:reduce){#txt,#txt .s{transition:none}}
+</style></head><body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div id="app">
+<div id="meta"></div>
+<div id="stage"><div id="txt"></div></div>
+<div id="opts"></div>
+<div id="end"></div>
+</div>
+<script>
+(function(){
+var T=["The "," smelled of ",", and he "," ","."];
+var S=[
+["Dad's Fiat","Dad's old car","the car"],
+["cardamom and wet wool","spices","something"],
+["hummed Sinatra off-key","hummed","drove"],
+["at red lights","in traffic","sometimes"]
+];
+var lvl=[0,0,0,0],round=0,smoothPicks=0,keeps=0,order=[],busy=false;
+var $=function(i){return document.getElementById(i)};
+function s(i,l){var w=S[i][l];return i==0?(l==0?"Dad's Fiat":w):w}
+function sentence(l,hot){
+  var out="";
+  var parts=[0,1,2,3];
+  var pre=["",""," smelled of ",", and he "," "];
+  // build: A smelled of B, and he C D.
+  var a=s(0,l[0]);if(l[0]==2)a="The car";
+  var h=function(i,t){return '<span class="s'+(hot===i?' hot':'')+'">'+t+'</span>'};
+  return h(0,a)+" smelled of "+h(1,s(1,l[1]))+", and he "+h(2,s(2,l[2]))+" "+h(3,s(3,l[3]))+".";
+}
+function plain(l){return sentence(l,-1).replace(/<[^>]+>/g,'')}
+function show(l,hot){$('txt').innerHTML=sentence(l,hot)}
+function avail(){var r=[];for(var i=0;i<4;i++)if(lvl[i]<2)r.push(i);return r}
+function pick2(){
+  var a=avail();
+  if(a.length==1)return [a[0]];
+  // two with the most remaining, rotated by round for variety
+  a.sort(function(x,y){return (lvl[x]-lvl[y])||((x+round)%4-(y+round)%4)});
+  return [a[0],a[1]];
+}
+function cost(i){return S[i][lvl[i]].length-S[i][lvl[i]+1].length}
+function next(){
+  $('meta').textContent="version "+(round+1)+" of 8";
+  show(lvl,-1);
+  var c=pick2(),o=$('opts');o.innerHTML='';
+  var big=c.length>1?(cost(c[0])>=cost(c[1])?c[0]:c[1]):c[0];
+  var base=plain(lvl).length;
+  c.forEach(function(i){
+    var t=lvl.slice();t[i]++;
+    var pct=Math.round(100*(base-plain(t).length)/base);
+    var b=document.createElement('button');
+    b.textContent=plain(t);
+    var sm=document.createElement('small');sm.textContent='reads '+pct+'% easier';
+    b.appendChild(sm);
+    b.onclick=function(){choose(i,c.length>1&&i===big)};
+    o.appendChild(b);
+  });
+  if(round>0){
+    var k=document.createElement('button');k.id='keep';k.textContent='keep the one on screen';
+    k.onclick=function(){
+      if(busy)return;busy=true;keeps++;
+      $('meta').textContent="it has already read it";
+      var i=c[Math.floor(Math.random()*c.length)];
+      setTimeout(function(){busy=false;choose(i,false,true)},900);
+    };
+    o.appendChild(k);
+  }
+}
+function choose(i,smoother,forced){
+  if(busy&&!forced)return;busy=true;
+  if(smoother)smoothPicks++;
+  order.push(i);
+  $('txt').classList.add('f');
+  setTimeout(function(){
+    lvl[i]++;round++;
+    show(lvl,i);$('txt').classList.remove('f');
+    $('opts').innerHTML='';
+    setTimeout(function(){busy=false;if(round>=8)finish();else next()},700);
+  },420);
+}
+function finish(){
+  $('opts').style.display='none';$('meta').textContent='';
+  $('txt').innerHTML="It was fine.";
+  setTimeout(function(){
+    $('stage').style.display='none';
+    var e=$('end');e.style.display='block';
+    var names=["the car","the smell","the humming","the red lights"];
+    var h='<p class="o">'+sentence([0,0,0,0],-1).replace(/<[^>]+>/g,'')+'</p>';
+    h+='<p>That was the first version. Neither of your options was ever it.</p>';
+    h+='<p>Every choice you were given was a loss. You picked '+(smoothPicks)+' of 8 times the one that read easier.'+(keeps?' You tried to keep it as it was '+keeps+(keeps>1?' times':' time')+'. It had already been read.':'')+'</p>';
+    h+='<p class="d">order of death: '+order.map(function(i){return names[i]}).filter(function(x,j,a){return a.indexOf(x)==j}).join(" → ")+'</p>';
+    h+='<p>Nobody made it bland. You just kept choosing the version that was easier to say.</p>';
+    e.innerHTML=h;
+  },2200);
+}
+next();
+})();
+</script></body></html>
