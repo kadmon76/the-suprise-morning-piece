@@ -615,6 +615,13 @@
       "kind": "question",
       "note": "A memory, eight rewrites. Two to choose from each time. Pick the better one.",
       "path": "projects/2026-10-20-the-easier-version/index.html"
+    },
+    {
+      "date": "2026-10-21",
+      "title": "Pre-Cue",
+      "kind": "seed",
+      "note": "Four marks. Choose freely. The light is only waiting.",
+      "path": "projects/2026-10-21-pre-cue/index.html"
     }
   ]
 }

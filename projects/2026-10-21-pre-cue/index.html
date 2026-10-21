@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pre-Cue</title>
+<style>
+:root{--bg:#040405;--fg:#e2dccd;--dim:#77746b;--warm:#ffcf7a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:16px/1.5 ui-monospace,Menlo,monospace;overflow:hidden}
+a.back{position:fixed;top:max(10px,env(safe-area-inset-top));left:12px;color:var(--dim);text-decoration:none;font-size:13px;z-index:5}
+#app{height:100%;display:flex;flex-direction:column;padding:44px 14px max(14px,env(safe-area-inset-bottom));max-width:480px;margin:0 auto}
+#c{flex:1;min-height:0;width:100%;display:block;touch-action:none;border-radius:12px;border:1px solid #17181d}
+#hint{text-align:center;font-size:13px;color:var(--dim);min-height:2em;padding-top:8px;transition:opacity 1s}
+#end{display:none;flex:1;overflow:auto;touch-action:pan-y;padding-top:6px}
+#end h2{font-weight:400;font-size:20px;color:var(--warm);margin:8px 0 12px}
+#end p{margin:0 0 12px;font-size:14px}
+#end .s{color:var(--dim);font-size:12px}
+#strip{display:flex;gap:2px;margin:14px 0 6px}
+#strip i{flex:1;height:22px;border-radius:2px;background:#15161a}
+#strip i.h{background:var(--warm)}
+#strip i.b{margin-left:8px}
+@media (prefers-reduced-motion:reduce){#hint{transition:none}}
+</style></head><body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div id="app">
+<canvas id="c"></canvas>
+<div id="hint">Choose a mark.</div>
+<div id="end"></div>
+</div>
+<script>
+(function(){
+var A=24,B=12,N=A+B;
+var cv=document.getElementById('c'),cx=cv.getContext('2d'),hint=document.getElementById('hint');
+var W=0,H=0,dpr=Math.min(2,window.devicePixelRatio||1);
+var reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+function size(){var r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*dpr;cv.height=H*dpr;cx.setTransform(dpr,0,0,dpr,0,0)}
+size();addEventListener('resize',size);
+function mark(i){return{x:W*(i%2?0.75:0.25),y:H*(i<2?0.34:0.7)}}
+
+var hist=[],beams=[],round=0,state='dark',tBeam=0,beamAt=-1,beamX=0.5,beamY=0,flash=-1,flashT=0,until=0,lit=false;
+var rec=[]; // {beam,pick}
+// predictor: two experts
+var c2={},c1={},cb={},score=[0.3,0.3];
+function bump(t,k,v){(t[k]=t[k]||[0,0,0,0])[v]++}
+function argmax(a){var m=-1,ix=[];for(var i=0;i<4;i++){if(a[i]>m){m=a[i];ix=[i]}else if(a[i]===m)ix.push(i)}return ix[Math.floor(Math.random()*ix.length)]}
+function keys(){
+  var n=hist.length,l1=n?hist[n-1]:-1,l2=n>1?hist[n-2]:-1;
+  var took=n&&beams[n-1]===hist[n-1]?1:0;
+  return {k2:l2+','+l1,k1:''+l1,kb:took+','+l1}
+}
+function predict(){
+  var k=keys(),pa,pb,t=c2[k.k2]||c1[k.k1]||[1,1,1,1];
+  pa=argmax(t);
+  pb=argmax(cb[k.kb]||c1[k.k1]||[1,1,1,1]);
+  return [pa,pb][score[1]>score[0]?1:0];
+}
+function learn(pick){
+  var k=keys(),pa=argmax(c2[k.k2]||c1[k.k1]||[1,1,1,1]),pb=argmax(cb[k.kb]||c1[k.k1]||[1,1,1,1]);
+  score[0]=score[0]*.85+(pa===pick?.15:0);score[1]=score[1]*.85+(pb===pick?.15:0);
+  bump(c2,k.k2,pick);bump(c1,k.k1,pick);bump(cb,k.kb,pick);
+}
+
+function start(){state='dark';until=performance.now()+800;lit=false}
+function nextBeam(){
+  var b=round<A?predict():Math.floor(Math.random()*4);
+  beamAt=b;beams[round]=b;lit=true;tBeam=performance.now();state='open';
+  if(reduce){beamX=mark(b).x/W;beamY=mark(b).y}
+}
+function tap(e){
+  if(state!=='open')return;
+  var r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+  var pick=(x>W/2?1:0)+(y>H*0.52?2:0);
+  rec[round]={beam:beamAt,pick:pick};
+  if(round<A)learn(pick);
+  hist.push(pick);
+  flash=pick;flashT=performance.now();state='held';until=performance.now()+(reduce?500:700);
+  if(hint.textContent){hint.style.opacity=0}
+}
+cv.addEventListener('pointerdown',function(e){e.preventDefault();tap(e)});
+
+function draw(now){
+  cx.clearRect(0,0,W,H);
+  cx.fillStyle='#040405';cx.fillRect(0,0,W,H);
+  // marks
+  for(var i=0;i<4;i++){var m=mark(i);
+    cx.strokeStyle='#2a2b33';cx.lineWidth=1.5;cx.beginPath();cx.ellipse(m.x,m.y,38,13,0,0,7);cx.stroke();
+    cx.beginPath();cx.moveTo(m.x-5,m.y);cx.lineTo(m.x+5,m.y);cx.moveTo(m.x,m.y-3);cx.lineTo(m.x,m.y+3);cx.stroke();
+  }
+  // beam
+  if(lit&&beamAt>=0){
+    var m=mark(beamAt),ease=reduce?1:Math.min(1,(now-tBeam)/260);ease=1-Math.pow(1-ease,3);
+    var tx=beamX*W+(m.x-beamX*W)*ease,ty=m.y;
+    if(!reduce&&ease>=1){beamX=m.x/W}
+    if(state==='held'&&now>until-250){/* fade handled below */}
+    var a=state==='held'?Math.max(0,(until-now)/250):1;a=Math.min(1,a);
+    var g=cx.createLinearGradient(W/2,0,tx,ty);
+    g.addColorStop(0,'rgba(255,207,122,0)');g.addColorStop(1,'rgba(255,207,122,'+(0.22*a)+')');
+    cx.fillStyle=g;cx.beginPath();cx.moveTo(W/2-3,0);cx.lineTo(W/2+3,0);cx.lineTo(tx+44,ty);cx.lineTo(tx-44,ty);cx.closePath();cx.fill();
+    var p=cx.createRadialGradient(tx,ty,0,tx,ty,60);
+    p.addColorStop(0,'rgba(255,225,170,'+(0.55*a)+')');p.addColorStop(1,'rgba(255,207,122,0)');
+    cx.save();cx.translate(0,0);cx.fillStyle=p;cx.beginPath();cx.ellipse(tx,ty,58,20,0,0,7);cx.fill();cx.restore();
+  }
+  // pick flash
+  if(flash>=0){var fa=Math.max(0,1-(now-flashT)/(reduce?500:600));
+    if(fa>0){var f=mark(flash);cx.strokeStyle='rgba(226,220,205,'+fa+')';cx.lineWidth=2;cx.beginPath();cx.ellipse(f.x,f.y,38+ (1-fa)*10,13+(1-fa)*4,0,0,7);cx.stroke()}
+  }
+  // progress ticks
+  for(var j=0;j<N;j++){cx.fillStyle=j<round+(state==='held'?1:0)?'#3a3b44':'#15161a';cx.fillRect(W/2-N*3+j*6,H-10,3,3)}
+  // state machine
+  if(state==='dark'&&now>=until)nextBeam();
+  else if(state==='held'&&now>=until){round++;if(round>=N)return finish();lit=false;start()}
+  requestAnimationFrame(draw);
+}
+
+function finish(){
+  cv.style.display='none';hint.style.display='none';
+  var ah=0,bh=0;
+  for(var i=0;i<N;i++){if(rec[i].beam===rec[i].pick){if(i<A)ah++;else bh++}}
+  var strip='<div id="strip">';
+  for(var i=0;i<N;i++)strip+='<i class="'+(rec[i].beam===rec[i].pick?'h':'')+(i===A?' b':'')+'"></i>';
+  strip+='</div><div class="s">lit: the light was already on your mark</div>';
+  var l2=bh>=5?'You went where the light was. Nothing was behind it.':'You mostly kept your ground.';
+  var l1=ah>=9?'The light was already there before you chose.':'The light guessed little better than luck.';
+  document.getElementById('end').innerHTML=
+   '<h2>Pre-Cue</h2>'+
+   '<p>First '+A+' rounds, the light was on your mark before you chose it <b>'+ah+'</b> times. Pure luck would give about '+(A/4)+'.</p>'+
+   '<p>'+l1+'</p>'+
+   '<p>For the last '+B+', I stopped guessing. The light went anywhere. You chose the mark it was on <b>'+bh+'</b> times. Luck: about '+(B/4)+'.</p>'+
+   '<p>'+l2+'</p>'+strip+
+   '<p class="s" style="margin-top:14px">Both felt like choosing.</p>';
+  document.getElementById('end').style.display='block';
+}
+start();requestAnimationFrame(draw);
+})();
+</script>
+</body></html>
