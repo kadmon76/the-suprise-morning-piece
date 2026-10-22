@@ -622,6 +622,13 @@
       "kind": "seed",
       "note": "Four marks. Choose freely. The light is only waiting.",
       "path": "projects/2026-10-21-pre-cue/index.html"
+    },
+    {
+      "date": "2026-10-22",
+      "title": "While You Were Out",
+      "kind": "question",
+      "note": "A show to get ready. It only works when you aren't looking.",
+      "path": "projects/2026-10-22-while-you-were-out/index.html"
     }
   ]
 }

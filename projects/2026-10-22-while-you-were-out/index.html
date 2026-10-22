@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>While You Were Out</title>
+<style>
+:root{--bg:#060607;--fg:#e4e0d6;--dim:#7a776e;--lamp:#9fd0ff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:16px/1.5 Georgia,'Times New Roman',serif;overflow:hidden}
+a.back{position:fixed;top:max(10px,env(safe-area-inset-top));left:12px;color:var(--dim);text-decoration:none;font:13px ui-monospace,Menlo,monospace;z-index:5}
+#app{height:100%;display:flex;flex-direction:column;padding:48px 20px max(18px,env(safe-area-inset-bottom));max-width:480px;margin:0 auto}
+#top{font:12px ui-monospace,Menlo,monospace;color:var(--dim);letter-spacing:.08em;text-transform:uppercase}
+#ringw{display:flex;justify-content:center;padding:26px 0 14px}
+svg{width:170px;height:170px}
+#bg{fill:none;stroke:#17181c;stroke-width:5}
+#fg{fill:none;stroke:var(--lamp);stroke-width:5;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .9s}
+#pc{font:600 30px ui-monospace,Menlo,monospace;fill:var(--fg)}
+#state{text-align:center;font-size:19px;min-height:2.6em}
+#hint{text-align:center;color:var(--dim);font-size:14px;font-style:italic;min-height:3em;padding:4px 10px}
+#log{flex:1;min-height:0;overflow:auto;font:13px/1.55 ui-monospace,Menlo,monospace;color:var(--dim)}
+#log .grp{margin:0 0 14px;padding-left:10px;border-left:1px solid #2a2c33}
+#log .h{color:var(--fg);margin-bottom:2px}
+#log .done{color:var(--lamp)}
+#end{display:none;flex:1;overflow:auto}
+#end h2{font-weight:400;font-size:22px;color:var(--lamp);margin:6px 0 12px}
+#end p{margin:0 0 12px}
+#end .s{font:13px ui-monospace,Menlo,monospace;color:var(--dim)}
+@media (prefers-reduced-motion:reduce){#fg{transition:none}}
+</style></head><body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div id="app">
+ <div id="top">Pre-show · half hour</div>
+ <div id="ringw"><svg viewBox="0 0 100 100"><circle id="bg" cx="50" cy="50" r="44"/><circle id="fg" cx="50" cy="50" r="44"/><text id="pc" x="50" y="58" text-anchor="middle">0%</text></svg></div>
+ <div id="state">Standing by.</div>
+ <div id="hint">It works while you aren't looking.</div>
+ <div id="log"></div>
+ <div id="end"></div>
+</div>
+<script>
+(function(){
+var JOBS=["Haze machine reached temperature","Lamp 14 focused. Lamp 15 focused. Lamp 16 focused","Patch checked against the plot","Fog fluid topped up","Cue 41 re-timed by 0.3 s","Followspot battery swapped","Gaffer tape renewed on the downstage edge","Dimmer rack 2 cooled to 31 °C","Moving heads homed, all twelve","Gel frame 7 replaced, R119 to L201","Safety chains counted","DMX terminator found and seated","Truss bolts walked, none loose","Stage swept","Ghost light set at centre","Prompt book page 9 re-pencilled","Tally lights tested","Smoke detector masked, then unmasked","Comms channel B cleared","House left dim"];
+var $=function(i){return document.getElementById(i)};
+var NEED=60000,CIRC=2*Math.PI*44,MIN=4000;
+var credit=0,leftAt=0,away=false,watched=0,seenAt=Date.now(),returns=0,short=0,reported=0,used=[],done=false,pool=JOBS.slice(),hintT=0;
+var fg=$('fg'),pc=$('pc'),state=$('state'),hint=$('hint'),log=$('log');
+fg.style.strokeDasharray=CIRC;fg.style.strokeDashoffset=CIRC;
+function clk(ms){var d=new Date(ms);return [d.getHours(),d.getMinutes(),d.getSeconds()].map(function(n){return(n<10?'0':'')+n}).join(':')}
+function set(){var p=Math.min(1,credit/NEED);fg.style.strokeDashoffset=CIRC*(1-p);pc.textContent=Math.round(p*100)+'%'}
+function pick(){if(!pool.length)pool=JOBS.slice();return pool.splice(Math.floor(Math.random()*pool.length),1)[0]}
+function leave(){if(away||done)return;away=true;leftAt=Date.now();watched+=leftAt-seenAt}
+function back(){
+ if(!away||done)return;away=false;var now=Date.now(),gone=now-leftAt;seenAt=now;returns++;
+ var g=document.createElement('div');g.className='grp';
+ if(gone<MIN){short++;g.innerHTML='<div class="h">'+clk(now)+' · back after '+Math.round(gone/1000)+' s</div>Interrupted. Nothing counted.';
+  state.textContent='You came back too soon.';
+ }else{
+  credit=Math.min(NEED,credit+gone);
+  var n=Math.max(1,Math.min(4,Math.round(gone/8000))),h='<div class="h">While you were out ('+Math.round(gone/1000)+' s)</div>';
+  for(var i=0;i<n;i++){var t=leftAt+Math.floor((i+Math.random())*gone/n);h+=clk(t)+' · '+pick()+'<br>';reported++}
+  g.innerHTML=h;state.textContent=credit>=NEED?'Show ready.':'Thank you. Go away again.';
+ }
+ log.insertBefore(g,log.firstChild);set();
+ if(credit>=NEED)finish();
+}
+function vis(){document.hidden?leave():back()}
+document.addEventListener('visibilitychange',vis);
+window.addEventListener('pagehide',leave);
+window.addEventListener('pageshow',function(){if(away)back()});
+function finish(){
+ done=true;clearInterval(hintT);
+ var w=Math.round(watched/1000);
+ setTimeout(function(){
+  log.style.display='none';hint.style.display='none';var e=$('end');e.style.display='block';state.textContent='';
+  e.innerHTML='<h2>Show ready.</h2><p>Nothing ran while you were out.</p><p>The page was asleep. When you came back it subtracted two timestamps, chose '+reported+' line'+(reported==1?'':'s')+' from a list of twenty, and dated them backwards into the gap.</p><p>'+reported+' jobs reported. 0 performed.</p><p class="s">You came back '+returns+' time'+(returns==1?'':'s')+(short?', '+short+' too soon':'')+'. You watched for '+w+' s. In that time the show got no readier. Every progress bar that moves while you are gone is doing the same sum.</p>';
+ },1600);
+}
+var hints=[[20000,"You're still here."],[45000,"Looking is the one job it can't do while you do it."],[90000,"Lock the phone. Put it face down."]];
+hintT=setInterval(function(){
+ if(away||done)return;var t=Date.now()-seenAt,h=null;
+ hints.forEach(function(x){if(t>=x[0])h=x[1]});if(h)hint.textContent=h;
+},1000);
+window.__wyo={leave:leave,back:back};
+})();
+</script>
+</body></html>
