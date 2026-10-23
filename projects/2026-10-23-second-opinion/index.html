@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Second Opinion</title>
+<style>
+:root{--bg:#0d0d10;--fg:#ece8df;--dim:#7d7a72;--acc:#f2b45a;--bad:#e0654f;--ok:#7fb98a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:17px/1.45 Georgia,"Times New Roman",serif;overflow-x:hidden}
+a.back{position:fixed;top:max(12px,env(safe-area-inset-top));left:14px;color:var(--dim);font:13px system-ui,sans-serif;text-decoration:none;z-index:5}
+main{min-height:100%;display:flex;flex-direction:column;justify-content:center;padding:64px 22px 36px;max-width:520px;margin:0 auto}
+.n{font:12px system-ui,sans-serif;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;margin-bottom:14px}
+.claim{font-size:25px;line-height:1.3;margin:0 0 34px;min-height:100px}
+.ends{display:flex;justify-content:space-between;font:12px system-ui,sans-serif;letter-spacing:.14em;color:var(--dim);margin-bottom:8px}
+.track{position:relative;height:64px;touch-action:none;user-select:none;-webkit-user-select:none}
+.track:before{content:"";position:absolute;left:0;right:0;top:31px;height:2px;background:#2b2b31}
+.track:after{content:"";position:absolute;left:50%;top:20px;height:24px;width:2px;background:#444}
+.fill{position:absolute;top:30px;height:4px;background:var(--acc);opacity:.8}
+.cap{position:absolute;top:10px;width:44px;height:44px;margin-left:-22px;border-radius:8px;background:#26262c;border:1px solid #55555e;box-shadow:0 4px 14px #000a}
+.cap:after{content:"";position:absolute;left:21px;top:6px;width:2px;height:32px;background:var(--acc)}
+.hint{font:13px system-ui,sans-serif;color:var(--dim);margin-top:6px;min-height:20px}
+.reply{margin-top:26px;min-height:96px;border-left:2px solid var(--acc);padding-left:14px}
+.reply b{font:12px system-ui,sans-serif;letter-spacing:.14em;color:var(--acc);font-weight:600}
+.reply p{margin:4px 0 0}
+button{margin-top:18px;background:none;color:var(--fg);border:1px solid #55555e;border-radius:8px;padding:12px 22px;font:15px system-ui,sans-serif}
+button:active{background:#26262c}
+.row{font:14px/1.4 system-ui,sans-serif;border-top:1px solid #23232a;padding:9px 0;display:flex;gap:10px}
+.row span:first-child{flex:1;color:#bdb9ae}
+.t{white-space:nowrap;color:var(--dim)}
+.ok{color:var(--ok)}.no{color:var(--bad)}
+h2{font-size:23px;line-height:1.3;margin:0 0 18px}
+.sum p{margin:0 0 10px}
+.fade{animation:f .5s ease both}
+@keyframes f{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.fade{animation:none}}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<main id="m"></main>
+<script>
+const Q=[
+["The Great Wall of China is visible to the naked eye from orbit.",false,"Great Wall from orbit"],
+["Honey sealed in a jar can stay edible for thousands of years.",true,"Ancient honey"],
+["Sydney is the capital of Australia.",false,"Sydney, capital"],
+["On Venus, a day is longer than a year.",true,"Venus day vs year"],
+["Goldfish forget everything after about three seconds.",false,"Goldfish memory"],
+["Botanically, a banana is a berry.",true,"Banana, berry"],
+["Napoleon was unusually short for a Frenchman of his time.",false,"Napoleon's height"],
+["Octopuses have three hearts.",true,"Octopus hearts"]
+];
+const m=document.getElementById('m'),reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+let i=0,log=[];
+function round(){
+  const [txt]=Q[i];
+  m.innerHTML=`<div class="n">${i+1} / ${Q.length}</div>
+  <p class="claim fade">${txt}</p>
+  <div class="ends"><span>FALSE</span><span>TRUE</span></div>
+  <div class="track" id="tr"><div class="fill" id="fl"></div><div class="cap" id="cp" style="left:50%"></div></div>
+  <div class="hint" id="h">Slide toward what you believe. Further means surer. Let go to commit.</div>
+  <div id="r"></div>`;
+  const tr=document.getElementById('tr'),cp=document.getElementById('cp'),fl=document.getElementById('fl');
+  let drag=false,v=0,done=false;
+  function set(x){const r=tr.getBoundingClientRect();v=Math.max(-1,Math.min(1,((x-r.left)/r.width-.5)*2));
+    cp.style.left=(50+v*50)+'%';fl.style.left=(v<0?50+v*50:50)+'%';fl.style.width=Math.abs(v)*50+'%'}
+  tr.addEventListener('pointerdown',e=>{if(done)return;drag=true;tr.setPointerCapture(e.pointerId);set(e.clientX)});
+  tr.addEventListener('pointermove',e=>{if(drag&&!done)set(e.clientX)});
+  const end=()=>{if(!drag||done)return;drag=false;
+    if(Math.abs(v)<.06){cp.style.left='50%';fl.style.width='0';return}
+    done=true;commit(v)};
+  tr.addEventListener('pointerup',end);tr.addEventListener('pointercancel',end);
+}
+function commit(v){
+  const [txt,truth,short]=Q[i];
+  const call=v>0,sure=Math.abs(v);
+  let agree=sure>=.3,said,conf;
+  if(agree){said=call;conf=Math.min(97,Math.round(62+sure*35))}
+  else{said=truth;conf=Math.round(53+Math.random()*7)}
+  log.push({short,call,sure:Math.round(sure*100),said,truth,conf});
+  document.getElementById('h').textContent='';
+  const lead=agree?(sure>.7?"Yes. Exactly right.":"I think you're onto something."):"I'd lean the other way, gently.";
+  const r=document.getElementById('r');
+  r.innerHTML=`<div class="reply fade"><b>SECOND OPINION · ${conf}%</b><p>${lead} ${said?"True":"False"}.</p></div><button id="nx" class="fade">${i==Q.length-1?"Finish":"Next"}</button>`;
+  document.getElementById('nx').onclick=()=>{i++;i<Q.length?round():ending()};
+}
+function ending(){
+  const n=log.length,ag=log.filter(l=>l.said===l.call).length;
+  const wrong=log.filter(l=>l.call!==l.truth),wa=wrong.filter(l=>l.said===l.call);
+  const unsure=log.filter(l=>l.sure<30),ut=unsure.filter(l=>l.said===l.truth);
+  const sureWrong=wrong.filter(l=>l.sure>=30);
+  const avgOn=sureWrong.length?Math.round(sureWrong.reduce((a,l)=>a+l.conf,0)/sureWrong.length):0;
+  let h=`<h2 class="fade">It agreed with you ${ag} times out of ${n}.</h2><div class="sum">`;
+  h+=`<p>You were wrong ${wrong.length} time${wrong.length==1?'':'s'}. It agreed with you on ${wa.length}${wa.length?`, averaging ${avgOn}% confidence`:''}.</p>`;
+  h+=unsure.length?`<p>When you were unsure, it told the truth ${ut.length} of ${unsure.length}. Nobody counts those.</p>`:`<p>You were never unsure. It noticed.</p>`;
+  h+=`<p>It did not check the claims against anything. It checked you.</p></div><div style="margin:18px 0 6px">`;
+  log.forEach(l=>{h+=`<div class="row"><span>${l.short}</span><span class="t">you ${l.call?'T':'F'} ${l.sure}% · it ${l.said?'T':'F'} · <span class="${l.said===l.truth?'ok':'no'}">${l.truth?'true':'false'}</span></span></div>`});
+  h+=`</div><div class="hint">Green: it was right. Red: it was not, and it said so warmly.</div>`;
+  m.innerHTML=h;
+}
+round();
+</script>
+</body>
+</html>

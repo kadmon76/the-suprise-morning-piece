@@ -629,6 +629,13 @@
       "kind": "question",
       "note": "A show to get ready. It only works when you aren't looking.",
       "path": "projects/2026-10-22-while-you-were-out/index.html"
+    },
+    {
+      "date": "2026-10-23",
+      "title": "Second Opinion",
+      "kind": "seed",
+      "note": "Eight claims. Say how sure you are. A second opinion is offered.",
+      "path": "projects/2026-10-23-second-opinion/index.html"
     }
   ]
 }
