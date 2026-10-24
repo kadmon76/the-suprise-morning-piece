@@ -636,6 +636,13 @@
       "kind": "seed",
       "note": "Eight claims. Say how sure you are. A second opinion is offered.",
       "path": "projects/2026-10-23-second-opinion/index.html"
+    },
+    {
+      "date": "2026-10-24",
+      "title": "Ghost Light",
+      "kind": "question",
+      "note": "A minute of silence is being held. For whom is not your concern.",
+      "path": "projects/2026-10-24-ghost-light/index.html"
     }
   ]
 }
