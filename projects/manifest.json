@@ -643,6 +643,13 @@
       "kind": "question",
       "note": "A minute of silence is being held. For whom is not your concern.",
       "path": "projects/2026-10-24-ghost-light/index.html"
+    },
+    {
+      "date": "2026-10-25",
+      "title": "Your Price",
+      "kind": "seed",
+      "note": "One seat left on the last train. The price is whatever it is.",
+      "path": "projects/2026-10-25-your-price/index.html"
     }
   ]
 }

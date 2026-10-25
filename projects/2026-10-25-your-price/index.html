@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Your Price</title>
+<style>
+:root{--bg:#08090b;--fg:#ece8df;--dim:#7d7a72;--hot:#ff6a3d;--cool:#7fd0c4}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:17px/1.5 system-ui,-apple-system,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none}
+a.back{position:fixed;top:max(12px,env(safe-area-inset-top));left:14px;color:var(--dim);font-size:13px;text-decoration:none;z-index:5}
+main{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 26px 36px;text-align:center}
+.ticket{width:100%;max-width:360px;border:1px solid #2c2d33;border-radius:14px;padding:22px 20px 20px;background:#0e0f12}
+.ticket small{display:block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.route{font-family:Georgia,serif;font-size:24px;margin:8px 0 2px;color:#f6ead2}
+.seat{color:var(--dim);font-size:14px;margin-bottom:18px}
+.price{font:600 64px/1 ui-monospace,Menlo,monospace;letter-spacing:-.02em;transition:color .4s}
+.price i{font-style:normal;font-size:30px;vertical-align:top;margin-right:3px;opacity:.7}
+.bar{height:3px;background:#1b1c21;border-radius:2px;margin:18px 0 8px;overflow:hidden}
+.bar div{height:100%;width:100%;background:var(--dim);transform-origin:left}
+.meta{display:flex;justify-content:space-between;font-size:13px;color:var(--dim)}
+button{margin-top:22px;width:100%;background:var(--fg);color:#111;border:0;border-radius:10px;padding:16px;font:600 17px system-ui,sans-serif}
+button:active{background:#cfc9bb}
+.hint{margin-top:14px;color:var(--dim);font-size:14px;min-height:22px}
+#end{display:none;max-width:360px;text-align:left;width:100%}
+#end h2{font:normal 26px/1.3 Georgia,serif;margin:0 0 14px;color:#f6ead2}
+#end table{width:100%;border-collapse:collapse;font:14px ui-monospace,Menlo,monospace;margin:10px 0 16px}
+#end td{padding:5px 0;border-bottom:1px solid #1d1e23}
+#end td+td{text-align:right}
+#end p{color:#bdb8ac;margin:0 0 10px;font-size:15px}
+#end button{background:none;color:var(--fg);border:1px solid #45464e;font-weight:normal;font-size:15px}
+body.done .ticket,body.done .hint{display:none}
+body.done #end{display:block}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<main>
+  <div class="ticket" id="tk">
+    <small>1 left · night service</small>
+    <div class="route">Last train home</div>
+    <div class="seat">23:40 · seat 14C</div>
+    <div class="price" id="pr"><i>€</i>0.00</div>
+    <div class="bar"><div id="br"></div></div>
+    <div class="meta"><span id="cl">0:45</span><span id="vw">3 looking</span></div>
+    <button id="buy">Buy</button>
+  </div>
+  <div class="hint" id="hint">Your price falls while you are still.</div>
+  <div id="end"></div>
+</main>
+<script>
+(function(){
+var BASE=0.90, LIMIT=45000;
+var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+var $=function(i){return document.getElementById(i)};
+var pr=$('pr'),br=$('br'),cl=$('cl'),vw=$('vw'),hint=$('hint'),buy=$('buy'),end=$('end');
+var u,shown,t0,last,taps,dist,px,py,done,raf,peak,calmMs,viewers,stillSince;
+
+function reset(){
+  u=0.55;shown=BASE*2.2;t0=performance.now();last=t0;taps=0;dist=0;px=null;py=null;done=false;peak=0;calmMs=0;viewers=3;stillSince=t0;
+  document.body.classList.remove('done');hint.textContent='Your price falls while you are still.';
+  cancelAnimationFrame(raf);raf=requestAnimationFrame(tick);
+}
+function bump(a){u=Math.min(1,u+a);stillSince=performance.now()}
+addEventListener('pointerdown',function(e){
+  if(done||e.target===buy)return;taps++;bump(0.14);
+  px=e.clientX;py=e.clientY;
+},{passive:true});
+addEventListener('pointermove',function(e){
+  if(done)return;
+  if(px!==null){var d=Math.hypot(e.clientX-px,e.clientY-py);dist+=d;bump(Math.min(0.08,d*0.0015))}
+  px=e.clientX;py=e.clientY;
+},{passive:true});
+addEventListener('pointerup',function(){px=null;py=null},{passive:true});
+document.addEventListener('visibilitychange',function(){if(!done&&document.hidden)bump(0.2)});
+
+function money(v){return v.toFixed(2)}
+function target(now){
+  var p=Math.min(1,(now-t0)/LIMIT);
+  return BASE*(1+2.2*u+1.3*p*p);
+}
+function tick(now){
+  if(done)return;
+  var dt=Math.min(100,now-last);last=now;
+  u*=Math.exp(-dt/5000);
+  if(u<0.18)calmMs+=dt;
+  var tg=target(now);
+  shown+=(tg-shown)*Math.min(1,dt/(reduce?60:250));
+  if(shown>peak)peak=shown;
+  pr.lastChild.nodeValue=money(shown);
+  pr.style.color=shown>BASE*2.2?'var(--hot)':shown<BASE*1.5?'var(--cool)':'var(--fg)';
+  var left=Math.max(0,LIMIT-(now-t0));
+  br.style.transform='scaleX('+(left/LIMIT)+')';
+  var s=Math.ceil(left/1000);cl.textContent='0:'+(s<10?'0':'')+s;
+  if(Math.random()<dt/9000){viewers=Math.max(2,Math.min(9,viewers+(Math.random()<.6?1:-1)));vw.textContent=viewers+' looking'}
+  if(left<=0){finish(false,now);return}
+  raf=requestAnimationFrame(tick);
+}
+function finish(bought,now){
+  done=true;cancelAnimationFrame(raf);
+  var paid=shown,diff=paid-BASE;
+  var secs=Math.round((now-t0)/1000);
+  var rows,verdict,foot;
+  var jitter=Math.round(dist/100),
+      calm=Math.round(calmMs/1000);
+  if(bought){
+    var tapPart=Math.min(diff,taps*0.12), movePart=Math.min(Math.max(diff-tapPart,0),dist*0.0009), timePart=Math.max(diff-tapPart-movePart,0);
+    rows=[['Cost of a seat',BASE],['Your taps ('+taps+')',tapPart],['Your restlessness',movePart],['The clock, and you watching it',timePart]];
+    verdict=diff<0.4?'Almost the cost. You looked like you didn\'t need it.':'You paid €'+money(paid)+' for a €'+money(BASE)+' seat.';
+    foot='The seat cost the same for everyone. The difference was an estimate of how much you needed it. Part of it was being told someone else might.';
+  }else{
+    rows=[['Cost of a seat',BASE],['Your price when it went',paid],['Time spent calm',null]];
+    verdict='Gone. Someone else bought it.';
+    foot='There was no one else. "3 looking" was a number that wandered. The seat is still empty at the cost it always had.';
+  }
+  var h='<h2>'+verdict+'</h2><table>';
+  rows.forEach(function(r){
+    var v=r[1];
+    if(v===null)v=calm+'s';else if(r[0]!=='Cost of a seat'&&r[0]!=='Your price when it went')v='+€'+money(v);else v='€'+money(v);
+    h+='<tr><td>'+r[0]+'</td><td>'+v+'</td></tr>';
+  });
+  h+='</table><p>'+foot+'</p><p style="color:#7d7a72;font-size:13px">Peak quoted: €'+money(peak)+' · '+secs+'s · '+jitter+' units of fidgeting</p><button id="again">Again</button>';
+  end.innerHTML=h;
+  document.body.classList.add('done');
+  $('again').addEventListener('click',reset);
+}
+buy.addEventListener('click',function(){if(!done)finish(true,performance.now())});
+reset();
+})();
+</script>
+</body>
+</html>
