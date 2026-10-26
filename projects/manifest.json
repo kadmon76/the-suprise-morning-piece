@@ -650,6 +650,13 @@
       "kind": "seed",
       "note": "One seat left on the last train. The price is whatever it is.",
       "path": "projects/2026-10-25-your-price/index.html"
+    },
+    {
+      "date": "2026-10-26",
+      "title": "Thirty Seconds",
+      "kind": "question",
+      "note": "A new single. Five plays. Skip whenever.",
+      "path": "projects/2026-10-26-thirty-seconds/index.html"
     }
   ]
 }

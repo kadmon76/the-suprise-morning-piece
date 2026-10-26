@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Thirty Seconds</title>
+<style>
+:root{--bg:#0c0a08;--ink:#efe6d6;--dim:#8a7f6c;--amber:#e8a33d;--rule:#2a241c}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace;overflow:hidden}
+a.back{position:fixed;top:max(14px,env(safe-area-inset-top));left:16px;color:var(--dim);font-size:12px;text-decoration:none;z-index:5}
+main{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:60px 20px 30px}
+.beam{position:fixed;left:50%;top:-10%;width:140vw;height:70%;transform:translateX(-50%);background:conic-gradient(from 180deg at 50% 0,transparent 160deg,rgba(232,163,61,.35) 175deg,rgba(255,240,200,.5) 180deg,rgba(232,163,61,.35) 185deg,transparent 200deg);opacity:0;transition:opacity .25s;pointer-events:none}
+.beam.on{opacity:1}
+.rec{width:min(64vw,260px);aspect-ratio:1;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%,#17130f 0 2px,#0e0b09 2px 4px);border:1px solid var(--rule);position:relative;display:grid;place-items:center}
+.rec::after{content:"";width:34%;aspect-ratio:1;border-radius:50%;background:var(--amber);box-shadow:0 0 0 6px #1a140d inset}
+.rec.spin{animation:sp 1.8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.lab{font-size:12px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;min-height:1em}
+.map{width:min(86vw,360px);height:22px;position:relative;display:flex;border:1px solid var(--rule)}
+.map i{display:block;height:100%}
+.map .cur{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--ink);left:0}
+.map .mark{position:absolute;top:-5px;bottom:-5px;width:1px;background:var(--amber)}
+.mapl{width:min(86vw,360px);font-size:11px;color:var(--dim);position:relative;height:14px;margin-top:-14px}
+.mapl span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+button.go{font:inherit;font-size:15px;letter-spacing:.15em;text-transform:uppercase;color:var(--bg);background:var(--amber);border:0;border-radius:40px;padding:16px 38px;min-width:150px;touch-action:manipulation}
+button.go.skip{background:transparent;color:var(--ink);border:1px solid var(--dim)}
+.cnt{font-size:12px;color:var(--dim)}
+#end{position:fixed;inset:0;background:var(--bg);display:none;overflow:auto;padding:70px 20px 40px;z-index:4}
+#end.on{display:block}
+#end .wrap{max-width:380px;margin:0 auto}
+#end h1{font-size:20px;font-weight:400;margin:0 0 18px;line-height:1.4}
+#end p{font-size:14px;line-height:1.6;color:#cfc4b0;margin:0 0 14px}
+.row{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:11px;color:var(--dim)}
+.row .bar{display:flex;height:14px;flex:none}
+.row .bar i{display:block;height:100%}
+.row b{font-weight:400;min-width:1.2em}
+.ok{color:var(--amber)}
+@media (prefers-reduced-motion:reduce){.rec.spin{animation:none}.beam{transition:none}}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div class="beam" id="beam"></div>
+<main id="main">
+  <div class="lab" id="lab">New single</div>
+  <div class="rec" id="rec"></div>
+  <div>
+    <div class="map" id="map"><div class="cur" id="cur"></div><div class="mark" id="mark"></div></div>
+    <div class="mapl"><span id="markl" style="left:0">counted</span></div>
+  </div>
+  <button class="go" id="btn">Play</button>
+  <div class="cnt" id="cnt">&nbsp;</div>
+</main>
+<section id="end"><div class="wrap" id="endwrap"></div></section>
+<script>
+(function(){
+var BAR=2, COUNT=30, ROUNDS=5, MINBARS=16;
+var COL={intro:'#4a3b26',verse:'#7a5a2a',build:'#b5782c',hook:'#e8a33d'};
+var NAMES=['intro','verse','build','hook'];
+var ctx=null, noiseBuf=null, master=null, sched=null, tickT=null;
+var round=0, segs={intro:4,verse:8,build:4,hook:8}, rec=[], playing=false, t0=0, bars=[], nextBar=0, total=0;
+var el=function(i){return document.getElementById(i)};
+var reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+var CH=[[110,[220,261.63,329.63]],[87.31,[174.61,220,261.63]],[130.81,[196,261.63,329.63]],[98,[196,246.94,293.66]]];
+var LEAD=[[659,659,587,523,587,0,523,440],[523,523,440,523,587,0,523,0],[659,784,659,587,523,0,587,659],[587,587,523,440,587,0,0,0]];
+
+function init(){
+  var AC=window.AudioContext||window.webkitAudioContext;
+  ctx=new AC();
+  var n=ctx.sampleRate*2, b=ctx.createBuffer(1,n,ctx.sampleRate), d=b.getChannelData(0);
+  for(var i=0;i<n;i++)d[i]=Math.random()*2-1;
+  noiseBuf=b;
+}
+function tone(type,f,s,dur,vol,lp,out){
+  var o=ctx.createOscillator(),g=ctx.createGain(),fl=ctx.createBiquadFilter();
+  o.type=type;o.frequency.value=f;fl.type='lowpass';fl.frequency.value=lp;
+  g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(vol,s+0.01);g.gain.exponentialRampToValueAtTime(0.0001,s+dur);
+  o.connect(fl);fl.connect(g);g.connect(out);o.start(s);o.stop(s+dur+0.05);
+}
+function pad(ch,s,vol,lp,out,type){
+  ch[1].forEach(function(f){
+    var o=ctx.createOscillator(),g=ctx.createGain(),fl=ctx.createBiquadFilter();
+    o.type=type||'triangle';o.frequency.value=f;fl.type='lowpass';fl.frequency.value=lp;
+    g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(vol,s+0.5);g.gain.linearRampToValueAtTime(0,s+BAR+0.1);
+    o.connect(fl);fl.connect(g);g.connect(out);o.start(s);o.stop(s+BAR+0.15);
+  });
+}
+function nz(s,dur,vol,hp,out,lpf){
+  var n=ctx.createBufferSource(),g=ctx.createGain(),f=ctx.createBiquadFilter();
+  n.buffer=noiseBuf;f.type=lpf?'bandpass':'highpass';f.frequency.value=hp;
+  g.gain.setValueAtTime(vol,s);g.gain.exponentialRampToValueAtTime(0.0001,s+dur);
+  n.connect(f);f.connect(g);g.connect(out);n.start(s,Math.random());n.stop(s+dur+0.02);
+}
+function kick(s,out){
+  var o=ctx.createOscillator(),g=ctx.createGain();
+  o.frequency.setValueAtTime(130,s);o.frequency.exponentialRampToValueAtTime(42,s+0.12);
+  g.gain.setValueAtTime(0.5,s);g.gain.exponentialRampToValueAtTime(0.0001,s+0.25);
+  o.connect(g);g.connect(out);o.start(s);o.stop(s+0.3);
+}
+function schedBar(b,s,out){
+  var ch=CH[b.i%4], q=BAR/4, e=BAR/8, k;
+  if(b.seg==='intro'){pad(ch,s,0.05,700,out);}
+  else if(b.seg==='verse'){
+    pad(ch,s,0.04,900,out);
+    tone('sine',ch[0]*2,s,q*1.6,0.16,500,out);tone('sine',ch[0]*2,s+2*q,q*1.6,0.14,500,out);
+    tone('triangle',ch[1][1]*2,s+q,0.5,0.05,1800,out);tone('triangle',ch[1][2]*2,s+3*q+e,0.5,0.05,1800,out);
+  }else if(b.seg==='build'){
+    pad(ch,s,0.05,1500,out,'sawtooth');
+    var dens=Math.min(4,1<<(Math.min(b.i,2)+1));
+    for(k=0;k<dens*4;k++)nz(s+k*BAR/(dens*4),0.12,0.12+0.03*b.i,1800,out,true);
+    var o=ctx.createOscillator(),g=ctx.createGain(),fr=300+b.i*250;
+    o.type='sawtooth';o.frequency.setValueAtTime(fr,s);o.frequency.linearRampToValueAtTime(fr+250,s+BAR);
+    g.gain.value=0.018;o.connect(g);g.connect(out);o.start(s);o.stop(s+BAR);
+  }else{
+    for(k=0;k<4;k++){kick(s+k*q,out);nz(s+k*q+e,0.05,0.07,7000,out);}
+    for(k=0;k<8;k++)tone('sawtooth',ch[0]*2,s+k*e,e*0.9,0.09,420,out);
+    tone('sawtooth',ch[1][0],s,q*1.8,0.035,1800,out);tone('sawtooth',ch[1][1],s,q*1.8,0.035,1800,out);
+    tone('sawtooth',ch[1][2],s,q*1.8,0.035,1800,out);
+    var L=LEAD[b.i%4];
+    for(k=0;k<8;k++)if(L[k])tone('square',L[k],s+k*e,e*0.85,0.05,3200,out);
+  }
+}
+function seq(sg){
+  var a=[];
+  NAMES.forEach(function(n){for(var i=0;i<sg[n];i++)a.push({seg:n,i:i});});
+  return a;
+}
+function sum(sg){return sg.intro+sg.verse+sg.build+sg.hook;}
+
+function start(){
+  if(!ctx)init();
+  if(ctx.state==='suspended')ctx.resume();
+  playing=true;
+  bars=seq(segs);total=bars.length*BAR;nextBar=0;
+  master=ctx.createGain();master.gain.value=0.9;master.connect(ctx.destination);
+  t0=ctx.currentTime+0.12;
+  // vinyl crackle under everything
+  var cr=ctx.createBufferSource(),cg=ctx.createGain(),cf=ctx.createBiquadFilter();
+  cr.buffer=noiseBuf;cr.loop=true;cf.type='highpass';cf.frequency.value=5000;cg.gain.value=0.012;
+  cr.connect(cf);cf.connect(cg);cg.connect(master);cr.start();master._cr=cr;
+  fill();sched=setInterval(fill,400);tickT=setInterval(tick,80);
+  el('btn').textContent='Skip';el('btn').className='go skip';
+  el('rec').classList.add('spin');
+  el('lab').textContent='Play '+(round+1)+' of '+ROUNDS;
+  drawMap();tick();
+}
+function fill(){
+  while(nextBar<bars.length&&t0+nextBar*BAR<ctx.currentTime+5){
+    schedBar(bars[nextBar],t0+nextBar*BAR,master);nextBar++;
+  }
+}
+function drawMap(){
+  var m=el('map'),w=Math.max(total,COUNT+2);
+  Array.prototype.slice.call(m.querySelectorAll('i')).forEach(function(x){x.remove()});
+  var f=document.createDocumentFragment(),cur=el('cur');
+  NAMES.forEach(function(n){
+    if(!segs[n])return;var i=document.createElement('i');
+    i.style.width=(segs[n]*BAR/w*100)+'%';i.style.background=COL[n];f.appendChild(i);
+  });
+  m.insertBefore(f,cur);
+  var p=COUNT/w*100;el('mark').style.left=p+'%';el('markl').style.left=p+'%';
+  m._w=w;
+}
+function tick(){
+  if(!playing)return;
+  var t=Math.max(0,ctx.currentTime-t0),w=el('map')._w;
+  el('cur').style.left=Math.min(100,t/w*100)+'%';
+  var hookStart=(segs.intro+segs.verse+segs.build)*BAR;
+  el('beam').classList.toggle('on',t>=hookStart&&!reduce);
+  el('cnt').textContent=t>=COUNT?'counted':String(Math.floor(t))+' s';
+  if(t>=total+0.4)finish(false,total);
+}
+function finish(skipped,t){
+  if(!playing)return;
+  playing=false;clearInterval(sched);clearInterval(tickT);
+  var g=master;g.gain.cancelScheduledValues(ctx.currentTime);g.gain.setValueAtTime(g.gain.value,ctx.currentTime);
+  g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.04);
+  setTimeout(function(){try{g._cr.stop();g.disconnect()}catch(e){}},120);
+  el('rec').classList.remove('spin');el('beam').classList.remove('on');
+  var counted=t>=COUNT;
+  rec.push({segs:JSON.parse(JSON.stringify(segs)),at:t,counted:counted,skipped:skipped});
+  round++;
+  if(skipped)adapt(t);
+  if(round>=ROUNDS){setTimeout(ending,500);return;}
+  el('btn').textContent='Play';el('btn').className='go';
+  el('lab').textContent='Next: play '+(round+1);
+  el('cnt').textContent=counted?'counted':'not counted';
+  el('cur').style.left='0';
+}
+// The song never judges itself; it only reads when you left.
+function adapt(t){
+  var pre=segs.intro+segs.verse+segs.build;
+  var target=Math.floor(t*0.6/BAR);
+  var want=Math.min(pre-1,target);
+  if(want<0)want=0;
+  var cut=pre-want;
+  ['intro','verse','build'].forEach(function(n){
+    var c=Math.min(segs[n],cut);segs[n]-=c;cut-=c;
+  });
+  pre=segs.intro+segs.verse+segs.build;
+  segs.hook=Math.max(segs.hook,MINBARS-pre);
+}
+function fmt(s){var m=Math.floor(s/60),r=Math.round(s%60);return m+':'+(r<10?'0':'')+r;}
+function ending(){
+  var hs=function(sg){return (sg.intro+sg.verse+sg.build)*BAR;};
+  var first=rec[0].segs,last=rec[rec.length-1].segs;
+  var wrap=el('endwrap'),h='';
+  var nCounted=rec.filter(function(r){return r.counted;}).length;
+  var nSkip=rec.filter(function(r){return r.skipped;}).length;
+  var finalStart=hs(segs);
+  h+='<h1>'+(nSkip?'The song you skipped was not bad. It was early.':'You stayed. It never learned a thing.')+'</h1>';
+  rec.forEach(function(r,i){
+    var s=r.segs,b='';
+    NAMES.forEach(function(n){if(s[n])b+='<i style="width:'+(s[n]*5)+'px;background:'+COL[n]+'"></i>';});
+    h+='<div class="row"><b>'+(i+1)+'</b><div class="bar">'+b+'</div><span class="'+(r.counted?'ok':'')+'">'+(r.counted?'counted':'not counted')+' · left at '+fmt(r.at)+'</span></div>';
+  });
+  h+='<p style="margin-top:20px">First play: the hook arrived at '+fmt(hs(first))+'.<br>Last play: '+(hs(rec[rec.length-1].segs)===0?'there was no before.':'it arrived at '+fmt(hs(last))+'.')+'</p>';
+  if(nSkip&&finalStart===0&&nSkip>0){h+='<p>Next time it opens with the best part, and runs just long enough to be counted. Nothing you skipped was judged. Only when you left.</p>';}
+  else if(nSkip){h+='<p>Every cut was made from one number: when your thumb moved. The song did not ask why. '+nCounted+' of '+ROUNDS+' plays were counted.</p>';}
+  else{h+='<p>Nothing was shortened. '+nCounted+' of '+ROUNDS+' plays were counted, and not one of them was for you.</p>';}
+  wrap.innerHTML=h;el('end').classList.add('on');
+}
+el('btn').addEventListener('click',function(){
+  if(!playing){start();}
+  else finish(true,Math.max(0,ctx.currentTime-t0));
+});
+})();
+</script>
+</body>
+</html>
