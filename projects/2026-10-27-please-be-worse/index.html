@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Please Be Worse</title>
+<style>
+:root{--bg:#0b0d10;--ink:#e6ebf0;--dim:#78818c;--cy:#5cc8e8;--red:#e8664a;--rule:#1d232a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace;overflow:hidden;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+a.back{position:fixed;top:max(14px,env(safe-area-inset-top));left:16px;color:var(--dim);font-size:12px;text-decoration:none;z-index:5}
+main{height:100%;display:flex;flex-direction:column;justify-content:center;gap:30px;padding:60px 22px 30px;max-width:420px;margin:0 auto}
+.lab{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+.box{border:1px solid var(--rule);padding:16px 14px;display:flex;align-items:center;gap:12px;font-size:14px}
+.tick{width:22px;height:22px;border:2px solid var(--dim);border-radius:3px;flex:none;position:relative}
+.tick.ok::after{content:"";position:absolute;left:5px;top:0;width:6px;height:13px;border:solid var(--cy);border-width:0 2px 2px 0;transform:rotate(40deg)}
+.track{position:relative;height:90px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.line{position:absolute;top:0;bottom:0;width:2px;background:var(--cy);opacity:.8}
+.dot{position:absolute;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:var(--ink);left:0}
+.pips{display:flex;gap:6px}
+.pips i{flex:1;height:3px;background:var(--rule)}
+.pips i.d{background:var(--dim)}
+.hint{font-size:12px;color:var(--dim);min-height:1.4em}
+#end{position:fixed;inset:0;background:var(--bg);display:none;overflow:auto;padding:70px 22px 40px;z-index:4}
+#end.on{display:block}
+#end .wrap{max-width:380px;margin:0 auto}
+#end h1{font-size:20px;font-weight:400;margin:0 0 16px;line-height:1.4}
+#end p{font-size:14px;line-height:1.6;color:#c4ccd4;margin:0 0 14px}
+.strip{position:relative;height:84px;border:1px solid var(--rule);margin:6px 0 18px}
+.strip .z{position:absolute;left:0;right:0;top:50%;height:1px;background:var(--cy);opacity:.6}
+.strip b{position:absolute;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:12px;margin:0 0 18px}
+td{padding:6px 0;border-bottom:1px solid var(--rule);color:var(--dim)}
+td:last-child{text-align:right;color:var(--ink)}
+.bad{color:var(--red)!important}.good{color:var(--cy)!important}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<main id="main">
+  <div class="lab">Verification</div>
+  <div class="box"><div class="tick" id="tick"></div><span>I am not a robot</span></div>
+  <div class="track" id="track"><div class="line" id="line"></div><div class="dot" id="dot"></div></div>
+  <div class="pips" id="pips"></div>
+  <div class="hint" id="hint">Tap as the dot touches the line.</div>
+</main>
+<section id="end"><div class="wrap" id="endwrap"></div></section>
+<script>
+(function(){
+var ROUNDS=8, MISS=400;
+var main=document.getElementById('main'),dot=document.getElementById('dot'),line=document.getElementById('line'),
+  track=document.getElementById('track'),pips=document.getElementById('pips'),hint=document.getElementById('hint'),
+  tick=document.getElementById('tick'),end=document.getElementById('end'),wrap=document.getElementById('endwrap');
+var errs=[],round=0,t0=0,T=0,total=0,tapped=false,running=false,raf=0,lineX=0.5;
+for(var i=0;i<ROUNDS;i++){pips.appendChild(document.createElement('i'));}
+function W(){return track.clientWidth;}
+function start(){
+  tapped=false;running=true;
+  lineX=0.35+Math.random()*0.4;
+  T=1100+Math.random()*900;                 // ms until the dot meets the line
+  total=T/lineX;                            // ms for the full width
+  line.style.left=(lineX*100)+'%';
+  dot.style.left='0px';
+  t0=performance.now()+500;                 // short beat before it moves
+  cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);
+}
+function frame(now){
+  if(!running)return;
+  var el=now-t0;
+  var p=Math.max(0,el)/total;
+  dot.style.left=(Math.min(p,1)*100)+'%';
+  if(p>=1&&!tapped){finish(MISS);return;}
+  if(!tapped)raf=requestAnimationFrame(frame);
+}
+function tap(){
+  if(!running)return;
+  var now=performance.now();
+  if(now<t0-150)return;
+  tapped=true;
+  finish(now-(t0+T));
+}
+function finish(e){
+  running=false;cancelAnimationFrame(raf);
+  e=Math.max(-MISS,Math.min(MISS,e));
+  errs.push(e);
+  pips.children[round].className='d';
+  round++;
+  hint.textContent='';
+  if(round>=ROUNDS){setTimeout(result,500);}else{setTimeout(start,450);}
+}
+function stats(a){
+  var n=a.length,m=0,mae=0,v=0,i;
+  for(i=0;i<n;i++){m+=a[i];mae+=Math.abs(a[i]);}
+  m/=n;mae/=n;
+  for(i=0;i<n;i++){v+=(a[i]-m)*(a[i]-m);}
+  return{mean:m,mae:mae,sd:Math.sqrt(v/n)};
+}
+function verdict(s){
+  if(s.mae<28)return 'exact';
+  if(s.sd<15)return 'regular';
+  if(s.mae>200)return 'absent';
+  return 'human';
+}
+function gauss(){var u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function sim(sd){
+  var pass=0,N=2000;
+  for(var k=0;k<N;k++){
+    var a=[];for(var j=0;j<ROUNDS;j++)a.push(sd*gauss());
+    if(verdict(stats(a))==='human')pass++;
+  }
+  return Math.round(pass/N*100);
+}
+function result(){
+  var s=stats(errs),v=verdict(s);
+  main.style.display='none';
+  var head,body;
+  if(v==='human'){
+    tick.className='tick ok';
+    head='Verified. You are human.';
+    body='<p>You were off by '+Math.round(s.mae)+' ms on average, and not off the same way twice. That is what a person looks like to this test.</p>';
+  }else if(v==='exact'){
+    head='Automated behaviour detected.';
+    body='<p>You were off by '+Math.round(s.mae)+' ms on average. Nobody is that close. The test took you for the thing it was built to stop.</p>';
+  }else if(v==='regular'){
+    head='Automated behaviour detected.';
+    body='<p>Your misses were the same size every time (spread '+Math.round(s.sd)+' ms). A hand wanders. You did not.</p>';
+  }else{
+    head='No one is here.';
+    body='<p>You were off by '+Math.round(s.mae)+' ms on average, or you did not tap at all. Absence is not a human trait either.</p>';
+  }
+  var strip='<div class="strip"><div class="z"></div>';
+  var w=100/(ROUNDS+1);
+  for(var i=0;i<ROUNDS;i++){
+    var y=50+(errs[i]/MISS)*50*1.0;
+    y=Math.max(4,Math.min(96,y));
+    strip+='<b style="left:'+((i+1)*w)+'%;top:'+y+'%"></b>';
+  }
+  strip+='</div>';
+  var rows=[
+    ['a script that taps exactly on the line',sim(0)],
+    ['a script that taps within 15 ms',sim(15)],
+    ['a script that adds 70 ms of random error',sim(70)],
+    ['a script that adds 120 ms of random error',sim(120)]
+  ];
+  var tb='<table>';
+  rows.forEach(function(r){tb+='<tr><td>'+r[0]+'</td><td class="'+(r[1]>50?'bad':'good')+'">'+r[1]+'% pass</td></tr>';});
+  tb+='</table>';
+  wrap.innerHTML='<h1>'+head+'</h1>'+body+strip+
+    '<p>The line across the middle is perfect. Every dot is you, early above it, late below.</p>'+
+    '<p>Here is how many of each would have passed, in this same test, tonight:</p>'+tb+
+    '<p>The rule never asked for a person. It asked for a particular amount of mistake, and a program can be told how much. The more you tried to do it right, the more you looked like the thing you were proving you were not.</p>'+
+    '<p style="color:#78818c">Reload to be someone else.</p>';
+  end.className='on';
+}
+function down(e){e.preventDefault();tap();}
+document.addEventListener('pointerdown',function(e){if(e.target.closest&&e.target.closest('a'))return;down(e);},{passive:false});
+document.addEventListener('keydown',function(e){if(e.code==='Space'){e.preventDefault();tap();}});
+start();
+})();
+</script>
+</body>
+</html>
