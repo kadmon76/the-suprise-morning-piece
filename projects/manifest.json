@@ -664,6 +664,13 @@
       "kind": "question",
       "note": "A short verification. Do not try too hard.",
       "path": "projects/2026-10-27-please-be-worse/index.html"
+    },
+    {
+      "date": "2026-10-28",
+      "title": "Sealed",
+      "kind": "seed",
+      "note": "A prediction is sealed before each move. Ten moves. Check the seal if you like.",
+      "path": "projects/2026-10-28-sealed/index.html"
     }
   ]
 }

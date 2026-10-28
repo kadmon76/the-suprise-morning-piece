@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sealed</title>
+<style>
+:root{--bg:#0b0b0d;--ink:#ece8df;--dim:#85817a;--red:#d9503f;--grn:#5fcf8a;--rule:#26262b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace;overflow:hidden}
+a.back{position:fixed;top:max(14px,env(safe-area-inset-top));left:16px;color:var(--dim);font-size:12px;text-decoration:none;z-index:5}
+main{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:60px 20px 30px;max-width:460px;margin:0 auto}
+.env{width:100%;border:1px solid var(--rule);padding:22px 16px;text-align:center;position:relative}
+.env small{display:block;color:var(--dim);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.hash{font-size:15px;letter-spacing:.06em;margin:10px 0 6px;word-break:break-all;min-height:1.4em}
+.stamp{font-size:12px;color:var(--dim)}
+.word{font-size:34px;letter-spacing:.2em;min-height:1.3em;margin:6px 0}
+.word.hit{color:var(--grn)}.word.miss{color:var(--red)}
+.row{display:flex;gap:14px;width:100%}
+button{flex:1;height:30vh;max-height:210px;min-height:110px;background:transparent;border:1px solid var(--rule);color:var(--ink);font:inherit;font-size:18px;letter-spacing:.2em;cursor:pointer;border-radius:2px;transition:background .15s}
+button:active{background:#1b1b20}
+button:disabled{opacity:.35}
+.tally{color:var(--dim);font-size:12px;min-height:1em}
+#end{display:none;width:100%;overflow:auto;max-height:100%}
+#end h1{font-size:19px;font-weight:600;line-height:1.35;margin:0 0 14px}
+#end p{color:var(--dim);font-size:13px;line-height:1.55;margin:0 0 12px}
+table{width:100%;border-collapse:collapse;font-size:11px;margin:10px 0 16px}
+td,th{padding:4px 3px;text-align:left;border-bottom:1px solid var(--rule);font-weight:400}
+th{color:var(--dim)}
+.bad{color:var(--red)}
+@media (prefers-reduced-motion:no-preference){.word{transition:color .2s}}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<main id="game">
+  <div class="env">
+    <small>prediction · sealed before you choose</small>
+    <div class="hash" id="hash">—</div>
+    <div class="stamp" id="stamp">&nbsp;</div>
+    <div class="word" id="word">&nbsp;</div>
+  </div>
+  <div class="row"><button id="L">LEFT</button><button id="R">RIGHT</button></div>
+  <div class="tally" id="tally">&nbsp;</div>
+</main>
+<main id="end"></main>
+<script>
+(function(){
+var N=10, round=0, hits=0, log=[], busy=false, born=0;
+var $=function(i){return document.getElementById(i)};
+function rh(){var s="",c="0123456789abcdef";for(var i=0;i<24;i++)s+=c[Math.random()*16|0];return s}
+function ms(x){return (x>=0?"+":"−")+Math.abs(x).toFixed(2)+"s"}
+function next(){
+  born=performance.now();
+  $("hash").textContent=rh();
+  var claim=0.4+Math.random()*0.9;
+  $("stamp").textContent="sealed "+ms(-claim)+" before your move";
+  $("word").textContent=" ";$("word").className="word";
+  $("L").disabled=$("R").disabled=false;busy=false;
+  log.push({claim:claim});
+}
+function pick(side){
+  if(busy)return;busy=true;
+  var t=(performance.now()-born)/1000, r=log[log.length-1];
+  r.side=side;r.t=t;
+  // the envelope is filled now, after the tap, with ~80% agreement
+  var hit=Math.random()<0.8;
+  r.pred=hit?side:(side==="LEFT"?"RIGHT":"LEFT");
+  r.hit=hit;if(hit)hits++;
+  $("L").disabled=$("R").disabled=true;
+  var w=$("word");w.textContent=r.pred;w.className="word "+(hit?"hit":"miss");
+  round++;
+  $("tally").textContent="predicted "+hits+" of "+round;
+  setTimeout(function(){round>=N?finish():next()},1100);
+}
+function finish(){
+  $("game").style.display="none";$("end").style.display="block";
+  var rows="";
+  log.forEach(function(r,i){
+    rows+="<tr><td>"+(i+1)+"</td><td>"+r.side[0]+"</td><td>"+r.pred[0]+"</td><td>"+ms(-r.claim)+"</td><td class=bad>"+ms(0.02+Math.random()*0.05)+"</td></tr>";
+  });
+  $("end").innerHTML=
+   "<h1>It was right "+hits+" times out of "+N+".<br>It wrote every answer after you gave yours.</h1>"+
+   "<p>Each envelope was filled in the instant you tapped, and agreed with you "+hits+" times because it was told to agree about eight times in ten. The &ldquo;sealed&rdquo; time was invented. The hash was random. You could have checked, and nothing on the screen invited you to.</p>"+
+   "<table><tr><th>#</th><th>you</th><th>it</th><th>claimed seal</th><th>real seal</th></tr>"+rows+"</table>"+
+   "<p>Some part of you spent the last minute deciding whether to defy a prediction that did not exist yet. That part was real.</p>";
+}
+$("L").onclick=function(){pick("LEFT")};
+$("R").onclick=function(){pick("RIGHT")};
+next();
+})();
+</script>
+</body>
+</html>
