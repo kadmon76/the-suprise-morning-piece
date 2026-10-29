@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>(Regenerate.)</title>
+<style>
+:root{--bg:#0d0d0f;--ink:#ece8df;--dim:#85817a;--hot:#e8b04a;--rule:#2a2a2f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:Georgia,'Times New Roman',serif;overflow:hidden}
+a.back{position:fixed;top:max(14px,env(safe-area-inset-top));left:16px;color:var(--dim);font:12px ui-monospace,Menlo,monospace;text-decoration:none;z-index:5}
+main{height:100%;max-width:460px;margin:0 auto;padding:70px 22px 28px;display:flex;flex-direction:column;justify-content:space-between}
+.gen{font:11px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);min-height:1.2em}
+#line{font-size:32px;line-height:1.35;margin:auto 0;word-spacing:.05em}
+#line span{display:inline-block;padding:0 .1em;border-bottom:1px solid transparent;cursor:pointer;transition:opacity .4s}
+#line span.held{border-color:var(--hot);color:var(--hot)}
+#line span.new{animation:f .5s}
+@keyframes f{from{opacity:.1}to{opacity:1}}
+.foot{min-height:120px;display:flex;flex-direction:column;gap:14px}
+button{height:64px;background:transparent;border:1px solid var(--rule);color:var(--ink);font:italic 20px Georgia,serif;border-radius:2px}
+button:active{background:#1a1a1e}
+.hint{font:12px ui-monospace,Menlo,monospace;color:var(--dim);min-height:1.2em;text-align:center}
+#end{display:none}
+#end p{font:13px/1.6 ui-monospace,Menlo,monospace;color:var(--dim);margin:0 0 10px}
+#end .was{font-size:17px;font-style:italic;color:var(--dim);line-height:1.4;margin:0 0 14px}
+@media (prefers-reduced-motion:reduce){#line span,#line span.new{transition:none;animation:none}}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<main>
+  <div class="gen" id="gen"></div>
+  <div id="line" aria-live="polite"></div>
+  <div class="foot" id="foot">
+    <div class="hint" id="hint">touch a word to keep it</div>
+    <button id="go">Regenerate</button>
+  </div>
+  <div id="end"></div>
+</main>
+<script>
+(function(){
+var W=[
+ ["Moths","Insects","Animals","People","People","People","People"],
+ ["still","still","yet","now","now","now","now"],
+ ["map","chart","show","show","like","like","like"],
+ ["the","the","the","the","the","the","the"],
+ ["cold","cool","bad","nice","good","good","good"],
+ ["seam","edge","line","thing","thing","thing","thing"],
+ ["of","of","in","in","in","in","in"],
+ ["your","your","your","your","your","your","your"],
+ ["name.","name.","name.","life.","life.","life.","life."]
+];
+var MAXG=6,gen=0,holds=[],used=0,LIM=3,lastHeld=[],done=false;
+var line=document.getElementById('line'),genEl=document.getElementById('gen'),hint=document.getElementById('hint');
+W.forEach(function(){holds.push(0)});
+function idx(i,g){return Math.max(0,Math.min(W[i].length-1,g-holds[i]))}
+function render(changed){
+  line.innerHTML='';
+  W.forEach(function(w,i){
+    var s=document.createElement('span');
+    s.textContent=w[idx(i,gen)];
+    if(lastHeld.indexOf(i)>-1)s.className='held';
+    if(changed&&changed.indexOf(i)>-1)s.className+=' new';
+    s.onclick=function(){hold(i)};
+    line.appendChild(s);line.appendChild(document.createTextNode(' '));
+  });
+  genEl.textContent='generation '+gen;
+}
+var pending=[];
+function hold(i){
+  if(done)return;
+  var k=pending.indexOf(i);
+  if(k>-1){pending.splice(k,1);used--;lastHeld=pending.slice();render();hint.textContent='';return}
+  if(used>=LIM){hint.textContent='that is all the keeping there is';return}
+  var cur=W[i][idx(i,gen)],nxt=W[i][idx(i,gen+1)];
+  if(cur===nxt){hint.textContent='nothing was going to happen to that one';return}
+  pending.push(i);used++;lastHeld=pending.slice();render();
+  hint.textContent=(LIM-used)+' left';
+}
+function same(a,b){return a.join(' ')===b.join(' ')}
+var original=W.map(function(w){return w[0]});
+var kept=[];
+document.getElementById('go').onclick=function(){
+  var before=W.map(function(w,i){return w[idx(i,gen)]});
+  pending.forEach(function(i){holds[i]++;kept.push(W[i][0])});
+  var held=pending.slice();pending=[];lastHeld=[];
+  gen++;
+  var after=W.map(function(w,i){return w[idx(i,gen)]});
+  var ch=[];after.forEach(function(w,i){if(w!==before[i])ch.push(i)});
+  render(ch);hint.textContent=used+' kept so far'.replace(/^0 kept so far$/,'');
+  if(gen>=MAXG)finish();
+};
+function finish(){
+  done=true;
+  document.getElementById('foot').style.display='none';
+  var e=document.getElementById('end');e.style.display='block';
+  var f=W.map(function(w,i){return w[idx(i,gen)]}).join(' ');
+  var msg;
+  if(!kept.length)msg='You kept nothing. It was not asked of you.';
+  else msg='You kept '+kept.map(function(k){return '“'+k.replace('.','')+'”'}).join(', ')+'. Each kept word was spared one generation and then went the way of the rest.';
+  e.innerHTML='<div class="was">'+original.join(' ')+'</div><p>'+msg+'</p><p>Nobody chose the replacements. Each was just the likelier word. Nothing here was ever wrong, only more probable.</p>';
+  genEl.textContent='generation '+gen+' · final';
+}
+render();
+})();
+</script>
+</body>
+</html>

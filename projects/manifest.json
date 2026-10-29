@@ -671,6 +671,13 @@
       "kind": "seed",
       "note": "A prediction is sealed before each move. Ten moves. Check the seal if you like.",
       "path": "projects/2026-10-28-sealed/index.html"
+    },
+    {
+      "date": "2026-10-29",
+      "title": "(Regenerate.)",
+      "kind": "question",
+      "note": "One sentence, passed along. Keep what you like.",
+      "path": "projects/2026-10-29-regenerate/index.html"
     }
   ]
 }
