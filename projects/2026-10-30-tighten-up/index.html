@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tighten Up</title>
+<style>
+:root{--bg:#0c0b0a;--ink:#ece6da;--dim:#8a8379;--amb:#e8a23c;--rule:#2a2723}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace;overflow:hidden;touch-action:manipulation}
+a.back{position:fixed;top:max(14px,env(safe-area-inset-top));left:16px;color:var(--dim);font-size:12px;text-decoration:none;z-index:5}
+#app{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 20px 24px}
+#msg{min-height:3.2em;text-align:center;font-size:15px;line-height:1.5;max-width:30em;color:var(--ink)}
+#msg small{color:var(--dim);display:block;margin-top:6px;font-size:12px}
+#pad{margin:22px 0;width:min(78vw,300px);aspect-ratio:1;border-radius:50%;border:1px solid var(--rule);background:#14120f;position:relative;touch-action:none}
+#pad.on{border-color:var(--amb)}
+#dots{display:flex;gap:8px;height:10px}
+#dots i{width:10px;height:10px;border-radius:50%;border:1px solid var(--dim)}
+#dots i.f{background:var(--ink);border-color:var(--ink)}
+#dots i.m{background:var(--amb);border-color:var(--amb)}
+#end{display:none;width:100%;max-width:420px}
+#end h2{font-weight:400;font-size:15px;margin:0 0 14px;text-align:center;line-height:1.5}
+canvas{width:100%;height:auto;display:block}
+.k{font-size:11px;color:var(--dim);margin:8px 0;display:flex;justify-content:space-between}
+.k b{font-weight:400}
+.k .a{color:var(--amb)}
+#fin{font-size:13px;line-height:1.6;color:var(--dim);text-align:center;margin-top:10px}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div id="app">
+  <div id="msg">Tap eight times, any rhythm.<small>It will play them back.</small></div>
+  <div id="pad" role="button" aria-label="tap pad"></div>
+  <div id="dots"></div>
+  <div id="end">
+    <h2 id="eh"></h2>
+    <canvas id="cv" width="800" height="440"></canvas>
+    <div class="k"><b>your first eight</b><b class="a">your last eight</b></div>
+    <div id="fin"></div>
+  </div>
+</div>
+<script>
+(function(){
+var R=6,N=8,pad=document.getElementById('pad'),msg=document.getElementById('msg'),dots=document.getElementById('dots');
+var ac=null,round=0,taps=[],rounds=[],busy=false,ref=0;
+var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+for(var i=0;i<N;i++)dots.appendChild(document.createElement('i'));
+function ctx(){if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(ac&&ac.state==='suspended')ac.resume();return ac}
+function click(t,hi){var a=ctx();if(!a)return;var o=a.createOscillator(),g=a.createGain();o.type='triangle';o.frequency.value=hi?520:340;
+ var n=a.currentTime+(t||0);g.gain.setValueAtTime(0.0001,n);g.gain.exponentialRampToValueAtTime(0.35,n+0.004);g.gain.exponentialRampToValueAtTime(0.0001,n+0.12);
+ o.connect(g);g.connect(a.destination);o.start(n);o.stop(n+0.15)}
+function flash(m){if(reduce)return;pad.classList.add('on');setTimeout(function(){pad.classList.remove('on')},m?90:70)}
+function paint(n,cls){var d=dots.children;for(var i=0;i<N;i++){d[i].className=i<n?cls:''}}
+function ivals(ts){var r=[];for(var i=1;i<ts.length;i++)r.push(ts[i]-ts[i-1]);return r}
+function cv(v){var m=v.reduce(function(a,b){return a+b},0)/v.length,s=0;v.forEach(function(x){s+=(x-m)*(x-m)});return Math.sqrt(s/v.length)/m}
+function down(e){e.preventDefault();if(busy||round>=R)return;
+ var t=performance.now();if(taps.length&&t-taps[taps.length-1]>3000)taps=[];
+ taps.push(t);click(0,taps.length===1);flash();paint(taps.length,'f');
+ if(taps.length===N)finish()}
+pad.addEventListener('pointerdown',down);
+function finish(){busy=true;var v=ivals(taps);rounds.push(v.slice());
+ var k=0.25+0.1*round,m=v.reduce(function(a,b){return a+b},0)/v.length;
+ var fixed=v.map(function(x){return x+(m-x)*k});
+ msg.innerHTML='&nbsp;';
+ setTimeout(function(){
+  paint(0,'m');var a=ctx(),t=0;
+  var times=[0];fixed.forEach(function(x){times.push(times[times.length-1]+x)});
+  times.forEach(function(x,i){click(x/1000+0.05,i===0);setTimeout(function(){flash(1);paint(i+1,'m')},x+50)});
+  var end=times[times.length-1]+500;
+  setTimeout(function(){
+   round++;taps=[];busy=false;paint(0,'f');
+   if(round>=R){done();return}
+   msg.innerHTML=(round===1?'Cleaned up.':'Cleaned up.')+'<small>Again.</small>';
+  },end);
+ },350)}
+function done(){
+ busy=true;pad.style.display='none';dots.style.display='none';
+ var sc=rounds.map(cv),first=rounds[0],last=rounds[R-1];
+ document.getElementById('end').style.display='block';
+ var a=sc[0],b=sc[R-1];
+ document.getElementById('eh').textContent=b<a*0.6?'You got tighter.':'You held.';
+ msg.style.display='none';
+ draw(first,last,sc);
+ var pct=Math.round((1-b/a)*100);
+ document.getElementById('fin').innerHTML=
+  (pct>0?'Your swing fell by '+Math.max(pct,0)+'%.':'Your swing did not fall.')+
+  '<br>It never told you to follow it. Each playback was only a better version of you, and you heard it six times.'+
+  '<br><br>Nothing was said about tightness. Whose rhythm is the last one?';
+}
+function draw(f,l,sc){
+ var c=document.getElementById('cv'),g=c.getContext('2d'),W=c.width,H=c.height;
+ g.clearRect(0,0,W,H);g.font='20px ui-monospace,monospace';
+ function row(v,y,col){var tot=v.reduce(function(a,b){return a+b},0),x=40,sw=W-80;
+  g.strokeStyle='#2a2723';g.beginPath();g.moveTo(40,y);g.lineTo(W-40,y);g.stroke();
+  var t=0;g.fillStyle=col;
+  for(var i=0;i<=v.length;i++){var px=40+sw*t/tot;g.beginPath();g.arc(px,y,9,0,7);g.fill();if(i<v.length)t+=v[i]}}
+ row(f,60,'#ece6da');row(l,130,'#e8a23c');
+ // grid lines: even spacing reference under last
+ g.fillStyle='#8a8379';g.fillText('variation per round',40,205);
+ var mx=Math.max.apply(null,sc),bw=(W-80)/R;
+ sc.forEach(function(s,i){var h=Math.max(4,s/mx*150);g.fillStyle=i===R-1?'#e8a23c':(i===0?'#ece6da':'#5a554d');g.fillRect(40+i*bw+8,420-h,bw-16,h)});
+}
+})();
+</script>
+</body>
+</html>

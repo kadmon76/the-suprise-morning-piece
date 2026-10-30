@@ -678,6 +678,13 @@
       "kind": "question",
       "note": "One sentence, passed along. Keep what you like.",
       "path": "projects/2026-10-29-regenerate/index.html"
+    },
+    {
+      "date": "2026-10-30",
+      "title": "Tighten Up",
+      "kind": "seed",
+      "note": "Tap eight. It plays them back, a little cleaner. Six times.",
+      "path": "projects/2026-10-30-tighten-up/index.html"
     }
   ]
 }
