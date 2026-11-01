@@ -692,6 +692,13 @@
       "kind": "question",
       "note": "The clocks go back. You are handed an hour. Sixty seconds.",
       "path": "projects/2026-10-31-the-hour-again/index.html"
+    },
+    {
+      "date": "2026-11-01",
+      "title": "One Hundred",
+      "kind": "question",
+      "note": "Ninety-nine nights behind it. Tap what you remember.",
+      "path": "projects/2026-11-01-one-hundred/index.html"
     }
   ]
 }

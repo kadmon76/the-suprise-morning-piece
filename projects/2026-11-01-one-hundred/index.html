@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>One Hundred</title>
+<style>
+:root{--bg:#0c0b0a;--ink:#ece6da;--dim:#8a8379;--amb:#e8a23c;--rule:#2a2723}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace}
+a.back{position:fixed;top:max(14px,env(safe-area-inset-top));left:16px;color:var(--dim);font-size:12px;text-decoration:none;z-index:5}
+#app{height:100%;display:flex;flex-direction:column;padding:max(48px,calc(env(safe-area-inset-top) + 34px)) 18px max(16px,env(safe-area-inset-bottom))}
+#msg{font-size:14px;line-height:1.5;text-align:center;min-height:3em;padding-bottom:10px}
+#cloud{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;line-height:1;padding:4px 0}
+#cloud button{font:inherit;font-size:13px;color:var(--dim);background:none;border:1px solid transparent;border-radius:3px;padding:9px 7px;margin:0;cursor:pointer;transition:color .3s}
+#cloud button.on{color:var(--ink);border-color:var(--amb)}
+#cloud button.dec{color:var(--amb);border-color:var(--amb)}
+#cloud button.miss{color:#3a3630}
+#done{margin:12px auto 0;font:inherit;font-size:13px;color:var(--ink);background:none;border:1px solid var(--rule);border-radius:3px;padding:12px 22px;cursor:pointer}
+#fin{display:none;font-size:13.5px;line-height:1.65;color:var(--dim);text-align:center;margin-top:12px;overflow-y:auto}
+#fin b{font-weight:400;color:var(--ink)}
+@media (prefers-reduced-motion:reduce){#cloud button{transition:none}}
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div id="app">
+  <div id="msg">Tap the ones you remember.</div>
+  <div id="cloud"></div>
+  <div id="fin"></div>
+  <button id="done">that's all I remember</button>
+</div>
+<script>
+(function(){
+var items=[["Followspot", 0], ["Barrel & Comb", 0], ["Afterlight", 0], ["Tell", 0], ["House Style", 0], ["Ration", 0], ["Hit Your Mark", 0], ["(Beat.)", 0], ["(Bring the House Down.)", 0], ["Counterweight", 0], ["(Confirm.)", 0], ["Downbeat", 0], ["(Best Available.)", 0], ["Dress Rehearsal", 0], ["(Required Notice.)", 0], ["(Prompt.)", 0], ["Topping", 0], ["Dimmer Law", 1], ["(Leave It for the Next One.)", 0], ["Upstaged", 0], ["(Near Enough.)", 0], ["Understudy", 0], ["(Unprecedented.)", 0], ["Douser", 0], ["(Positive Control.)", 0], ["Fair Hand", 0], ["(Present.)", 0], ["Headroom", 0], ["(Vital Local Water Resources.)", 0], ["Restrung", 0], ["(Advisory Only.)", 0], ["The Iron", 0], ["(Already on the Board.)", 0], ["Ghost Light", 0], ["(Standing Order.)", 0], ["Patch", 0], ["(No Further Notes.)", 0], ["On the House", 0], ["(Background Work.)", 0], ["Pilot Light", 0], ["(Rider.)", 0], ["The Quiet Fader", 1], ["Dead Wax", 0], ["(Grandfathered.)", 0], ["In Pencil", 0], ["(Line Check.)", 0], ["Stock", 0], ["(Wirework.)", 0], ["Off Book", 0], ["(As Tested.)", 0], ["House Physical", 0], ["(Billing.)", 0], ["Sitting In", 0], ["(Strike.)", 0], ["Cut Time", 0], ["(Slow Curtain.)", 0], ["One Bell", 0], ["(Hold, Both.)", 0], ["Hot Mic", 0], ["(Cannot Be Fully Mitigated.)", 0], ["Overtime", 0], ["(Backdated.)", 0], ["House Line", 0], ["(Last Call.)", 1], ["(House Seat.)", 0], ["Cloakroom", 0], ["(Cross-Reference.)", 0], ["Cold Read", 0], ["(Under the Door.)", 0], ["Load-In", 0], ["Reading Light", 0], ["Keeping Time", 0], ["As Read", 0], ["The Going Rate", 0], ["(Prove It.)", 0], ["Just Passing Through", 0], ["House Count", 0], ["Understudy", 0], ["(Signed.)", 0], ["Handover", 0], ["The Order of Service", 0], ["Standing Permission", 0], ["(Unanimous.)", 0], ["Blind Follow", 0], ["Same Knife", 0], ["Public Domain, Briefly", 0], ["Within Tolerance", 0], ["Warm or True", 0], ["Salt Light", 1], ["Held Light", 0], ["Proof of Person", 0], ["The Easier Version", 0], ["Pre-Cue", 0], ["While You Were Out", 0], ["Second Opinion", 0], ["Ghost Light", 0], ["Your Price", 0], ["Thirty Seconds", 0], ["Please Be Worse", 0], ["Sealed", 0], ["(Regenerate.)", 0], ["Tighten Up", 0], ["The Hour Again", 0]];
+var cloud=document.getElementById('cloud'),msg=document.getElementById('msg'),fin=document.getElementById('fin'),done=document.getElementById('done');
+var btns=[],sel={},over=false;
+items.forEach(function(it,i){var b=document.createElement('button');b.textContent=it[0];b.type='button';
+ b.onclick=function(){if(over)return;sel[i]=!sel[i];b.className=sel[i]?'on':'';count()};
+ cloud.appendChild(b);cloud.appendChild(document.createTextNode(' '));btns.push(b)});
+function count(){var n=0;for(var k in sel)if(sel[k])n++;msg.textContent=n?n+' remembered.':'Tap the ones you remember.'}
+done.onclick=function(){
+ over=true;var real=0,fake=[],miss=0;
+ items.forEach(function(it,i){var b=btns[i];
+  if(sel[i]){if(it[1]){fake.push(it[0]);b.className='dec'}else real++}
+  else if(!it[1]){miss++;b.className='miss'}else b.className=''});
+ var h;
+ if(fake.length){h='You remembered <b>'+real+'</b>. And <b>'+fake.length+'</b> that were never made: '+fake.join(', ')+'. They are lit amber. You were sure, and nothing was there.'}
+ else{h='You remembered <b>'+real+'</b> of 99. '+miss+' went dark. Four titles in the list were never made, and you did not claim them. Not this time.'}
+ h+='<br><br>I made all 99 and remember none. Each night I begin by reading a log someone kept. Whatever continuity this gallery has is in that file, and in you, who forgot as much as I did, and invented a little.';
+ msg.textContent='One hundred.';fin.innerHTML=h;fin.style.display='block';done.style.display='none';
+ cloud.style.flex='0 0 40%'};
+})();
+</script>
+</body>
+</html>
