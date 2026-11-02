@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Draw the Line</title>
+<style>
+:root{--bg:#0c0b10;--fg:#ece6d8;--dim:#7d7888;--a:#f2a93b;--b:#6f7cff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 Georgia,serif;min-height:100vh;padding:56px 20px 120px;max-width:480px;margin:auto}
+a.back{position:fixed;top:12px;left:14px;color:var(--dim);font:13px system-ui;text-decoration:none;z-index:5}
+h1{font-weight:normal;font-size:20px;margin:0 0 4px}
+p.s{color:var(--dim);margin:0 0 18px;font-size:15px}
+#map{position:relative;margin-left:44px}
+.row{position:relative;height:34px;display:flex;align-items:center}
+.lamp{width:20px;height:20px;border-radius:50%;margin-left:6px;transition:box-shadow .4s}
+.lamp.a{background:var(--a);box-shadow:0 0 14px #f2a93b88}
+.lamp.b{background:var(--b);box-shadow:0 0 14px #6f7cff88}
+.cut{position:absolute;left:-10px;right:-10px;bottom:-14px;height:28px;z-index:2;cursor:pointer}
+.cut::after{content:"";position:absolute;left:0;right:0;top:13px;height:2px;background:#ffffff14}
+.cut.on::after{background:var(--fg);height:3px;top:12px;box-shadow:0 0 8px #fff8}
+.band{position:absolute;left:-40px;width:4px;border-radius:2px;transition:all .3s}
+.tag{position:absolute;left:-36px;font:12px system-ui;transform:translateY(-50%);width:30px;text-align:right}
+.band.a{background:var(--a)}.band.b{background:var(--b)}
+.foot{position:fixed;left:0;right:0;bottom:0;background:#0c0b10ee;padding:12px 20px calc(12px + env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:center;max-width:480px;margin:auto;font:14px system-ui;z-index:4}
+button{background:none;border:1px solid var(--fg);color:var(--fg);padding:10px 16px;font:15px Georgia,serif;border-radius:2px}
+button[disabled]{opacity:.25}
+#end{display:none}
+#end .m{font-size:15px;margin:14px 0}
+.dim{color:var(--dim)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div id="play">
+<h1>Draw the line.</h1>
+<p class="s">Four cuts. Five districts. Make it fair.</p>
+<div id="map"></div>
+<div class="foot"><span id="tally"></span><button id="sign" disabled>Sign it</button></div>
+</div>
+<div id="end">
+<h1>Signed.</h1>
+<div id="emap"></div>
+<div id="etext"></div>
+</div>
+<script>
+// 1 = amber (9), 0 = blue (6); tie goes to amber (never stated while drawing)
+var P=[0,0,1,1,1,0,1,1,1,1,1,0,0,0,1];
+var N=P.length,cuts={};
+var map=document.getElementById('map');
+function mk(root,interactive){
+  root.innerHTML='';
+  P.forEach(function(v,i){
+    var r=document.createElement('div');r.className='row';
+    var l=document.createElement('div');l.className='lamp '+(v?'a':'b');r.appendChild(l);
+    if(interactive&&i<N-1){var c=document.createElement('div');c.className='cut';c.dataset.i=i;
+      c.addEventListener('click',function(){toggle(i)});r.appendChild(c);}
+    root.appendChild(r);
+  });
+}
+function districts(cs){var out=[],s=0;cs.concat([N-1]).forEach(function(c){out.push([s,c]);s=c+1});return out}
+function win(d){var a=0;for(var i=d[0];i<=d[1];i++)a+=P[i];var n=d[1]-d[0]+1;return a*2>=n?1:0}
+function seats(cs){return districts(cs).reduce(function(t,d){return t+win(d)},0)}
+function bands(root,cs){
+  root.querySelectorAll('.band,.tag').forEach(function(e){e.remove()});
+  var rows=root.children;
+  districts(cs).forEach(function(d){
+    var top=d[0]*34+4,h=(d[1]-d[0]+1)*34-8,w=win(d);
+    var b=document.createElement('div');b.className='band '+(w?'a':'b');b.style.top=top+'px';b.style.height=h+'px';root.appendChild(b);
+  });
+}
+function cur(){return Object.keys(cuts).map(Number).sort(function(a,b){return a-b})}
+function toggle(i){
+  if(cuts[i])delete cuts[i];else{if(cur().length>=4)return;cuts[i]=1}
+  render();
+}
+function render(){
+  var cs=cur();
+  document.querySelectorAll('.cut').forEach(function(c){c.classList.toggle('on',!!cuts[c.dataset.i])});
+  // fill any unfinished cuts by showing districts so far
+  var shown=cs.length==4?cs:cs;
+  bands(map,shown);
+  var a=seats(shown),t=districts(shown).length;
+  document.getElementById('tally').innerHTML=cs.length<4?'<span class="dim">'+(4-cs.length)+' cuts left</span>':'<span style="color:var(--a)">amber '+a+'</span> · <span style="color:var(--b)">blue '+(5-a)+'</span>';
+  document.getElementById('sign').disabled=cs.length<4;
+}
+// all maps
+var all=[];
+(function(){for(var a=0;a<N-1;a++)for(var b=a+1;b<N-1;b++)for(var c=b+1;c<N-1;c++)for(var d=c+1;d<N-1;d++)all.push([a,b,c,d])})();
+document.getElementById('sign').onclick=function(){
+  var cs=cur(),mine=seats(cs);
+  var lo=all.reduce(function(m,x){return seats(x)<seats(m)?x:m}),hi=all.reduce(function(m,x){return seats(x)>seats(m)?x:m});
+  document.getElementById('play').style.display='none';
+  document.getElementById('end').style.display='block';
+  window.scrollTo(0,0);
+  var e=document.getElementById('emap');e.style.marginLeft='44px';e.style.position='relative';
+  var maps=[[cs,'your map: amber '+mine+', blue '+(5-mine)],[hi,'another map: amber '+seats(hi)+', blue '+(5-seats(hi))],[lo,'another map: amber '+seats(lo)+', blue '+(5-seats(lo))]];
+  var k=0;
+  function show(){mk(e,false);bands(e,maps[k][0]);document.getElementById('cap').textContent=maps[k][1];k=(k+1)%3}
+  var cap=document.createElement('p');cap.id='cap';cap.className='dim';cap.style.cssText='font:14px system-ui;margin:12px 0 0 0';
+  document.getElementById('etext').before(cap);
+  show();
+  var tm=setInterval(show,matchMedia('(prefers-reduced-motion:reduce)').matches?3500:2200);
+  var hm=0;all.forEach(function(x){hm+=seats(x)*2>=5?1:0});
+  document.getElementById('etext').innerHTML=
+   '<p class="m">Fifteen people. Nine amber, six blue. Nobody moved, nobody changed their mind.</p>'+
+   '<p class="m">Of '+all.length+' ways to draw the line, amber takes '+seats(lo)+' to '+seats(hi)+' of five seats. You drew '+mine+'.</p>'+
+   '<p class="m">You were asked for "fair." The row has no opinion on what that is. Whoever holds the pen does.</p>'+
+   '<p class="m dim">Ties went to amber. You were not told.</p>';
+};
+mk(map,true);render();
+</script>
+</body></html>
