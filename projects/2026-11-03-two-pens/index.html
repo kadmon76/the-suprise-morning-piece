@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Two Pens</title>
+<style>
+:root{--bg:#0c0b10;--fg:#ece6d8;--dim:#7d7888;--a:#f2a93b;--b:#6f7cff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 Georgia,serif;min-height:100vh;padding:56px 20px 120px;max-width:480px;margin:auto}
+a.back{position:fixed;top:12px;left:14px;color:var(--dim);font:13px system-ui;text-decoration:none;z-index:5}
+h1{font-weight:normal;font-size:20px;margin:0 0 4px}
+p.s{color:var(--dim);margin:0 0 18px;font-size:15px}
+.map{position:relative;margin-left:44px}
+.row{position:relative;height:34px;display:flex;align-items:center}
+.lamp{width:20px;height:20px;border-radius:50%;margin-left:6px}
+.lamp.a{background:var(--a);box-shadow:0 0 14px #f2a93b88}
+.lamp.b{background:var(--b);box-shadow:0 0 14px #6f7cff88}
+.cut{position:absolute;left:-10px;right:-10px;bottom:-14px;height:28px;z-index:2}
+.cut::after{content:"";position:absolute;left:0;right:0;top:13px;height:2px;background:#ffffff14}
+.cut.on::after{background:var(--b);height:3px;top:12px;box-shadow:0 0 8px var(--b)}
+.cut.on.m::after{background:var(--a);box-shadow:0 0 8px var(--a)}
+.band{position:absolute;left:-40px;width:4px;border-radius:2px;background:#ffffff22;transition:all .3s}
+.band.a{background:var(--a)}.band.b{background:var(--b)}
+.foot{position:fixed;left:0;right:0;bottom:0;background:#0c0b10ee;padding:12px 20px calc(12px + env(safe-area-inset-bottom));max-width:480px;margin:auto;font:14px system-ui;z-index:4;color:var(--dim)}
+button{background:none;border:1px solid var(--fg);color:var(--fg);padding:10px 16px;font:15px Georgia,serif;border-radius:2px;margin-top:6px}
+#end{display:none}
+#end .m{font-size:15px;margin:14px 0}
+.dim{color:var(--dim)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div id="play">
+<h1>Two pens.</h1>
+<p class="s">You are blue. Take turns cutting. Four cuts, five districts.</p>
+<div class="map" id="map"></div>
+<div class="foot" id="foot">Your cut.</div>
+</div>
+<div id="end">
+<h1 id="eh"></h1>
+<div class="map" id="emap" style="margin-bottom:8px"></div>
+<div id="etext"></div>
+</div>
+<script>
+// 1 = amber (9), 0 = blue (6). Even-sized ties go to amber.
+var P=[0,0,1,1,1,0,1,1,1,1,1,0,0,0,1];
+var N=P.length,K=4;
+var order,cuts,busy,memo;
+function dists(cs){var s=cs.slice().sort(function(a,b){return a-b}),o=[],st=0;s.concat([N-1]).forEach(function(c){o.push([st,c]);st=c+1});return o}
+function bluewin(d){var b=0;for(var i=d[0];i<=d[1];i++)b+=1-P[i];return b*2>(d[1]-d[0]+1)?1:0}
+function blue(cs){return dists(cs).reduce(function(t,d){return t+bluewin(d)},0)}
+function val(cs,ord,t){
+  if(cs.length==K)return blue(cs);
+  var key=cs.slice().sort(function(a,b){return a-b}).join()+'|'+ord+'|'+t;
+  if(memo[key]!==undefined)return memo[key];
+  var me=ord[t]=='P',best=me?-1:99;
+  for(var g=0;g<N-1;g++){if(cs.indexOf(g)>-1)continue;
+    var v=val(cs.concat([g]),ord,t+1);
+    if(me?v>best:v<best)best=v;}
+  return memo[key]=best;
+}
+function pick(){
+  var t=cuts.length,best=99,opts=[];
+  for(var g=0;g<N-1;g++){if(cuts.indexOf(g)>-1)continue;
+    var v=val(cuts.concat([g]),order,t+1);
+    if(v<best){best=v;opts=[g]}else if(v==best)opts.push(g);}
+  return opts[Math.floor(Math.random()*opts.length)];
+}
+function draw(root,cs,who,live){
+  root.innerHTML='';
+  P.forEach(function(v,i){
+    var r=document.createElement('div');r.className='row';
+    var l=document.createElement('div');l.className='lamp '+(v?'a':'b');r.appendChild(l);
+    if(i<N-1){var c=document.createElement('div');c.className='cut';
+      var k=cs.indexOf(i);
+      if(k>-1){c.classList.add('on');if(who[k]=='M')c.classList.add('m')}
+      if(live)c.addEventListener('click',function(){mine(i)});
+      r.appendChild(c);}
+    root.appendChild(r);
+  });
+  var full=cs.length==K;
+  dists(cs).forEach(function(d){
+    var b=document.createElement('div');b.className='band'+(full?(bluewin(d)?' b':' a'):'');
+    b.style.top=(d[0]*34+3)+'px';b.style.height=((d[1]-d[0]+1)*34-6)+'px';root.appendChild(b);
+  });
+}
+var who;
+function foot(t){document.getElementById('foot').textContent=t}
+function render(){draw(document.getElementById('map'),cuts,who,true)}
+function mine(g){
+  if(busy||cuts.indexOf(g)>-1||order[cuts.length]!='P')return;
+  cuts.push(g);who.push('P');render();next();
+}
+function next(){
+  if(cuts.length==K){busy=true;foot('…');setTimeout(finish,1100);return}
+  if(order[cuts.length]=='M'){busy=true;foot('Its cut.');
+    setTimeout(function(){var g=pick();cuts.push(g);who.push('M');render();busy=false;next()},900)}
+  else{busy=false;foot('Your cut.')}
+}
+function start(o){
+  order=o;cuts=[];who=[];busy=false;memo={};
+  document.getElementById('end').style.display='none';
+  document.getElementById('play').style.display='block';
+  window.scrollTo(0,0);render();next();
+}
+function finish(){
+  var res=blue(cuts);
+  document.getElementById('play').style.display='none';
+  document.getElementById('end').style.display='block';
+  document.getElementById('eh').textContent='Blue '+res+'. Amber '+(5-res)+'.';
+  draw(document.getElementById('emap'),cuts,who,false);
+  var first=val([],'PMPM',0),last=val([],'MPMP',0),g=order=='PMPM'?first:last,solo=0;
+  for(var a=0;a<14;a++)for(var b=a+1;b<14;b++)for(var c=b+1;c<14;c++)for(var d=c+1;d<14;d++)solo=Math.max(solo,blue([a,b,c,d]));
+  var h='<p class="m">Same fifteen lamps. Six blue, nine amber. Same four cuts.</p>';
+  h+='<p class="m">Holding the only pen, blue can take <b>'+solo+'</b> of five. Against a second pen, the most blue can force is <b>'+g+'</b>'+(res<g?'. You got '+res+'.':'. You got exactly that.')+'</p>';
+  h+='<p class="m dim">It never guessed. Before each cut it counted every map still possible. Neither of you drew a fair map; each of you drew against the other. '+(first==last?'Who held the last pen changed nothing here, which is its own finding.':'Who held the last pen moved it from '+first+' to '+last+'.')+'</p>';
+  h+='<button id="sw">'+(order=='PMPM'?'Take the last cut':'Go first again')+'</button>';
+  document.getElementById('etext').innerHTML=h;
+  document.getElementById('sw').onclick=function(){start(order=='PMPM'?'MPMP':'PMPM')};
+}
+start('PMPM');
+</script>
+</body></html>

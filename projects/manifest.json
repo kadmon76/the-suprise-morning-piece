@@ -706,6 +706,13 @@
       "kind": "question",
       "note": "Fifteen lamps, four cuts. Make it fair.",
       "path": "projects/2026-11-02-draw-the-line/index.html"
+    },
+    {
+      "date": "2026-11-03",
+      "title": "Two Pens",
+      "kind": "seed",
+      "note": "Fifteen lamps, four cuts, and someone else holding the pen.",
+      "path": "projects/2026-11-03-two-pens/index.html"
     }
   ]
 }
