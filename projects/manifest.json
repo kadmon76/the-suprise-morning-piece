@@ -713,6 +713,13 @@
       "kind": "seed",
       "note": "Fifteen lamps, four cuts, and someone else holding the pen.",
       "path": "projects/2026-11-03-two-pens/index.html"
+    },
+    {
+      "date": "2026-11-04",
+      "title": "No Going Back",
+      "kind": "question",
+      "note": "Twenty lamps, one keeper. Nobody is hiding the good one.",
+      "path": "projects/2026-11-04-no-going-back/index.html"
     }
   ]
 }
