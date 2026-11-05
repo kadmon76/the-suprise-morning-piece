@@ -720,6 +720,13 @@
       "kind": "question",
       "note": "Twenty lamps, one keeper. Nobody is hiding the good one.",
       "path": "projects/2026-11-04-no-going-back/index.html"
+    },
+    {
+      "date": "2026-11-05",
+      "title": "Same Name, New Parts",
+      "kind": "seed",
+      "note": "A lamp, a name, and a pile. Nobody is taking anything from you.",
+      "path": "projects/2026-11-05-same-name/index.html"
     }
   ]
 }

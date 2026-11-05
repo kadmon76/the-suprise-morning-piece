@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Same Name, New Parts</title>
+<style>
+:root{--bg:#07070a;--fg:#e9e4d8;--dim:#6d6a62;--amb:#ffb347;--blu:#8fb8ff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:16px/1.4 Georgia,serif;overflow:hidden;touch-action:manipulation;user-select:none}
+a.back{position:fixed;top:max(12px,env(safe-area-inset-top));left:14px;color:var(--dim);font:13px sans-serif;text-decoration:none;z-index:5;padding:8px 0}
+#app{height:100%;display:flex;flex-direction:column;align-items:center;padding:48px 20px 18px}
+#name{font-size:26px;letter-spacing:.08em;margin:0 0 4px;min-height:1.3em}
+#cv{width:min(86vw,340px);flex:1;min-height:0}
+#msg{min-height:4.6em;text-align:center;color:var(--dim);font-size:15px;max-width:26em;margin:6px 0 8px;white-space:pre-line}
+#row{display:flex;gap:10px;width:min(92vw,360px)}
+button{flex:1;padding:16px 8px;border:1px solid var(--fg);background:none;color:var(--fg);font:16px Georgia,serif;border-radius:40px}
+button:active{background:var(--fg);color:var(--bg)}
+button[disabled]{opacity:.25}
+#row.hide{visibility:hidden}
+</style></head><body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<div id="app">
+<div id="name">Marlow</div>
+<canvas id="cv"></canvas>
+<div id="msg">This lamp is called Marlow. Replace its parts, one at a time. Say when it stops being Marlow.</div>
+<div id="row"><button id="rep">Replace a part</button><button id="no">Not Marlow</button></div>
+</div>
+<script>
+(function(){
+var N=12,NAMES=['Marlow','Marlow','Marlon','Marlon','Harlon','Harlon','Harson','Harson','Hanson','Hanson','Hansen','Hansen','Hansel'];
+var rm=matchMedia('(prefers-reduced-motion:reduce)').matches;
+var cv=document.getElementById('cv'),ctx=cv.getContext('2d'),nameEl=document.getElementById('name'),msg=document.getElementById('msg'),row=document.getElementById('row'),rep=document.getElementById('rep'),no=document.getElementById('no');
+var k=0,phase='play',order,flash=-1,flashT=0,W,H,L,P,dpr;
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.random()*(i+1)|0,t=a[i];a[i]=a[j];a[j]=t}return a}
+function size(){
+ dpr=Math.min(devicePixelRatio||1,2);var r=cv.getBoundingClientRect();W=r.width;H=r.height;
+ cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+ var rad=Math.min(W*.30,H*.21);
+ L={x:W/2,y:H*.30,r:rad};P={x:W/2,y:H*.80,r:rad*.6};draw();
+}
+function cell(c,j,col,a,s){
+ var ang=j/N*Math.PI*2-Math.PI/2,x=c.x+Math.cos(ang)*c.r,y=c.y+Math.sin(ang)*c.r,rr=c.r*.15*(s||1);
+ var g=ctx.createRadialGradient(x,y,0,x,y,rr*1.8);
+ g.addColorStop(0,'rgba('+col+','+a+')');g.addColorStop(.45,'rgba('+col+','+a*.6+')');g.addColorStop(1,'rgba('+col+',0)');
+ ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,rr*1.8,0,7);ctx.fill();
+}
+function replaced(j){var n=order.indexOf(j);return n>=0&&n<k}
+function draw(){
+ ctx.clearRect(0,0,W,H);
+ for(var j=0;j<N;j++){
+  var nw=replaced(j),f=(j===flash)?1+.5*flashT:1;
+  cell(L,j,nw?'143,184,255':'255,179,71',.95,f);
+  if(nw)cell(P,j,'255,179,71',phase==='play'?.4:.95,1);
+  else{ctx.fillStyle='rgba(109,106,98,.35)';var ang=j/N*Math.PI*2-Math.PI/2;ctx.beginPath();ctx.arc(P.x+Math.cos(ang)*P.r,P.y+Math.sin(ang)*P.r,2,0,7);ctx.fill()}
+ }
+}
+function pulse(j){
+ if(rm){flash=-1;draw();return}
+ flash=j;flashT=1;(function s(){flashT-=.08;if(flashT<=0){flash=-1;draw();return}draw();requestAnimationFrame(s)})();
+}
+function setName(){nameEl.textContent=NAMES[k]}
+rep.onclick=function(){
+ if(phase!=='play'||k>=N)return;
+ k++;setName();pulse(order[k-1]);
+ if(k===1)msg.textContent='A new part. The old one goes in the pile.';
+ else if(k===N){msg.textContent='Nothing original is left in the lamp. It still answers to a name.';rep.disabled=true}
+ else msg.textContent=k+' of '+N+' replaced.';
+ no.textContent='Not '+NAMES[k];
+};
+no.onclick=function(){
+ if(phase!=='play')return;
+ if(k===0){phase='done';row.classList.add('hide');msg.textContent='You stopped before anything changed.\nMarlow is a lamp you never let anyone touch.';return}
+ phase='ask';row.classList.add('hide');draw();
+ msg.textContent='Two lamps now. One of them is Marlow.\nTap it.';
+};
+cv.addEventListener('pointerdown',function(e){
+ if(phase!=='ask')return;
+ var r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+ var dl=Math.hypot(x-L.x,y-L.y),dp=Math.hypot(x-P.x,y-P.y);
+ var pile=(dp/P.r)<(dl/L.r);
+ var cur=NAMES[k],path=NAMES.filter(function(n,i){return i===0||n!==NAMES[i-1]}).slice(0,NAMES.indexOf(cur)===0?1:99);
+ var trail=[];for(var i=0;i<=k;i++){if(!trail.length||trail[trail.length-1]!==NAMES[i])trail.push(NAMES[i])}
+ var a;
+ if(pile)a='You followed the parts.\nMarlow is a heap in a tray, and what lights your room is '+cur+', a stranger who got the shelf.';
+ else a='You followed the lamp.\nBut the name came along the same way, one letter at a time: '+trail.join(', ')+'.\nYou never objected to that part.';
+ phase='done';
+ msg.textContent=a+'\n\nNothing in either lamp decided it. You did, on part '+k+'.';
+ nameEl.textContent=pile?'Marlow':cur;draw();
+});
+function reset(){}
+order=shuffle(Array.from({length:N},function(_,i){return i}));
+no.textContent='Not Marlow';
+window.addEventListener('resize',size);size();
+})();
+</script></body></html>
