@@ -727,6 +727,13 @@
       "kind": "seed",
       "note": "A lamp, a name, and a pile. Nobody is taking anything from you.",
       "path": "projects/2026-11-05-same-name/index.html"
+    },
+    {
+      "date": "2026-11-06",
+      "title": "Written Before",
+      "kind": "question",
+      "note": "Sixteen times it writes it down first. Then it stops hiding.",
+      "path": "projects/2026-11-06-written-before/index.html"
     }
   ]
 }
