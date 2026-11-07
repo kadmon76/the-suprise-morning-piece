@@ -734,6 +734,13 @@
       "kind": "question",
       "note": "Sixteen times it writes it down first. Then it stops hiding.",
       "path": "projects/2026-11-06-written-before/index.html"
+    },
+    {
+      "date": "2026-11-07",
+      "title": "The Door Split",
+      "kind": "seed",
+      "note": "Twelve nights, ten at the door. Someone is always listening to what you'll accept.",
+      "path": "projects/2026-11-07-door-split/index.html"
     }
   ]
 }
