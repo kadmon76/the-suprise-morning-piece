@@ -741,6 +741,13 @@
       "kind": "seed",
       "note": "Twelve nights, ten at the door. Someone is always listening to what you'll accept.",
       "path": "projects/2026-11-07-door-split/index.html"
+    },
+    {
+      "date": "2026-11-08",
+      "title": "Everyone Else Saw B",
+      "kind": "question",
+      "note": "Two lamps, one of them brighter. Thousands have already looked.",
+      "path": "projects/2026-11-08-majority-light/index.html"
     }
   ]
 }
