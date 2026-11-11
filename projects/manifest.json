@@ -748,6 +748,13 @@
       "kind": "question",
       "note": "Two lamps, one of them brighter. Thousands have already looked.",
       "path": "projects/2026-11-08-majority-light/index.html"
+    },
+    {
+      "date": "2026-11-11",
+      "title": "The Minute",
+      "kind": "seed",
+      "note": "A bell for the eleventh. One minute to hold. It's shorter than it needs to be.",
+      "path": "projects/2026-11-11-the-minute/index.html"
     }
   ]
 }

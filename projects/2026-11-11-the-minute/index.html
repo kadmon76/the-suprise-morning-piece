@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>The Minute</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0a09;
+    --paper: #151310;
+    --ink: #d4c9b0;
+    --dim: #7a7267;
+    --dimmer: #4a443d;
+    --amber: #f0b05c;
+    --amber-soft: #b48542;
+    --broken: #8a4b46;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--ink);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    overscroll-behavior: none;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    min-height: 100dvh;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    position: relative;
+  }
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 16px 72px;
+    position: relative;
+    min-height: 100dvh;
+    min-height: 100vh;
+  }
+  .masthead {
+    text-align: center;
+    color: var(--dim);
+    transition: opacity 1.4s ease;
+  }
+  .date-line {
+    font-size: 18px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    font-variant: small-caps;
+    color: var(--dim);
+  }
+  .subtitle {
+    margin-top: 10px;
+    font-style: italic;
+    font-size: 16px;
+    color: var(--dimmer);
+    letter-spacing: 0.04em;
+  }
+  .candle {
+    width: 24px;
+    height: 54px;
+    margin: 42px auto 20px;
+    position: relative;
+  }
+  .candle .stick {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 40px;
+    background: linear-gradient(to bottom, #3a3129, #1a1512);
+    border-radius: 1px 1px 0 0;
+    box-shadow: 0 0 1px rgba(255,255,255,0.05) inset;
+  }
+  .candle .wick {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 4px;
+    background: #1a1512;
+  }
+  .candle .flame {
+    position: absolute;
+    bottom: 42px;
+    left: 50%;
+    width: 8px;
+    height: 12px;
+    background: radial-gradient(ellipse at 50% 70%, #ffe4a3 0%, #f0b05c 45%, rgba(240, 176, 92, 0) 85%);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    transform: translateX(-50%);
+    filter: blur(0.5px);
+    transform-origin: center bottom;
+    animation: flicker 3.4s ease-in-out infinite;
+  }
+  .candle .glow {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 110px;
+    background: radial-gradient(circle, rgba(240, 176, 92, 0.14), transparent 65%);
+    pointer-events: none;
+  }
+  @keyframes flicker {
+    0%, 100% { transform: translateX(-50%) scale(1, 1); opacity: 1; }
+    20% { transform: translateX(-50%) scale(0.95, 1.06); opacity: 0.94; }
+    40% { transform: translateX(-50%) scale(1.03, 0.97); opacity: 1; }
+    60% { transform: translateX(-50%) scale(0.98, 1.02); opacity: 0.9; }
+    80% { transform: translateX(-50%) scale(1.01, 1.00); opacity: 0.97; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .candle .flame { animation: none; }
+  }
+
+  .bell-area {
+    margin-top: 34px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    transition: opacity 1.4s ease;
+  }
+  .bell-btn {
+    background: none;
+    border: none;
+    padding: 12px;
+    cursor: pointer;
+    color: inherit;
+    font-family: inherit;
+    position: relative;
+    transition: transform 0.2s ease;
+  }
+  .bell-btn:active { transform: scale(0.96); }
+  .bell-btn.pulse .bell-svg {
+    animation: bellpulse 3.8s ease-in-out infinite;
+  }
+  @keyframes bellpulse {
+    0%, 100% { filter: drop-shadow(0 0 0 rgba(240, 176, 92, 0)); }
+    50% { filter: drop-shadow(0 0 12px rgba(240, 176, 92, 0.3)); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bell-btn.pulse .bell-svg { animation: none; }
+  }
+  .bell-instruction {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-size: 15px;
+    color: var(--dimmer);
+    letter-spacing: 0.06em;
+  }
+
+  /* Scroll area — appears during silence */
+  .scroll-wrap {
+    position: absolute;
+    left: 0; right: 0;
+    top: 170px;
+    bottom: 96px;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.4s ease;
+  }
+  .scroll-wrap.active { opacity: 1; }
+  .reading-line {
+    position: absolute;
+    left: 14%;
+    right: 14%;
+    top: 50%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(180, 133, 66, 0.55) 25%, rgba(180, 133, 66, 0.55) 75%, transparent);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .reading-line::before, .reading-line::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    width: 5px;
+    height: 5px;
+    background: var(--amber-soft);
+    border-radius: 50%;
+    opacity: 0.7;
+  }
+  .reading-line::before { left: 2%; }
+  .reading-line::after { right: 2%; }
+
+  .scroll {
+    position: absolute;
+    left: 0; right: 0;
+    top: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    will-change: transform;
+  }
+  .name {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 17px;
+    letter-spacing: 0.1em;
+    color: var(--dim);
+    padding: 11px 0;
+    text-align: center;
+    transition: color 0.5s ease, text-shadow 0.4s ease;
+    white-space: nowrap;
+  }
+  .name.read {
+    color: var(--ink);
+  }
+  .name.calling {
+    color: var(--amber);
+    text-shadow: 0 0 10px rgba(240, 176, 92, 0.35);
+  }
+  .name .num { font-variant-numeric: tabular-nums; }
+  .name .sep { color: var(--dimmer); margin: 0 9px; }
+  .name .rank { font-style: italic; }
+  .name .year { color: var(--dimmer); }
+  .name.spacer { padding: 180px 0; opacity: 0; }
+
+  /* Status / message area */
+  .status {
+    position: absolute;
+    bottom: 76px;
+    left: 0; right: 0;
+    text-align: center;
+    color: var(--dim);
+    font-size: 15px;
+    font-style: italic;
+    padding: 0 24px;
+    min-height: 44px;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    line-height: 1.55;
+  }
+  .status.show { opacity: 1; }
+  .status .faint { color: var(--dimmer); font-size: 13px; font-style: normal; letter-spacing: 0.02em; }
+  .status .lit { color: var(--amber); }
+  .status.broken .headline { color: var(--broken); }
+
+  /* Ledger mark */
+  .ledger-mark {
+    position: fixed;
+    bottom: 14px;
+    left: 14px;
+    background: none;
+    border: 1px solid var(--dimmer);
+    color: var(--dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 2px;
+    opacity: 0.55;
+    z-index: 20;
+    transition: opacity 0.3s ease;
+    text-transform: lowercase;
+  }
+  .ledger-mark:active { opacity: 1; background: var(--paper); }
+  body.silence-active .ledger-mark { opacity: 0.18; }
+
+  /* Ledger panel */
+  .ledger {
+    position: fixed;
+    inset: 0;
+    background: rgba(11, 10, 9, 0.93);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 30;
+  }
+  .ledger.open { opacity: 1; pointer-events: auto; }
+  .ledger-inner {
+    max-width: 320px;
+    width: 100%;
+    background: var(--paper);
+    border: 1px solid var(--dimmer);
+    padding: 24px 22px 20px;
+    color: var(--ink);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    line-height: 1.75;
+  }
+  .ledger-inner h2 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 400;
+    font-size: 22px;
+    margin: 0 0 4px;
+    color: var(--ink);
+    letter-spacing: 0.08em;
+    font-variant: small-caps;
+    text-align: center;
+  }
+  .ledger-sub {
+    text-align: center;
+    color: var(--dim);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-size: 13px;
+    margin-bottom: 14px;
+  }
+  .ledger-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 3px 0;
+    border-bottom: 1px dotted var(--dimmer);
+  }
+  .ledger-row:last-of-type { border-bottom: none; }
+  .ledger-label { color: var(--dim); }
+  .ledger-val { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .ledger-closing {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--dimmer);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.55;
+    text-align: left;
+  }
+  .ledger-close {
+    margin-top: 18px;
+    background: none;
+    border: 1px solid var(--dimmer);
+    color: var(--dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    padding: 7px 12px;
+    cursor: pointer;
+    width: 100%;
+    text-transform: lowercase;
+  }
+  .ledger-close:active { color: var(--ink); border-color: var(--ink); }
+
+  /* Back link */
+  .back {
+    position: fixed;
+    bottom: 14px;
+    right: 14px;
+    color: var(--dimmer);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-decoration: none;
+    padding: 6px 10px;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    z-index: 20;
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+    text-transform: lowercase;
+  }
+  .back:active { opacity: 1; color: var(--dim); }
+  body.silence-active .back { opacity: 0.15; }
+
+  /* Fade elements during silence */
+  body.silence-active .masthead,
+  body.silence-active .bell-area {
+    opacity: 0.06;
+    pointer-events: none;
+  }
+  body.silence-done .masthead { opacity: 0.4; }
+  body.silence-done .bell-area { opacity: 0.08; pointer-events: none; }
+
+  @media (max-height: 640px) {
+    .candle { margin-top: 28px; margin-bottom: 12px; }
+    .bell-area { margin-top: 22px; }
+    .scroll-wrap { top: 150px; bottom: 90px; }
+  }
+</style>
+</head>
+<body>
+  <main>
+    <div class="masthead">
+      <div class="date-line">Eleven November</div>
+      <div class="subtitle">one minute's silence</div>
+    </div>
+
+    <div class="candle" aria-hidden="true">
+      <div class="glow"></div>
+      <div class="stick"></div>
+      <div class="wick"></div>
+      <div class="flame"></div>
+    </div>
+
+    <div class="bell-area">
+      <button class="bell-btn pulse" id="bell" aria-label="Ring the bell to begin the silence">
+        <svg class="bell-svg" width="60" height="78" viewBox="0 0 60 78" fill="none" aria-hidden="true">
+          <path d="M30 2 L30 10" stroke="#5c4a3a" stroke-width="2" stroke-linecap="round"/>
+          <ellipse cx="30" cy="12" rx="6" ry="3" fill="#3a2e24" stroke="#1a140e" stroke-width="0.5"/>
+          <path d="M30 14 C 15 17, 12 40, 14 54 L 46 54 C 48 40, 45 17, 30 14 Z"
+                fill="url(#brass)"
+                stroke="#4a3420"
+                stroke-width="1"/>
+          <path d="M21 24 C 20 34, 21 46, 23 52" stroke="#f0cf83" stroke-width="1.5" stroke-linecap="round" opacity="0.4" fill="none"/>
+          <rect x="12" y="54" width="36" height="5" rx="1" fill="#9c7033" stroke="#4a3420" stroke-width="0.5"/>
+          <path d="M28 59 Q30 66 32 59" stroke="#3a2b1a" stroke-width="1.5" fill="none"/>
+          <circle cx="30" cy="64" r="2.5" fill="#2a1e10"/>
+          <defs>
+            <linearGradient id="brass" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#8b6a3f"/>
+              <stop offset="30%" stop-color="#d9a35a"/>
+              <stop offset="60%" stop-color="#b48542"/>
+              <stop offset="100%" stop-color="#6e4e22"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </button>
+      <div class="bell-instruction" id="bellLabel">tap to begin</div>
+    </div>
+
+    <div class="scroll-wrap" id="scrollWrap">
+      <div class="reading-line" aria-hidden="true"></div>
+      <div class="scroll" id="scroll"></div>
+    </div>
+
+    <div class="status" id="status" aria-live="polite"></div>
+  </main>
+
+  <button class="ledger-mark" id="ledgerMark" aria-label="Open the book">the book</button>
+  <a class="back" href="../../index.html">&larr; cue sheet</a>
+
+  <div class="ledger" id="ledger" aria-hidden="true">
+    <div class="ledger-inner">
+      <h2 id="ledgerTitle">The Book</h2>
+      <div id="ledgerSub" class="ledger-sub"></div>
+      <div id="ledgerBody"></div>
+      <button class="ledger-close" id="ledgerClose">close</button>
+    </div>
+  </div>
+
+<script>
+(function(){
+  'use strict';
+
+  const ROLL_SIZE = 365;
+  const SECONDS = 60;
+  const NAMES_PER_SECOND = 1;
+  const TOTAL_NAMES_READABLE = SECONDS * NAMES_PER_SECOND;
+
+  // Seeded PRNG so the roll is consistent across visits.
+  function mulberry32(a) {
+    return function() {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = a;
+      t = Math.imul(t ^ t >>> 15, t | 1);
+      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+  }
+
+  // Build a 365-entry roll: service number, rank, year.
+  // No fabricated names — just numbers, ranks, years, so no real individuals are misrepresented.
+  const rng = mulberry32(19181111);
+  const RANKS = ['Pte.','Pte.','Pte.','Pte.','Pte.','Rfm.','Rfm.','L.Cpl.','Cpl.','Sgt.','Spr.','Gnr.','Tpr.','Sig.'];
+  const YEARS = [1914,1915,1915,1916,1916,1916,1917,1917,1917,1917,1918,1918];
+
+  const roll = [];
+  let base = 12040;
+  for (let i = 0; i < ROLL_SIZE; i++) {
+    const num = base + Math.floor(rng() * 980) + 1;
+    base = num;
+    const rank = RANKS[Math.floor(rng() * RANKS.length)];
+    const year = YEARS[Math.floor(rng() * YEARS.length)];
+    roll.push({ num, rank, year });
+  }
+
+  const STORE_KEY = 'the-minute-v1';
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+      if (typeof s !== 'object' || !s) return null;
+      return s;
+    } catch (e) { return null; }
+  }
+  function saveState(s) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (e) {}
+  }
+  const state = Object.assign({
+    rollIndex: 0,
+    nightsAttempted: 0,
+    nightsHeld: 0,
+    nightsBroken: 0,
+    namesCalled: 0,
+    bestHold: 0
+  }, loadState() || {});
+
+  const bell = document.getElementById('bell');
+  const bellLabel = document.getElementById('bellLabel');
+  const scrollWrap = document.getElementById('scrollWrap');
+  const scrollEl = document.getElementById('scroll');
+  const status = document.getElementById('status');
+  const ledgerMark = document.getElementById('ledgerMark');
+  const ledger = document.getElementById('ledger');
+  const ledgerBody = document.getElementById('ledgerBody');
+  const ledgerTitle = document.getElementById('ledgerTitle');
+  const ledgerSub = document.getElementById('ledgerSub');
+  const ledgerClose = document.getElementById('ledgerClose');
+
+  function fmtNum(n) { return n.toLocaleString('en-GB'); }
+
+  function renderNameRow(entry) {
+    const div = document.createElement('div');
+    div.className = 'name';
+    div.innerHTML =
+      '<span class="num">No.&nbsp;' + fmtNum(entry.num) + '</span>' +
+      '<span class="sep">&middot;</span>' +
+      '<span class="rank">' + entry.rank + '</span>' +
+      '<span class="sep">&middot;</span>' +
+      '<span class="year">' + entry.year + '</span>';
+    return div;
+  }
+
+  let phase = 'idle'; // idle | silence | broken | done
+  let callIndexInSession = 0;
+  let readableCount = 0;
+  let silenceStartMs = 0;
+  let audioCtx = null;
+
+  function ensureAudio() {
+    if (audioCtx) return audioCtx;
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      audioCtx = new Ctx();
+      return audioCtx;
+    } catch (e) { return null; }
+  }
+
+  function toll(open) {
+    const ctx = audioCtx;
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const freqs = open ? [523, 784, 1047] : [392, 587, 784];
+      const vol = open ? 0.05 : 0.06;
+      freqs.forEach((f, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = f;
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(vol / (i + 1), now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + (open ? 2.2 : 3.6));
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + (open ? 2.3 : 3.7));
+      });
+    } catch (e) {}
+  }
+
+  function setupScrollForSilence() {
+    scrollEl.innerHTML = '';
+    const startIdx = state.rollIndex;
+    const readable = Math.min(TOTAL_NAMES_READABLE, ROLL_SIZE - startIdx);
+    if (readable <= 0) return 0;
+    const leader = document.createElement('div');
+    leader.className = 'name spacer';
+    scrollEl.appendChild(leader);
+    for (let i = 0; i < readable; i++) {
+      scrollEl.appendChild(renderNameRow(roll[startIdx + i]));
+    }
+    const trailer = document.createElement('div');
+    trailer.className = 'name spacer';
+    scrollEl.appendChild(trailer);
+    return readable;
+  }
+
+  function beginSilence() {
+    if (phase !== 'idle') return;
+    ensureAudio();
+    if (state.rollIndex >= ROLL_SIZE) {
+      phase = 'done';
+      document.body.classList.add('silence-done');
+      bell.classList.remove('pulse');
+      bellLabel.textContent = '';
+      status.innerHTML = '<span class="lit">the roll is complete.</span><br/><span class="faint">there are no names left to call tonight.</span>';
+      status.classList.add('show');
+      return;
+    }
+
+    readableCount = setupScrollForSilence();
+    if (readableCount <= 0) return;
+
+    phase = 'silence';
+    state.nightsAttempted++;
+    saveState(state);
+    document.body.classList.add('silence-active');
+    bell.classList.remove('pulse');
+    bellLabel.textContent = '';
+
+    scrollWrap.classList.add('active');
+    silenceStartMs = Date.now();
+    callIndexInSession = 0;
+
+    toll(true);
+
+    requestAnimationFrame(() => {
+      const wrapRect = scrollWrap.getBoundingClientRect();
+      const lineY = wrapRect.top + wrapRect.height / 2;
+
+      const first = scrollEl.children[1];
+      const second = scrollEl.children[2];
+      if (!first || !second) return;
+      const nameStep = second.offsetTop - first.offsetTop;
+
+      scrollEl.style.transform = 'translateY(0px)';
+      const firstRect = first.getBoundingClientRect();
+      const currentCenter = firstRect.top + firstRect.height / 2;
+      const startOffset = (lineY + nameStep) - currentCenter;
+      scrollEl.style.transform = 'translateY(' + startOffset + 'px)';
+
+      let lastIdx = -1;
+
+      function step() {
+        if (phase !== 'silence') return;
+        const elapsed = (Date.now() - silenceStartMs) / 1000;
+        const translate = startOffset - elapsed * nameStep * NAMES_PER_SECOND;
+        scrollEl.style.transform = 'translateY(' + translate + 'px)';
+
+        const idx = Math.min(readableCount - 1, Math.floor(elapsed * NAMES_PER_SECOND));
+        if (idx !== lastIdx) {
+          for (let i = Math.max(0, lastIdx); i <= idx && i < readableCount; i++) {
+            const el = scrollEl.children[i + 1];
+            if (!el) continue;
+            if (i < idx) {
+              el.classList.add('read');
+              el.classList.remove('calling');
+            } else if (i === idx) {
+              el.classList.add('calling');
+            }
+          }
+          if (lastIdx >= 0 && lastIdx < readableCount) {
+            const prev = scrollEl.children[lastIdx + 1];
+            if (prev && lastIdx < idx) prev.classList.remove('calling');
+          }
+          lastIdx = idx;
+        }
+
+        callIndexInSession = Math.max(0, Math.min(readableCount, Math.floor(elapsed * NAMES_PER_SECOND)));
+
+        if (elapsed >= SECONDS) {
+          completeSilence();
+          return;
+        }
+        requestAnimationFrame(step);
+      }
+
+      requestAnimationFrame(step);
+    });
+  }
+
+  function breakSilence() {
+    if (phase !== 'silence') return;
+    phase = 'broken';
+    const held = (Date.now() - silenceStartMs) / 1000;
+    state.nightsBroken++;
+    state.rollIndex = Math.min(ROLL_SIZE, state.rollIndex + callIndexInSession);
+    state.namesCalled += callIndexInSession;
+    if (held > state.bestHold) state.bestHold = held;
+    saveState(state);
+    document.body.classList.remove('silence-active');
+    document.body.classList.add('silence-done');
+
+    scrollEl.style.transition = 'opacity 1.6s ease';
+    scrollEl.style.opacity = '0.28';
+
+    const heldStr = Math.floor(held);
+    status.innerHTML =
+      '<span class="headline">the silence has broken.</span><br/>' +
+      '<span class="faint">' + heldStr + ' second' + (heldStr === 1 ? '' : 's') + ' held &nbsp;&middot;&nbsp; ' +
+      callIndexInSession + ' name' + (callIndexInSession === 1 ? '' : 's') + ' called &nbsp;&middot;&nbsp; the next was not read.</span>';
+    status.classList.add('show', 'broken');
+  }
+
+  function completeSilence() {
+    if (phase !== 'silence') return;
+    phase = 'done';
+    const called = Math.min(TOTAL_NAMES_READABLE, ROLL_SIZE - state.rollIndex);
+    state.nightsHeld++;
+    state.rollIndex = Math.min(ROLL_SIZE, state.rollIndex + called);
+    state.namesCalled += called;
+    if (SECONDS > state.bestHold) state.bestHold = SECONDS;
+    saveState(state);
+    document.body.classList.remove('silence-active');
+    document.body.classList.add('silence-done');
+
+    const remaining = ROLL_SIZE - state.rollIndex;
+    status.innerHTML =
+      '<span class="lit">the minute is held.</span><br/>' +
+      '<span class="faint">' + called + ' name' + (called === 1 ? '' : 's') + ' called &nbsp;&middot;&nbsp; ' +
+      fmtNum(remaining) + ' still waiting on the roll.</span>';
+    status.classList.add('show');
+
+    toll(false);
+  }
+
+  function onBreakEvent() {
+    if (phase !== 'silence') return;
+    breakSilence();
+  }
+  document.addEventListener('touchstart', onBreakEvent, { passive: true, capture: true });
+  document.addEventListener('mousedown', onBreakEvent, { capture: true });
+  window.addEventListener('wheel', onBreakEvent, { passive: true });
+  window.addEventListener('keydown', onBreakEvent);
+
+  bell.addEventListener('click', () => {
+    if (phase === 'idle') beginSilence();
+  });
+
+  function openLedger() {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    const remaining = ROLL_SIZE - state.rollIndex;
+    let title = 'The Book';
+    let sub, bodyRows, closing;
+
+    if (phase === 'idle') {
+      sub = dateStr;
+      bodyRows =
+        row('names on the roll', fmtNum(remaining)) +
+        row('nights attempted', state.nightsAttempted) +
+        row('nights held in full', state.nightsHeld) +
+        row('nights broken', state.nightsBroken) +
+        row('names called, all nights', fmtNum(state.namesCalled)) +
+        row('best hold', Math.floor(state.bestHold) + 's');
+      closing = state.nightsAttempted === 0
+        ? 'The silence lasts one minute. One name is called each second. Any touch ends it.'
+        : 'Names unread on a broken night are not lost &mdash; they wait at the top of the next roll.';
+    } else if (phase === 'silence') {
+      sub = dateStr;
+      bodyRows = row('status', 'silence in progress');
+      closing = 'A touch here is a touch on the screen.';
+    } else {
+      sub = dateStr;
+      bodyRows =
+        row('nights attempted', state.nightsAttempted) +
+        row('nights held in full', state.nightsHeld) +
+        row('nights broken', state.nightsBroken) +
+        row('names called, all nights', fmtNum(state.namesCalled)) +
+        row('names still waiting', fmtNum(remaining)) +
+        row('best hold', Math.floor(state.bestHold) + 's');
+      if (remaining === 0) {
+        closing = 'Three hundred and sixty-five names at one a second. Nine clean minutes. The ceremony is one.';
+      } else if (state.nightsBroken > 0 && state.nightsHeld === 0) {
+        closing = 'The minute has budget for sixty names. The roll has ' + fmtNum(ROLL_SIZE) + '. The gap was there before your hand was.';
+      } else {
+        closing = 'Sixty names a minute. ' + fmtNum(remaining) + ' still waiting. The ceremony was always going to end before they did.';
+      }
+    }
+
+    ledgerTitle.textContent = title;
+    ledgerSub.textContent = sub;
+    ledgerBody.innerHTML = bodyRows + '<div class="ledger-closing">' + closing + '</div>';
+    ledger.classList.add('open');
+    ledger.setAttribute('aria-hidden', 'false');
+  }
+
+  function row(label, val) {
+    return '<div class="ledger-row"><span class="ledger-label">' + label + '</span><span class="ledger-val">' + val + '</span></div>';
+  }
+
+  ledgerMark.addEventListener('click', openLedger);
+  ledgerClose.addEventListener('click', () => {
+    ledger.classList.remove('open');
+    ledger.setAttribute('aria-hidden', 'true');
+  });
+  ledger.addEventListener('click', (e) => {
+    if (e.target === ledger) {
+      ledger.classList.remove('open');
+      ledger.setAttribute('aria-hidden', 'true');
+    }
+  });
+
+})();
+</script>
+</body>
+</html>
