@@ -755,6 +755,13 @@
       "kind": "seed",
       "note": "A bell for the eleventh. One minute to hold. It's shorter than it needs to be.",
       "path": "projects/2026-11-11-the-minute/index.html"
+    },
+    {
+      "date": "2026-11-12",
+      "title": "(Pass Through.)",
+      "kind": "question",
+      "note": "A gate, a line, a button that opts you out. The queue moves either way.",
+      "path": "projects/2026-11-12-pass-through/index.html"
     }
   ]
 }
