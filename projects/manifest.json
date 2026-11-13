@@ -755,6 +755,13 @@
       "kind": "seed",
       "note": "A bell for the eleventh. One minute to hold. It's shorter than it needs to be.",
       "path": "projects/2026-11-11-the-minute/index.html"
+    },
+    {
+      "date": "2026-11-13",
+      "title": "(Restored.)",
+      "kind": "question",
+      "note": "A conductor's final bow, lovingly restored. Hold any frame — the archive doesn't mind.",
+      "path": "projects/2026-11-13-restored/index.html"
     }
   ]
 }

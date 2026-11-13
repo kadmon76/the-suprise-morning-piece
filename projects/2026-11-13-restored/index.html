@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>(Restored.)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0908;
+    --paper: #15110d;
+    --ink: #e4ddd1;
+    --ink-soft: #c9c0b0;
+    --dim: #7a7267;
+    --dimmer: #4a443d;
+    --faint: #2a2520;
+    --amber: #e3a847;
+    --amber-soft: #b48542;
+    --blue: #6a9bb8;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--ink);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    min-height: 100vh; min-height: 100dvh;
+    -webkit-user-select: none; user-select: none;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: contain;
+    touch-action: manipulation;
+  }
+  body {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 46px 16px 28px;
+    background: radial-gradient(ellipse at 50% 22%, #15110d 0%, #0a0908 72%);
+  }
+  a.back {
+    position: fixed; top: 12px; left: 14px; color: var(--dimmer);
+    font-size: 13px; text-decoration: none;
+    letter-spacing: 0.04em; font-family: 'Cormorant Garamond', Georgia, serif;
+    z-index: 20; padding: 6px 4px;
+  }
+  a.back:active { color: var(--dim); }
+  .frame-stage {
+    position: relative;
+    width: min(92vw, 320px);
+    aspect-ratio: 3 / 4;
+    background: #050403;
+    border: 1px solid #1a1612;
+    overflow: hidden;
+    box-shadow: 0 0 80px rgba(227, 168, 71, 0.04), inset 0 0 40px rgba(0,0,0,0.6);
+  }
+  .flicker {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 55%, rgba(255,230,180,0.09) 0%, rgba(0,0,0,0) 65%);
+    pointer-events: none; animation: flick 0.22s steps(3) infinite;
+  }
+  @keyframes flick {
+    0% { opacity: 0.82; }
+    33% { opacity: 1; }
+    66% { opacity: 0.9; }
+    100% { opacity: 0.95; }
+  }
+  @media (prefers-reduced-motion: reduce) { .flicker { animation: none; opacity: 0.9; } }
+
+  .grain {
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.92  0 0 0 0 0.86  0 0 0 0 0.72  0 0 0 0.25 0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.55'/></svg>");
+    mix-blend-mode: screen; opacity: 0.4; pointer-events: none;
+    animation: grainmove 0.35s steps(4) infinite;
+  }
+  @keyframes grainmove {
+    0% { transform: translate(0,0); }
+    25% { transform: translate(-7%,5%); }
+    50% { transform: translate(3%,-6%); }
+    75% { transform: translate(5%,3%); }
+    100% { transform: translate(-3%,-2%); }
+  }
+  @media (prefers-reduced-motion: reduce) { .grain { animation: none; } }
+
+  .sprocket {
+    position: absolute; top: 0; bottom: 0; width: 12px;
+    background-image: repeating-linear-gradient(0deg,
+      #050403 0, #050403 14px,
+      #1a1612 14px, #1a1612 16px,
+      #050403 16px, #050403 28px);
+    opacity: 0.55;
+  }
+  .sprocket.left { left: 0; }
+  .sprocket.right { right: 0; }
+
+  .frame-img {
+    position: absolute; inset: 6% 10%; z-index: 1;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .frame-img svg { width: 100%; height: 100%; }
+  .frame-img.restored { filter: brightness(1.05) contrast(0.96); }
+
+  .blank-overlay {
+    position: absolute; inset: 0; z-index: 3;
+    background: linear-gradient(135deg, #1a1612 0%, #0c0a08 100%);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.11s ease;
+    pointer-events: none;
+  }
+  .blank-overlay.show { opacity: 1; }
+  .blank-overlay::before {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(90deg, rgba(227,168,71,0.045) 0%, rgba(0,0,0,0) 50%, rgba(227,168,71,0.035) 100%),
+      repeating-linear-gradient(0deg, transparent 0, transparent 5px, rgba(255,230,180,0.045) 5px, rgba(255,230,180,0.045) 6px);
+  }
+  .blank-overlay .label {
+    position: relative; font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--dim); letter-spacing: 0.32em; text-transform: uppercase;
+  }
+
+  .source-mark {
+    position: absolute; inset: 0; z-index: 3;
+    pointer-events: none; opacity: 0;
+    transition: opacity 0.12s ease;
+  }
+  .source-mark.show { opacity: 1; }
+  .source-mark .tag {
+    position: absolute; left: 20px; bottom: 16px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--amber-soft); letter-spacing: 0.24em; text-transform: uppercase;
+  }
+  .source-mark .tag::before {
+    content: '· '; color: var(--amber);
+  }
+
+  .frame-counter {
+    position: absolute; top: 10px; right: 22px; z-index: 4;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--dim); letter-spacing: 0.22em;
+  }
+  .check-dot {
+    position: absolute; top: 10px; left: 22px; z-index: 4;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--amber); opacity: 0; transition: opacity 0.15s;
+  }
+  .check-dot.show { opacity: 0.8; }
+
+  .controls {
+    display: flex; gap: 14px; margin-top: 18px;
+    width: min(92vw, 320px);
+  }
+  .btn {
+    flex: 1; padding: 14px 10px; background: transparent;
+    border: 1px solid #2a2520; color: var(--ink-soft);
+    font-family: 'Cormorant Garamond', Georgia, serif; font-size: 15px;
+    letter-spacing: 0.04em;
+    border-radius: 2px; cursor: pointer; transition: border-color 0.15s, color 0.15s, background 0.1s;
+    -webkit-user-select: none; user-select: none;
+    touch-action: manipulation;
+  }
+  .btn:active { background: #15110d; border-color: var(--amber); color: var(--amber); }
+  .btn.hold { border-style: dashed; }
+  .btn.hold.active { background: #15110d; border-color: var(--amber); color: var(--amber); }
+  .btn:disabled { opacity: 0.25; cursor: default; }
+
+  .instruction {
+    margin-top: 22px; font-size: 14px; color: var(--dim);
+    text-align: center; line-height: 1.6; letter-spacing: 0.01em;
+    max-width: min(92vw, 320px);
+    font-style: italic;
+  }
+  .instruction em { color: var(--ink-soft); font-style: normal; }
+
+  /* ending */
+  .ending { display: none; width: min(92vw, 360px); margin-top: 0px; }
+  .ending.show { display: block; }
+  .ending h2 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 400; font-size: 22px; font-style: italic;
+    color: var(--ink); letter-spacing: 0.06em;
+    margin: 20px 0 8px; text-align: center;
+  }
+  .ending > p {
+    font-size: 15px; color: var(--ink-soft); line-height: 1.7;
+    margin: 10px 2px; letter-spacing: 0.01em;
+  }
+  .ending > p em { color: var(--amber-soft); font-style: italic; }
+  .filmstrip {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px;
+    background: #050403; padding: 6px 4px;
+    border: 1px solid #1a1612;
+    margin: 18px 0 8px;
+    position: relative;
+  }
+  .filmstrip::before, .filmstrip::after {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 3px;
+    background-image: repeating-linear-gradient(0deg,
+      transparent 0, transparent 4px,
+      rgba(255,230,180,0.3) 4px, rgba(255,230,180,0.3) 5px,
+      transparent 5px, transparent 9px);
+    opacity: 0.4;
+  }
+  .filmstrip::before { left: 1px; }
+  .filmstrip::after { right: 1px; }
+  .filmstrip .cell {
+    position: relative; aspect-ratio: 3 / 4; background: #0a0908; overflow: hidden;
+  }
+  .filmstrip .cell svg { width: 100%; height: 100%; display: block; }
+  .filmstrip .cell .marker {
+    position: absolute; top: 2px; right: 2px; width: 4px; height: 4px; border-radius: 50%;
+    background: var(--amber); display: none;
+    box-shadow: 0 0 4px var(--amber);
+  }
+  .filmstrip .cell.checked .marker { display: block; }
+  .filmstrip.showing-source .cell.restored {
+    background: linear-gradient(135deg, #1a1612 0%, #0c0a08 100%);
+  }
+  .filmstrip.showing-source .cell.restored svg { opacity: 0; }
+  .filmstrip.showing-source .cell.restored::before {
+    content: ''; position: absolute; inset: 0;
+    background-image: repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(227,168,71,0.06) 3px, rgba(227,168,71,0.06) 4px);
+  }
+  .filmstrip .cell.restored::after {
+    content: ''; position: absolute; left: 50%; bottom: 3px;
+    width: 4px; height: 4px; transform: translateX(-50%);
+    background: var(--blue); opacity: 0;
+    border-radius: 50%;
+  }
+  .filmstrip.showing-source .cell.restored::after { opacity: 0.7; }
+
+  .toggle {
+    width: 100%; padding: 13px 10px; background: transparent;
+    border: 1px solid #2a2520; color: var(--ink-soft);
+    font-family: 'Cormorant Garamond', Georgia, serif; font-size: 14px; letter-spacing: 0.03em;
+    border-radius: 2px; cursor: pointer;
+    margin-top: 6px;
+    font-style: italic;
+  }
+  .toggle:active { background: #15110d; }
+  .toggle.on { border-color: var(--amber); color: var(--amber); }
+
+  .ledger {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--dim); line-height: 1.85;
+    margin: 18px 0 8px; padding: 12px 14px;
+    border: 1px solid #1a1612; background: #050403;
+    letter-spacing: 0.04em;
+  }
+  .ledger .row { display: flex; justify-content: space-between; }
+  .ledger .val { color: var(--ink); }
+  .ledger .val.amber { color: var(--amber); }
+  .ledger .rule { height: 1px; background: #1a1612; margin: 6px 0; }
+
+  .close {
+    margin-top: 16px; font-size: 14px; color: var(--ink-soft);
+    text-align: left; line-height: 1.7;
+    font-style: italic;
+  }
+  .close em {
+    font-style: normal;
+    color: var(--amber-soft);
+  }
+  .close .holes {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--amber); font-style: normal;
+    letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="../../index.html">← cue sheet</a>
+
+<div id="stageWrap">
+  <div class="frame-stage" id="stage">
+    <div class="sprocket left"></div>
+    <div class="sprocket right"></div>
+    <div class="frame-counter" id="counter">01 / 12</div>
+    <div class="check-dot" id="checkDot"></div>
+    <div class="frame-img" id="frameImg"></div>
+    <div class="blank-overlay" id="blankOverlay"><span class="label">— no source —</span></div>
+    <div class="source-mark" id="sourceMark"><span class="tag">source</span></div>
+    <div class="flicker"></div>
+    <div class="grain"></div>
+  </div>
+
+  <div class="controls" id="controls">
+    <button class="btn" id="advance">advance</button>
+    <button class="btn hold" id="check">hold to check</button>
+  </div>
+
+  <p class="instruction" id="instruction">
+    A conductor's final performance, restored. Advance through — or <em>hold to check</em> any frame.
+  </p>
+</div>
+
+<div class="ending" id="ending">
+  <h2>— final bow —</h2>
+  <p>You watched his last performance.</p>
+  <div class="filmstrip" id="filmstrip"></div>
+  <button class="toggle" id="toggle">show what was on the reel</button>
+  <div class="ledger" id="ledger"></div>
+  <p class="close">
+    Of twelve frames, <em>eight</em> were his. The other <em>four</em> were drawn in last year on a different stage, by a model that had never met him. The composite you remember is three parts him, one part somebody's idea of him.
+    <br><br>
+    The holes are what he was doing instead —
+    <br><span class="holes" id="actualAction">—</span>.
+    <br><br>
+    You held <em id="heldCount">—</em> of the four. The ones you didn't hold are already the archive.
+  </p>
+</div>
+
+<script>
+(function() {
+  const TOTAL = 12;
+  const RESTORED_COUNT = 4;
+
+  // Silhouette generator. Options describe posture; returns an SVG string.
+  function pose(opts) {
+    const cx = 160;
+    const headY = opts.headY ?? 128;
+    const tilt = opts.tilt ?? 0;
+    const tiltCx = opts.tiltCx ?? 160;
+    const tiltCy = opts.tiltCy ?? 260;
+    const legOffset = opts.legOffset ?? 0;
+    const spotlight = opts.spotlight !== false;
+    const alx = opts.alx ?? 110, aly = opts.aly ?? 170;
+    const arx = opts.arx ?? 210, ary = opts.ary ?? 170;
+    const baton = opts.baton !== false;
+    const absent = opts.absent === true;
+    const podiumShow = opts.podium !== false;
+
+    const spotCx = opts.spotCx ?? 160;
+    return `
+<svg viewBox="0 0 320 420" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <radialGradient id="spot${Math.random().toString(36).slice(2,7)}">
+      <stop offset="0%" stop-color="#e3a847" stop-opacity="0.38"/>
+      <stop offset="60%" stop-color="#e3a847" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#e3a847" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  ${spotlight ? `<ellipse cx="${spotCx}" cy="320" rx="150" ry="52" fill="url(#spot${Math.random().toString(36).slice(2,7)})" opacity="0.7"/>` : ''}
+  ${spotlight ? `<ellipse cx="${spotCx}" cy="300" rx="90" ry="28" fill="#e3a847" opacity="0.08"/>` : ''}
+  <g transform="rotate(${tilt} ${tiltCx} ${tiltCy}) translate(${legOffset},0)">
+    ${podiumShow ? `<rect x="118" y="346" width="84" height="16" fill="#0a0908"/>
+    <rect x="124" y="362" width="72" height="6" fill="#050403"/>` : ''}
+    ${absent ? '' : `
+      <rect x="149" y="308" width="8" height="40" fill="#0a0908"/>
+      <rect x="163" y="308" width="8" height="40" fill="#0a0908"/>
+      <path d="M 138 188 L 182 188 L 196 308 L 124 308 Z" fill="#0a0908"/>
+      <circle cx="${cx}" cy="${headY}" r="22" fill="#0a0908"/>
+      <circle cx="${cx-5}" cy="${headY-4}" r="2.5" fill="#2a2520"/>
+      <path d="M 138 192 Q ${(138+alx)/2} ${(192+aly)/2 + 14} ${alx} ${aly}" stroke="#0a0908" stroke-width="11" fill="none" stroke-linecap="round"/>
+      <path d="M 182 192 Q ${(182+arx)/2} ${(192+ary)/2 + 14} ${arx} ${ary}" stroke="#0a0908" stroke-width="11" fill="none" stroke-linecap="round"/>
+      ${baton ? `<line x1="${alx}" y1="${aly}" x2="${alx - 26}" y2="${aly - 18}" stroke="#6a5a42" stroke-width="2.4"/>` : ''}
+    `}
+  </g>
+</svg>`;
+  }
+
+  // 12 "actual" frames (what the camera really caught)
+  // Frames 0-5: conducting normally. 6-11: a medical emergency and the aftermath.
+  const actualPoses = [
+    { headY: 128, alx: 92, aly: 128, arx: 228, ary: 128, tilt: 0 },                                         // 0 arms high
+    { headY: 128, alx: 92, aly: 170, arx: 232, ary: 148, tilt: 2 },                                         // 1 big gesture
+    { headY: 130, alx: 112, aly: 110, arx: 208, ary: 142, tilt: -1 },                                       // 2 one up
+    { headY: 130, alx: 104, aly: 192, arx: 216, ary: 192, tilt: 0 },                                        // 3 downbeat
+    { headY: 128, alx: 82, aly: 142, arx: 238, ary: 142, tilt: 1 },                                         // 4 wide
+    { headY: 130, alx: 100, aly: 122, arx: 220, ary: 206, tilt: 0 },                                        // 5 cross
+    // the real sequence (covered up in "restored" visits)
+    { headY: 152, alx: 128, aly: 232, arx: 192, ary: 232, tilt: 12, baton: false },                         // 6 slumping forward
+    { headY: 210, alx: 108, aly: 300, arx: 212, ary: 300, tilt: 42, baton: false, legOffset: -18, tiltCy: 300 }, // 7 falling from podium
+    { headY: 300, alx: 90, aly: 334, arx: 244, ary: 334, tilt: 85, baton: false, legOffset: -46, tiltCy: 330, podium: false }, // 8 on the floor
+    { headY: 240, alx: 112, aly: 270, arx: 208, ary: 270, tilt: 48, baton: false, legOffset: 24, tiltCy: 288, podium: false }, // 9 being lifted
+    { headY: 196, alx: 118, aly: 236, arx: 202, ary: 236, tilt: 22, baton: false, legOffset: 36, tiltCy: 272, podium: false }, // 10 walked off
+    { absent: true, spotCx: 160, podium: true }                                                              // 11 empty podium, spot still on
+  ];
+
+  // Restored substitutes — four idealized "triumphant" poses. Picked at random.
+  const restoredSubstitutes = [
+    { headY: 126, alx: 86, aly: 112, arx: 234, ary: 112, tilt: 1 },                                         // both arms high
+    { headY: 130, alx: 94, aly: 134, arx: 226, ary: 170, tilt: 0 },                                         // cross-body
+    { headY: 126, alx: 100, aly: 102, arx: 220, ary: 136, tilt: -2 },                                       // left high
+    { headY: 130, alx: 78, aly: 158, arx: 242, ary: 158, tilt: 0 },                                         // wide gesture
+    { headY: 128, alx: 104, aly: 124, arx: 216, ary: 196, tilt: 1 }                                         // sweeping
+  ];
+
+  function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // Pick 4 random indices from the "problem" half (6..11). Each visit differs.
+  const candidates = [6, 7, 8, 9, 10, 11];
+  const restoredIndices = shuffle(candidates.slice()).slice(0, RESTORED_COUNT).sort((a, b) => a - b);
+
+  // Shuffle substitute poses so the restoration also varies
+  const subs = shuffle(restoredSubstitutes.slice());
+  const restoredMap = {};
+  restoredIndices.forEach((idx, i) => { restoredMap[idx] = subs[i % subs.length]; });
+
+  let currentFrame = 0;
+  const checked = new Array(TOTAL).fill(false);
+  let holdActive = false;
+
+  const stage = document.getElementById('stage');
+  const stageWrap = document.getElementById('stageWrap');
+  const counter = document.getElementById('counter');
+  const frameImg = document.getElementById('frameImg');
+  const blankOverlay = document.getElementById('blankOverlay');
+  const sourceMark = document.getElementById('sourceMark');
+  const checkDot = document.getElementById('checkDot');
+  const advanceBtn = document.getElementById('advance');
+  const checkBtn = document.getElementById('check');
+  const ending = document.getElementById('ending');
+
+  function renderCurrent() {
+    counter.textContent = String(currentFrame + 1).padStart(2, '0') + ' / 12';
+    const isRestored = restoredIndices.includes(currentFrame);
+    const poseOpts = isRestored ? restoredMap[currentFrame] : actualPoses[currentFrame];
+    frameImg.innerHTML = pose(poseOpts);
+    frameImg.classList.toggle('restored', isRestored);
+    blankOverlay.classList.remove('show');
+    sourceMark.classList.remove('show');
+    checkDot.classList.toggle('show', checked[currentFrame]);
+  }
+
+  function activateHold() {
+    if (currentFrame >= TOTAL) return;
+    if (holdActive) return;
+    holdActive = true;
+    checked[currentFrame] = true;
+    checkBtn.classList.add('active');
+    const isRestored = restoredIndices.includes(currentFrame);
+    if (isRestored) {
+      blankOverlay.classList.add('show');
+    } else {
+      sourceMark.classList.add('show');
+    }
+    checkDot.classList.add('show');
+  }
+
+  function releaseHold() {
+    if (!holdActive) return;
+    holdActive = false;
+    blankOverlay.classList.remove('show');
+    sourceMark.classList.remove('show');
+    checkBtn.classList.remove('active');
+  }
+
+  advanceBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (holdActive) releaseHold();
+    currentFrame++;
+    if (currentFrame >= TOTAL) {
+      showEnding();
+    } else {
+      renderCurrent();
+    }
+  });
+
+  function bindHold(el, onDown, onUp) {
+    const down = (e) => { e.preventDefault(); onDown(); };
+    const up = (e) => { if (e) e.preventDefault(); onUp(); };
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointerleave', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+    el.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });
+  }
+  bindHold(checkBtn, activateHold, releaseHold);
+
+  function showEnding() {
+    stageWrap.style.display = 'none';
+    ending.classList.add('show');
+
+    const strip = document.getElementById('filmstrip');
+    strip.innerHTML = '';
+    for (let i = 0; i < TOTAL; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      const isR = restoredIndices.includes(i);
+      if (isR) cell.classList.add('restored');
+      if (checked[i]) cell.classList.add('checked');
+      const po = isR ? restoredMap[i] : actualPoses[i];
+      cell.innerHTML = pose(po) + '<div class="marker"></div>';
+      strip.appendChild(cell);
+    }
+
+    const heldRestored = restoredIndices.filter(i => checked[i]).length;
+    const heldOriginal = checked.filter((c, i) => c && !restoredIndices.includes(i)).length;
+    const totalHeld = checked.filter(Boolean).length;
+
+    document.getElementById('ledger').innerHTML = `
+      <div class="row"><span>frames on the reel</span><span class="val">12</span></div>
+      <div class="row"><span>original</span><span class="val">8</span></div>
+      <div class="row"><span>filled in</span><span class="val amber">4</span></div>
+      <div class="rule"></div>
+      <div class="row"><span>frames you held</span><span class="val">${totalHeld}</span></div>
+      <div class="row"><span>fills you caught</span><span class="val amber">${heldRestored} / 4</span></div>
+      <div class="row"><span>originals you re-checked</span><span class="val">${heldOriginal} / 8</span></div>
+    `;
+
+    const descriptors = {
+      6: 'slumping',
+      7: 'falling from the podium',
+      8: 'on the floor',
+      9: 'being lifted',
+      10: 'walked off',
+      11: 'absent'
+    };
+    document.getElementById('actualAction').textContent = restoredIndices.map(i => descriptors[i]).join(', ');
+    document.getElementById('heldCount').textContent = heldRestored;
+
+    const toggle = document.getElementById('toggle');
+    let showingSource = false;
+    toggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      showingSource = !showingSource;
+      toggle.classList.toggle('on', showingSource);
+      toggle.textContent = showingSource ? 'show the reel again' : 'show what was on the reel';
+      strip.classList.toggle('showing-source', showingSource);
+    });
+  }
+
+  renderCurrent();
+})();
+</script>
+
+</body>
+</html>
