@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>(Enhance.)</title>
+<style>
+:root{--bg:#07080a;--fg:#d6d4ce;--dim:#605a53;--amber:#d99a3e;--line:#1a1a1d}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:ui-monospace,Menlo,Consolas,monospace;overflow:hidden;touch-action:manipulation}
+a.back{position:fixed;top:max(12px,env(safe-area-inset-top));left:14px;color:var(--dim);font:12px/1 system-ui,sans-serif;text-decoration:none;z-index:5;letter-spacing:.05em}
+main{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:50px 16px max(22px,env(safe-area-inset-bottom))}
+#head{font-size:11px;letter-spacing:.22em;color:var(--dim);text-align:center;max-width:360px;line-height:1.7}
+#wrap{width:100%;max-width:340px;aspect-ratio:1;position:relative;border:1px solid var(--line);background:#0a0a0c}
+#c{width:100%;height:100%;display:block;image-rendering:pixelated}
+#overlay{position:absolute;inset:0;pointer-events:none;display:flex;justify-content:space-between;align-items:flex-start;padding:8px 10px;font:10px/1 system-ui,sans-serif;letter-spacing:.2em;color:var(--dim)}
+#meta{text-align:center;min-height:72px;padding:0 4px}
+#nm{color:var(--fg);font-size:14px;letter-spacing:.22em;line-height:1.5}
+#cf{color:var(--amber);font-size:12px;letter-spacing:.24em;margin-top:6px}
+#sub{color:var(--dim);font-size:10px;letter-spacing:.22em;margin-top:6px}
+#go{width:100%;max-width:340px;border:1px solid var(--fg);background:none;color:var(--fg);border-radius:0;font:13px/1 ui-monospace,Menlo,monospace;letter-spacing:.34em;padding:18px 0;cursor:pointer}
+#go:active{background:var(--line)}
+#go:disabled{opacity:.35;border-color:var(--dim);color:var(--dim)}
+#src{position:fixed;right:16px;bottom:max(16px,env(safe-area-inset-bottom));color:var(--dim);font:20px/1 system-ui,sans-serif;background:none;border:0;padding:6px 10px;cursor:pointer;opacity:0;transition:opacity .9s ease;z-index:6}
+#src.on{opacity:.7}
+#src:active{opacity:1;color:var(--fg)}
+#end{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:flex-start;padding:46px 18px max(22px,env(safe-area-inset-bottom));overflow:auto}
+#end.on{display:flex}
+#end h2{font-size:10px;letter-spacing:.3em;color:var(--dim);margin:0 0 12px;font-weight:normal}
+#source{width:84%;max-width:260px;aspect-ratio:1;border:1px solid var(--line);margin-bottom:8px;image-rendering:pixelated;display:block}
+#end .cap{font:italic 15px/1.3 Georgia,'Times New Roman',serif;color:var(--fg);margin:0 0 22px;letter-spacing:.02em}
+#strip{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:360px;margin-bottom:22px}
+.mc{width:80px}
+.mc canvas{width:80px;height:80px;border:1px solid var(--line);display:block;image-rendering:auto}
+.mc .n{font:10px/1.4 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-align:center;color:var(--fg);margin-top:5px}
+.mc .c{font:9px/1.4 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-align:center;color:var(--amber);margin-top:2px}
+#close{font:15px/1.55 Georgia,'Times New Roman',serif;max-width:320px;text-align:center;color:var(--fg);letter-spacing:.01em;margin:4px 0 14px}
+#close em{color:var(--amber);font-style:italic}
+#foot{font-size:10px;letter-spacing:.26em;color:var(--dim);margin-top:4px;text-align:center}
+@media (prefers-reduced-motion:reduce){#src{transition:none}}
+</style></head><body>
+<a class="back" href="../../index.html">← cue sheet</a>
+<main>
+<div id="head">FRAME 0417 · 03:24:09 UTC<br>ENHANCE FOR IDENTIFICATION</div>
+<div id="wrap">
+  <canvas id="c" width="320" height="320"></canvas>
+  <div id="overlay"><span>REC 03:24</span><span>CAM 7</span></div>
+</div>
+<div id="meta">
+  <div id="nm">— AWAITING INPUT —</div>
+  <div id="cf"></div>
+  <div id="sub"></div>
+</div>
+<button id="go">ENHANCE</button>
+</main>
+<button id="src" aria-label="source frame">·</button>
+<div id="end" role="dialog" aria-label="source frame reveal">
+  <h2>SOURCE FRAME · UNALTERED</h2>
+  <canvas id="source"></canvas>
+  <div class="cap">the frame.</div>
+  <div id="strip" aria-label="matches"></div>
+  <p id="close"></p>
+  <div id="foot">AI-RECONSTRUCTED FROM 36 PIXELS</div>
+</div>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const NAMES=['J. HANSEN','M. OKAFOR','A. PETROV','L. NAKAMURA','K. AL-SAYED','R. DELACROIX','S. MWANGI','T. KUSUMA','D. GOLDSTEIN','E. VARGAS','N. CHEN','P. SINGH','B. MOREAU','Z. ABEBE','C. O’ROURKE','H. YAMADA','V. KOWALSKI','G. MARQUEZ','O. ANDERSEN','F. BOATENG'];
+const SOURCE_SEED=421337;
+const used=new Set();
+const matches=[];
+let busy=false;
+
+function mulberry32(a){return function(){var t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>16)>>>0)/4294967296;};}
+
+function drawPixelSource(c,W,H,seed){
+  const N=6,px=W/N,py=H/N,rnd=mulberry32(seed);
+  for(let y=0;y<N;y++) for(let x=0;x<N;x++){
+    const dx=(x+0.5-N/2)/(N/2),dy=(y+0.5-N/2)/(N/2),d=Math.sqrt(dx*dx+dy*dy);
+    const bias=Math.max(0,1-d*1.15),v=rnd();
+    const base=18+v*32;
+    const r=Math.floor(base+bias*(30+rnd()*14));
+    const g=Math.floor(base+bias*(22+rnd()*12));
+    const b=Math.floor(base+bias*(16+rnd()*10));
+    c.fillStyle='rgb('+r+','+g+','+b+')';
+    c.fillRect(Math.floor(x*px),Math.floor(y*py),Math.ceil(px)+1,Math.ceil(py)+1);
+  }
+}
+
+const SKIN=['#e8c4a0','#c9996d','#8e6244','#d3a783','#a37553','#6e4a30','#f0d1b2','#b58862'];
+const HAIR=['#2a1a14','#8a6a4a','#d4b088','#4a3628','#1a1a1a','#9a7a5a','#6c3b22','#aaa7a3','#5c4a3c','#c99a6a'];
+const SHIRT=['#34363a','#4a3540','#3a4a3c','#3b3f4d','#50403a','#2f3b45','#453a30'];
+const EYE=['#3a2a1a','#2a2a4a','#1a3a2a','#4a3a2a','#1a1a1a','#3a2a2a'];
+
+function drawFace(c,W,H,seed){
+  const rnd=mulberry32(seed);
+  c.fillStyle='#0a0a0c';c.fillRect(0,0,W,H);
+  const skin=SKIN[(rnd()*SKIN.length)|0];
+  const hairC=HAIR[(rnd()*HAIR.length)|0];
+  const shirtC=SHIRT[(rnd()*SHIRT.length)|0];
+  const eyeC=EYE[(rnd()*EYE.length)|0];
+  const cx=W/2,cy=H*0.52;
+  const rw=W*(0.28+rnd()*0.05),rh=H*(0.33+rnd()*0.06);
+  // shoulders
+  c.fillStyle=shirtC;
+  c.beginPath();c.ellipse(cx,H*1.05,W*0.55,H*0.3,0,0,Math.PI*2);c.fill();
+  // neck
+  c.fillStyle=skin;
+  c.fillRect(cx-rw*0.22,cy+rh*0.55,rw*0.44,H*0.25);
+  // face
+  c.beginPath();c.ellipse(cx,cy,rw,rh,0,0,Math.PI*2);c.fill();
+  // hair
+  const hs=(rnd()*4)|0;
+  c.fillStyle=hairC;
+  if(hs<3){
+    c.beginPath();
+    c.ellipse(cx,cy-rh*0.6,rw*(1.02+rnd()*0.1),rh*(0.5+rnd()*0.3),0,Math.PI+0.2,-0.2);
+    c.fill();
+    if(hs===1){
+      c.beginPath();c.ellipse(cx-rw*0.9,cy-rh*0.1,rw*0.3,rh*0.55,0,0,Math.PI*2);c.fill();
+      c.beginPath();c.ellipse(cx+rw*0.9,cy-rh*0.1,rw*0.3,rh*0.55,0,0,Math.PI*2);c.fill();
+    }
+  }
+  // eyes
+  const eyeY=cy-rh*0.08;
+  const eyeSpread=rw*(0.38+rnd()*0.08);
+  const eyeR=rw*(0.075+rnd()*0.025);
+  c.fillStyle='#f0ece4';
+  c.beginPath();c.arc(cx-eyeSpread,eyeY,eyeR,0,Math.PI*2);c.fill();
+  c.beginPath();c.arc(cx+eyeSpread,eyeY,eyeR,0,Math.PI*2);c.fill();
+  c.fillStyle=eyeC;
+  const pr=eyeR*0.58;
+  c.beginPath();c.arc(cx-eyeSpread,eyeY,pr,0,Math.PI*2);c.fill();
+  c.beginPath();c.arc(cx+eyeSpread,eyeY,pr,0,Math.PI*2);c.fill();
+  // brows
+  c.strokeStyle=hs<3?hairC:'#3a2a1a';
+  c.lineWidth=Math.max(2,rh*0.038);
+  c.lineCap='round';
+  const browY=eyeY-eyeR*2.8;
+  const tilt=(rnd()-0.5)*0.5*eyeR;
+  c.beginPath();c.moveTo(cx-eyeSpread-eyeR*1.3,browY+tilt);c.lineTo(cx-eyeSpread+eyeR*1.3,browY-tilt);c.stroke();
+  c.beginPath();c.moveTo(cx+eyeSpread-eyeR*1.3,browY-tilt);c.lineTo(cx+eyeSpread+eyeR*1.3,browY+tilt);c.stroke();
+  // nose
+  c.strokeStyle='rgba(0,0,0,0.25)';
+  c.lineWidth=Math.max(1.5,rh*0.025);
+  c.beginPath();
+  c.moveTo(cx+rw*0.01,eyeY+rh*0.12);
+  c.quadraticCurveTo(cx-rw*0.08,cy+rh*0.1,cx-rw*0.02,cy+rh*0.17);
+  c.quadraticCurveTo(cx+rw*0.04,cy+rh*0.18,cx+rw*0.05,cy+rh*0.12);
+  c.stroke();
+  // mouth
+  const mY=cy+rh*0.4;
+  const mW=rw*(0.26+rnd()*0.18);
+  const mCurve=(rnd()-0.35)*rh*0.2;
+  c.strokeStyle='#2a1818';
+  c.lineWidth=Math.max(2,rh*0.045);
+  c.beginPath();c.moveTo(cx-mW,mY);c.quadraticCurveTo(cx,mY+mCurve,cx+mW,mY);c.stroke();
+  // facial hair
+  if(rnd()<0.22){
+    c.fillStyle=hairC;
+    c.beginPath();c.ellipse(cx,mY+rh*0.13,mW*1.45,rh*0.13,0,0,Math.PI*2);c.fill();
+  }
+  // glasses
+  if(rnd()<0.22){
+    c.strokeStyle='#2a2a2a';
+    c.lineWidth=Math.max(1.5,rh*0.025);
+    c.beginPath();c.arc(cx-eyeSpread,eyeY,eyeR*1.75,0,Math.PI*2);c.stroke();
+    c.beginPath();c.arc(cx+eyeSpread,eyeY,eyeR*1.75,0,Math.PI*2);c.stroke();
+    c.beginPath();c.moveTo(cx-eyeSpread+eyeR*1.75,eyeY);c.lineTo(cx+eyeSpread-eyeR*1.75,eyeY);c.stroke();
+  }
+  // vignette
+  const g=c.createRadialGradient(cx,cy,rw*0.55,cx,cy,W*0.85);
+  g.addColorStop(0,'rgba(0,0,0,0)');
+  g.addColorStop(1,'rgba(0,0,0,0.42)');
+  c.fillStyle=g;c.fillRect(0,0,W,H);
+}
+
+const cv=$('c'),ctx=cv.getContext('2d');
+const W=cv.width,H=cv.height;
+drawPixelSource(ctx,W,H,SOURCE_SEED);
+
+function pickName(){
+  const avail=NAMES.filter(n=>!used.has(n));
+  const n=avail.length?avail[(Math.random()*avail.length)|0]:NAMES[(Math.random()*NAMES.length)|0];
+  used.add(n);return n;
+}
+
+function enhance(){
+  if(busy)return;
+  busy=true;
+  $('go').disabled=true;
+  const seed=((Math.random()*1e9)|0)+1;
+  const name=pickName();
+  $('nm').textContent='ENHANCING…';
+  $('cf').textContent='';
+  $('sub').textContent='';
+  const start=performance.now();
+  const dur=reduce?260:1250;
+  function tick(t){
+    const p=Math.min(1,(t-start)/dur);
+    const ease=1-Math.pow(1-p,3);
+    const res=Math.round(6+ease*160);
+    const off=document.createElement('canvas');
+    off.width=res;off.height=res;
+    drawFace(off.getContext('2d'),res,res,seed);
+    ctx.imageSmoothingEnabled=false;
+    ctx.clearRect(0,0,W,H);
+    if(ease<0.45){
+      ctx.globalAlpha=1-ease/0.45;
+      drawPixelSource(ctx,W,H,SOURCE_SEED);
+      ctx.globalAlpha=1;
+    }
+    ctx.drawImage(off,0,0,W,H);
+    if(p<1){requestAnimationFrame(tick);}
+    else{
+      ctx.imageSmoothingEnabled=true;
+      drawFace(ctx,W,H,seed);
+      $('nm').textContent='MATCH · '+name;
+      $('cf').textContent='CONFIDENCE 94%';
+      $('sub').textContent='AI-RECONSTRUCTED FROM 36 PIXELS';
+      matches.push({name,seed});
+      busy=false;
+      $('go').disabled=false;
+      if(matches.length>=3){$('src').classList.add('on');}
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+$('go').addEventListener('click',enhance);
+
+$('src').addEventListener('click',()=>{
+  const ec=$('source');ec.width=240;ec.height=240;
+  drawPixelSource(ec.getContext('2d'),240,240,SOURCE_SEED);
+  const strip=$('strip');strip.innerHTML='';
+  matches.forEach(m=>{
+    const w=document.createElement('div');w.className='mc';
+    const c=document.createElement('canvas');c.width=160;c.height=160;
+    drawFace(c.getContext('2d'),160,160,m.seed);
+    const n=document.createElement('div');n.className='n';n.textContent=m.name;
+    const cf=document.createElement('div');cf.className='c';cf.textContent='94%';
+    w.appendChild(c);w.appendChild(n);w.appendChild(cf);
+    strip.appendChild(w);
+  });
+  const n=matches.length;
+  const words=['one','two','three','four','five','six','seven','eight','nine','ten'];
+  const label=(n<=10?words[n-1]:n)+' '+(n===1?'face':'faces');
+  const ninetyfour=Array(n).fill('ninety-four percent').join(', ');
+  $('close').innerHTML=label+'. one frame. '+ninetyfour+'. <em>the frame did not move.</em>';
+  $('end').classList.add('on');
+});
+})();
+</script></body></html>

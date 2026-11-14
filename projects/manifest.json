@@ -755,6 +755,13 @@
       "kind": "seed",
       "note": "A bell for the eleventh. One minute to hold. It's shorter than it needs to be.",
       "path": "projects/2026-11-11-the-minute/index.html"
+    },
+    {
+      "date": "2026-11-14",
+      "title": "(Enhance.)",
+      "kind": "question",
+      "note": "A grainy still, a button marked ENHANCE. See who was there. Press again to be sure.",
+      "path": "projects/2026-11-14-enhance/index.html"
     }
   ]
 }
