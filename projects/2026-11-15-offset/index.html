@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>(Offset.)</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0a0908;
+    --dim: #171310;
+    --ink: #a89482;
+    --ink-faint: #594a3f;
+    --amber: #e4a040;
+    --amber-soft: #c38540;
+    --green: #78a06a;
+    --green-deep: #5d8a52;
+    --rust: #7a4a2a;
+    --ash: #3a322f;
+    --brightness: 0;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    background:
+      radial-gradient(ellipse at 50% 32%, rgba(228,160,64, calc(var(--brightness) * 0.09)) 0%, transparent 65%),
+      var(--bg);
+    color: var(--ink);
+    font: 400 14px/1.5 ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .back {
+    position: fixed; top: 12px; left: 14px;
+    color: var(--ink);
+    opacity: 0.35;
+    text-decoration: none;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    z-index: 15;
+  }
+  .marquee {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--ink-faint);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 5;
+  }
+  .marquee .pct {
+    color: var(--amber-soft);
+    text-shadow: 0 0 6px rgba(228,160,64,0.4);
+  }
+
+  .stage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 78px;
+    bottom: 0;
+    overflow: hidden;
+  }
+  .beam {
+    position: absolute;
+    left: 50%;
+    top: 40%;
+    width: 340px; height: 340px;
+    max-width: 90%; max-height: 90%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle,
+      rgba(246, 200, 120, calc(var(--brightness) * 0.95)) 0%,
+      rgba(228, 160, 64, calc(var(--brightness) * 0.55)) 25%,
+      rgba(228, 160, 64, calc(var(--brightness) * 0.22)) 50%,
+      rgba(228, 160, 64, calc(var(--brightness) * 0.05)) 75%,
+      transparent 95%);
+    pointer-events: none;
+    filter: blur(1px);
+    transition: opacity 80ms linear;
+  }
+  .beam::after {
+    content: "";
+    position: absolute;
+    inset: 42% 42%;
+    background: rgba(255, 220, 160, calc(var(--brightness) * 0.5));
+    border-radius: 50%;
+    filter: blur(6px);
+  }
+
+  .stage-floor {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 2px;
+    background: linear-gradient(to right, transparent, var(--ash) 20%, var(--ash) 80%, transparent);
+    opacity: 0.6;
+  }
+
+  .forest {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 14px;
+    padding: 0 16px;
+    display: flex;
+    flex-wrap: wrap-reverse;
+    align-content: flex-end;
+    justify-content: flex-start;
+    gap: 6px 7px;
+    pointer-events: none;
+    min-height: 32px;
+    max-height: 48%;
+  }
+  .sapling {
+    flex: 0 0 auto;
+    width: 9px;
+    height: 13px;
+    background: linear-gradient(to bottom, var(--green) 68%, var(--rust) 68%);
+    border-radius: 50% 50% 20% 20% / 55% 55% 20% 20%;
+    opacity: 0.88;
+    transform-origin: bottom center;
+    transform: scale(0.3);
+    animation: sprout 420ms ease-out forwards;
+    transition:
+      width 450ms ease,
+      height 450ms ease,
+      background 600ms ease,
+      opacity 700ms ease,
+      border-radius 500ms ease;
+  }
+  @keyframes sprout {
+    0%   { transform: scale(0.3); opacity: 0; }
+    60%  { transform: scale(1.12); opacity: 0.95; }
+    100% { transform: scale(1); opacity: 0.88; }
+  }
+  .sapling.grown {
+    width: 12px;
+    height: 17px;
+    background: linear-gradient(to bottom, var(--green) 72%, var(--rust) 72%);
+    opacity: 0.95;
+  }
+  .sapling.mature {
+    width: 15px;
+    height: 23px;
+    background: linear-gradient(to bottom, var(--green-deep) 74%, var(--rust) 74%);
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(120, 160, 106, 0.25);
+  }
+  .sapling.failed {
+    width: 4px;
+    height: 3px;
+    background: var(--ash);
+    border-radius: 0;
+    opacity: 0.35;
+    box-shadow: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sapling { animation: none; transform: none; opacity: 0.88; transition: none; }
+  }
+
+  .fader-column {
+    position: fixed;
+    right: 14px;
+    top: 40px;
+    bottom: 68px;
+    width: 50px;
+    z-index: 4;
+  }
+  .fader-label {
+    position: absolute;
+    top: -22px;
+    left: 0; right: 0;
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+  .fader-track {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, #0f0b09, #1a1511 20%, #1a1511 80%, #0f0b09);
+    border-radius: 25px;
+    border: 1px solid #231c17;
+    box-shadow:
+      inset 0 2px 8px rgba(0,0,0,0.7),
+      0 1px 0 rgba(255,255,255,0.03);
+    touch-action: none;
+    cursor: ns-resize;
+  }
+  .fader-track::before {
+    content: "";
+    position: absolute;
+    left: 50%; top: 10px; bottom: 10px;
+    width: 1px;
+    background: #0a0706;
+    transform: translateX(-0.5px);
+  }
+  .handle {
+    position: absolute;
+    left: 3px; right: 3px;
+    height: 54px;
+    bottom: 0;
+    background: linear-gradient(180deg, #5a4a3e 0%, #3d322a 45%, #272019 55%, #1a140f 100%);
+    border: 1px solid #0a0706;
+    border-radius: 22px;
+    box-shadow:
+      0 3px 6px rgba(0,0,0,0.65),
+      inset 0 1px 0 rgba(255,255,255,0.12),
+      inset 0 -1px 0 rgba(0,0,0,0.5);
+    will-change: bottom;
+  }
+  .handle::before {
+    content: "";
+    position: absolute;
+    left: 10px; right: 10px; top: 50%;
+    height: 1px;
+    background: #0a0706;
+    transform: translateY(-0.5px);
+    box-shadow: 0 -5px 0 #0a0706, 0 5px 0 #0a0706;
+  }
+  .handle::after {
+    content: "";
+    position: absolute;
+    left: 8px; right: 8px; top: 4px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 1px;
+  }
+
+  .sheet-btn {
+    position: fixed;
+    bottom: 14px; right: 14px;
+    width: 50px;
+    padding: 10px 0;
+    background: transparent;
+    border: 1px solid var(--ash);
+    border-radius: 3px;
+    color: var(--ink);
+    opacity: 0.45;
+    font: inherit;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: lowercase;
+    cursor: pointer;
+    z-index: 6;
+    transition: opacity 200ms ease, border-color 200ms ease;
+  }
+  .sheet-btn:active {
+    opacity: 0.8;
+  }
+  .sheet-btn.nudge {
+    opacity: 0.75;
+    border-color: var(--amber-soft);
+  }
+  .sheet-btn.nudge::after {
+    content: "";
+    position: absolute;
+    top: 5px; right: 5px;
+    width: 5px; height: 5px;
+    background: var(--amber);
+    border-radius: 50%;
+    box-shadow: 0 0 5px var(--amber);
+  }
+
+  .ledger {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 8, 7, 0.96);
+    display: none;
+    flex-direction: column;
+    padding: 46px 22px 24px;
+    overflow-y: auto;
+    z-index: 30;
+    opacity: 0;
+    transition: opacity 240ms ease;
+  }
+  .ledger.open {
+    display: flex;
+    opacity: 1;
+  }
+  .ledger-close {
+    position: absolute;
+    top: 14px; right: 16px;
+    padding: 8px 12px;
+    background: transparent;
+    border: 1px solid var(--ash);
+    border-radius: 3px;
+    color: var(--ink);
+    font: inherit;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    cursor: pointer;
+  }
+  .ledger h2 {
+    margin: 0 0 10px;
+    color: var(--amber-soft);
+    font: inherit;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    opacity: 0.85;
+    font-weight: 500;
+  }
+  .ledger h2.off {
+    color: var(--rust);
+    margin-top: 28px;
+  }
+  .ledger-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 14px;
+    padding: 9px 0;
+    border-top: 1px solid #1a1612;
+    font-size: 13px;
+    line-height: 1.3;
+  }
+  .ledger-row .k {
+    color: var(--ink);
+    opacity: 0.6;
+    flex: 1;
+  }
+  .ledger-row .v {
+    color: var(--amber);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .ledger-row.truth .v {
+    color: var(--rust);
+  }
+  .ledger-note {
+    margin-top: auto;
+    padding-top: 22px;
+    font-size: 10px;
+    opacity: 0.45;
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+  }
+  .ledger-note em {
+    color: var(--ink);
+    font-style: normal;
+    opacity: 0.75;
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="../../index.html">← cue sheet</a>
+<div class="marquee">offset ledger · <span class="pct">100%</span> balanced</div>
+
+<div class="stage" aria-hidden="true">
+  <div class="beam"></div>
+  <div class="stage-floor"></div>
+  <div class="forest" id="forest"></div>
+</div>
+
+<div class="fader-column">
+  <div class="fader-label">beam</div>
+  <div class="fader-track" id="track">
+    <div class="handle" id="handle"></div>
+  </div>
+</div>
+
+<button class="sheet-btn" id="sheetBtn">sheet</button>
+
+<section class="ledger" id="ledger" aria-hidden="true">
+  <button class="ledger-close" id="ledgerClose">close</button>
+  <h2>on the books</h2>
+  <div class="ledger-row">
+    <span class="k">beam-seconds emitted</span>
+    <span class="v" id="rEmitted">0.0</span>
+  </div>
+  <div class="ledger-row">
+    <span class="k">saplings planted (promised)</span>
+    <span class="v" id="rPlanted">0</span>
+  </div>
+  <div class="ledger-row">
+    <span class="k">offset accounted</span>
+    <span class="v" id="rAccounted">100%</span>
+  </div>
+  <h2 class="off">off the books</h2>
+  <div class="ledger-row truth">
+    <span class="k">saplings surviving to 30y</span>
+    <span class="v" id="rSurviving">0</span>
+  </div>
+  <div class="ledger-row truth">
+    <span class="k">saplings failed before 30y</span>
+    <span class="v" id="rFailed">0</span>
+  </div>
+  <div class="ledger-row truth">
+    <span class="k">saplings still growing</span>
+    <span class="v" id="rPending">0</span>
+  </div>
+  <div class="ledger-row truth">
+    <span class="k">offset realised</span>
+    <span class="v" id="rReal">—</span>
+  </div>
+  <div class="ledger-note">
+    one real second · one year on the forest clock.<br>
+    a sapling needs <em>thirty clean years</em> to stand for one beam-second.
+  </div>
+</section>
+
+<script>
+(function () {
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const track = document.getElementById('track');
+  const handle = document.getElementById('handle');
+  const forest = document.getElementById('forest');
+  const sheetBtn = document.getElementById('sheetBtn');
+  const ledger = document.getElementById('ledger');
+  const ledgerClose = document.getElementById('ledgerClose');
+
+  const rEmitted = document.getElementById('rEmitted');
+  const rPlanted = document.getElementById('rPlanted');
+  const rSurviving = document.getElementById('rSurviving');
+  const rFailed = document.getElementById('rFailed');
+  const rPending = document.getElementById('rPending');
+  const rReal = document.getElementById('rReal');
+
+  // ---------- fader ----------
+  const HANDLE_H = 54;
+  let fader = 0;
+  let trackRect = null;
+  let dragging = false;
+  let dragOffsetTop = 0;
+
+  function measure() {
+    trackRect = track.getBoundingClientRect();
+    renderHandle();
+  }
+  function renderHandle() {
+    if (!trackRect) return;
+    const travel = trackRect.height - HANDLE_H;
+    handle.style.bottom = (fader * travel) + 'px';
+    document.documentElement.style.setProperty('--brightness', fader.toFixed(3));
+  }
+  function setFaderFromY(clientY) {
+    if (!trackRect) return;
+    const travel = trackRect.height - HANDLE_H;
+    const handleTopY = clientY - dragOffsetTop;
+    const handleBottomPx = (trackRect.bottom - HANDLE_H) - handleTopY;
+    fader = Math.max(0, Math.min(1, handleBottomPx / travel));
+  }
+
+  track.addEventListener('pointerdown', e => {
+    track.setPointerCapture(e.pointerId);
+    measure();
+    const hRect = handle.getBoundingClientRect();
+    if (e.clientY >= hRect.top && e.clientY <= hRect.bottom) {
+      dragOffsetTop = e.clientY - hRect.top;
+    } else {
+      dragOffsetTop = HANDLE_H / 2;
+    }
+    dragging = true;
+    setFaderFromY(e.clientY);
+    renderHandle();
+    e.preventDefault();
+  });
+  track.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    setFaderFromY(e.clientY);
+    renderHandle();
+    e.preventDefault();
+  });
+  function endDrag(e) {
+    if (!dragging) return;
+    dragging = false;
+    try { track.releasePointerCapture(e.pointerId); } catch (_) {}
+  }
+  track.addEventListener('pointerup', endDrag);
+  track.addEventListener('pointercancel', endDrag);
+
+  addEventListener('resize', measure);
+  addEventListener('orientationchange', measure);
+  measure();
+
+  // ---------- forest ----------
+  const SURVIVAL = 0.92;       // per year, per sapling
+  const MATURITY = 30;         // years to count as offset
+  const EMIT_RATE = 1.25;      // saplings/sec at full fader
+  const MAX_VISIBLE = 44;
+
+  const saplings = [];
+  let emitted = 0;
+  let planted = 0;
+  let residual = 0;
+  let cumMature = 0;
+  let cumFailed = 0;
+
+  function plant() {
+    planted++;
+    const el = document.createElement('div');
+    el.className = 'sapling';
+    forest.appendChild(el);
+    saplings.push({ el, age: 0, state: 'young' });
+    while (saplings.length > MAX_VISIBLE) {
+      const old = saplings.shift();
+      resolveRemaining(old);
+      old.el.remove();
+    }
+  }
+
+  function resolveRemaining(s) {
+    if (s.state === 'mature') { cumMature++; return; }
+    if (s.state === 'failed') { cumFailed++; return; }
+    let a = s.age;
+    while (a < MATURITY) {
+      if (Math.random() > SURVIVAL) { cumFailed++; return; }
+      a++;
+    }
+    cumMature++;
+  }
+
+  // ---------- loop ----------
+  let last = performance.now();
+  let yearAccum = 0;
+
+  function frame(now) {
+    const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
+    last = now;
+
+    if (fader > 0.02) {
+      emitted += fader * dt;
+      residual += fader * EMIT_RATE * dt;
+      while (residual >= 1) {
+        residual -= 1;
+        plant();
+      }
+    }
+
+    yearAccum += dt;
+    if (yearAccum >= 1) {
+      const years = Math.floor(yearAccum);
+      yearAccum -= years;
+      for (const s of saplings) {
+        if (s.state === 'mature' || s.state === 'failed') continue;
+        for (let y = 0; y < years; y++) {
+          if (Math.random() > SURVIVAL) {
+            s.state = 'failed';
+            s.el.classList.remove('grown');
+            s.el.classList.add('failed');
+            break;
+          }
+          s.age++;
+          if (s.age >= MATURITY) {
+            s.state = 'mature';
+            s.el.classList.remove('grown');
+            s.el.classList.add('mature');
+            break;
+          } else if (s.age >= 12 && !s.el.classList.contains('grown')) {
+            s.el.classList.add('grown');
+          }
+        }
+      }
+    }
+
+    updateLedger();
+    requestAnimationFrame(frame);
+  }
+
+  let nudged = false;
+  function updateLedger() {
+    let visMature = 0, visFailed = 0, visPending = 0;
+    for (const s of saplings) {
+      if (s.state === 'mature') visMature++;
+      else if (s.state === 'failed') visFailed++;
+      else visPending++;
+    }
+    const totalMature = cumMature + visMature;
+    const totalFailed = cumFailed + visFailed;
+    const pending = visPending;
+
+    rEmitted.textContent = emitted.toFixed(1);
+    rPlanted.textContent = planted;
+    rSurviving.textContent = totalMature;
+    rFailed.textContent = totalFailed;
+    rPending.textContent = pending;
+
+    const resolved = totalMature + totalFailed;
+    if (resolved === 0) {
+      rReal.textContent = '—';
+    } else {
+      const pct = (totalMature / planted) * 100;
+      rReal.textContent = pct.toFixed(1) + '%';
+    }
+
+    if (!nudged && planted >= 10 && totalFailed >= 3) {
+      nudged = true;
+      sheetBtn.classList.add('nudge');
+    }
+  }
+
+  requestAnimationFrame(frame);
+
+  // ---------- ledger ----------
+  function openLedger() {
+    ledger.classList.add('open');
+    ledger.setAttribute('aria-hidden', 'false');
+    sheetBtn.classList.remove('nudge');
+  }
+  function closeLedger() {
+    ledger.classList.remove('open');
+    ledger.setAttribute('aria-hidden', 'true');
+  }
+  sheetBtn.addEventListener('click', openLedger);
+  ledgerClose.addEventListener('click', closeLedger);
+})();
+</script>
+
+</body>
+</html>
