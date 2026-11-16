@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dark Change</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0806;
+    --warm: #f5c578;
+    --warm-dim: #a07028;
+    --cool: #6a8098;
+    --ink: #d8c8a0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Mono', monospace;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    height: 100%;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  .corner-back {
+    position: fixed;
+    top: 10px;
+    left: 12px;
+    color: var(--warm-dim);
+    font-size: 11px;
+    text-decoration: none;
+    opacity: 0.45;
+    letter-spacing: 0.05em;
+    z-index: 10;
+  }
+  .corner-back:active { opacity: 1; }
+
+  .marquee-wrap {
+    padding: 34px 16px 8px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .marquee {
+    font-family: 'Special Elite', 'IBM Plex Mono', monospace;
+    font-size: 22px;
+    letter-spacing: 0.18em;
+    color: var(--warm);
+    text-shadow: 0 0 10px rgba(245, 197, 120, 0.3);
+    min-height: 1.2em;
+    white-space: pre;
+  }
+  .marquee.flicker { animation: flicker 0.42s steps(3); }
+  @keyframes flicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .stage {
+    flex: 1;
+    position: relative;
+    padding: 0 10px;
+    min-height: 0;
+    display: flex;
+  }
+  .stage svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    max-height: 100%;
+  }
+
+  .controls {
+    padding: 18px 20px 34px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .blackout-btn {
+    width: 100%;
+    max-width: 340px;
+    padding: 20px 24px;
+    background: #1a120a;
+    color: var(--warm);
+    border: 1px solid var(--warm-dim);
+    border-radius: 2px;
+    font-family: 'Special Elite', monospace;
+    font-size: 14px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.1s, color 0.1s;
+    touch-action: none;
+  }
+  .blackout-btn.pressed {
+    background: var(--warm-dim);
+    color: #1a120a;
+  }
+  .sheet-link {
+    color: var(--warm-dim);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    background: none;
+    border: none;
+    padding: 4px 10px;
+    font-family: inherit;
+    text-transform: uppercase;
+  }
+
+  .blackout-screen {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.14s ease;
+  }
+  .blackout-screen.on { opacity: 1; }
+
+  .sheet {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 4, 3, 0.97);
+    z-index: 200;
+    display: none;
+    flex-direction: column;
+    padding: 30px 16px 20px;
+    overflow-y: auto;
+  }
+  .sheet.open { display: flex; }
+  .sheet h2 {
+    font-family: 'Special Elite', monospace;
+    font-size: 15px;
+    color: var(--warm);
+    letter-spacing: 0.22em;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .sheet .meta {
+    font-size: 10px;
+    color: var(--warm-dim);
+    letter-spacing: 0.08em;
+    text-align: center;
+    margin-bottom: 18px;
+    line-height: 1.5;
+    padding: 0 6px;
+  }
+  .ledger {
+    font-size: 10.5px;
+    line-height: 1.5;
+    color: var(--ink);
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .ledger th {
+    text-align: left;
+    padding: 5px 4px;
+    border-bottom: 1px solid var(--warm-dim);
+    color: var(--warm-dim);
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    font-size: 9.5px;
+    text-transform: uppercase;
+  }
+  .ledger td {
+    padding: 4px;
+    border-bottom: 1px dashed rgba(160, 112, 40, 0.18);
+    vertical-align: top;
+  }
+  .ledger td.marq { color: var(--warm); font-family: 'Special Elite', monospace; letter-spacing: 0.05em; white-space: nowrap; }
+  .ledger td.nm { color: var(--warm-dim); text-align: right; width: 22px; }
+  .sheet-close {
+    margin: 22px auto 0;
+    background: none;
+    border: 1px solid var(--warm-dim);
+    color: var(--warm-dim);
+    padding: 10px 20px;
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee.flicker { animation: none; }
+    .blackout-screen { transition: opacity 0.05s linear; }
+  }
+</style>
+</head>
+<body>
+<a class="corner-back" href="../../index.html">← cue sheet</a>
+
+<div class="marquee-wrap">
+  <div class="marquee" id="marquee">LIVE TONIGHT</div>
+</div>
+
+<div class="stage">
+  <svg viewBox="0 0 360 440" preserveAspectRatio="xMidYMid meet" id="stage-svg" aria-hidden="true">
+    <defs>
+      <radialGradient id="foot">
+        <stop offset="0" stop-color="#f5c578" stop-opacity="0.55"/>
+        <stop offset="1" stop-color="#f5c578" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="lampglow">
+        <stop offset="0" stop-color="#f5d078" stop-opacity="0.9"/>
+        <stop offset="1" stop-color="#f5d078" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+
+    <!-- Backdrop -->
+    <rect x="28" y="28" width="304" height="204" fill="#241a12" stroke="#4a3822" stroke-width="1"/>
+
+    <!-- Painted cottage on backdrop -->
+    <g id="cottage">
+      <polygon id="roof" points="120,108 180,78 240,108 240,148 120,148" fill="#55362a" stroke="#3a2820" stroke-width="1"/>
+      <rect id="wall" x="135" y="108" width="90" height="60" fill="#705040" stroke="#3a2820" stroke-width="1"/>
+      <rect id="door" x="170" y="134" width="20" height="34" fill="#2a1610"/>
+      <rect id="window-l" x="145" y="120" width="12" height="12" fill="#f5c578" opacity="0.55"/>
+      <rect id="window-r" x="203" y="120" width="12" height="12" fill="#f5c578" opacity="0.55"/>
+      <rect id="chimney" x="205" y="86" width="12" height="24" fill="#55362a" stroke="#3a2820" stroke-width="1"/>
+      <g id="smoke" opacity="0.65">
+        <circle cx="211" cy="76" r="5" fill="#7a6a5a"/>
+        <circle cx="213" cy="66" r="6" fill="#6a5a4a"/>
+        <circle cx="210" cy="55" r="7" fill="#5a4a3a"/>
+      </g>
+    </g>
+
+    <!-- Stage floor -->
+    <rect x="18" y="232" width="324" height="200" fill="#2a1e14"/>
+    <line x1="18" y1="258" x2="342" y2="258" stroke="#3a2820" stroke-width="0.5"/>
+    <line x1="18" y1="290" x2="342" y2="290" stroke="#3a2820" stroke-width="0.5"/>
+    <line x1="18" y1="322" x2="342" y2="322" stroke="#3a2820" stroke-width="0.5"/>
+    <line x1="18" y1="360" x2="342" y2="360" stroke="#3a2820" stroke-width="0.5"/>
+    <line x1="18" y1="400" x2="342" y2="400" stroke="#3a2820" stroke-width="0.5"/>
+
+    <!-- Footlight glow along front -->
+    <ellipse cx="180" cy="430" rx="220" ry="28" fill="url(#foot)" opacity="0.5"/>
+
+    <!-- Table -->
+    <g id="table">
+      <rect x="138" y="290" width="92" height="10" fill="#8a6038" stroke="#5a3822" stroke-width="1"/>
+      <rect x="148" y="300" width="4" height="46" fill="#5a3822"/>
+      <rect x="216" y="300" width="4" height="46" fill="#5a3822"/>
+    </g>
+
+    <!-- Chair -->
+    <g id="chair">
+      <rect x="92" y="294" width="34" height="4" fill="#705030"/>
+      <rect x="92" y="298" width="4" height="46" fill="#705030"/>
+      <rect x="122" y="298" width="4" height="46" fill="#705030"/>
+      <rect x="92" y="262" width="4" height="36" fill="#705030"/>
+      <rect x="122" y="262" width="4" height="36" fill="#705030"/>
+      <rect x="96" y="266" width="26" height="3" fill="#705030"/>
+      <rect x="96" y="273" width="26" height="3" fill="#705030"/>
+    </g>
+
+    <!-- Hat -->
+    <g id="hat">
+      <ellipse cx="109" cy="292" rx="16" ry="3" fill="#2a1a10"/>
+      <rect x="101" y="281" width="16" height="12" fill="#2a1a10"/>
+      <ellipse cx="109" cy="281" rx="8" ry="2" fill="#1a1008"/>
+    </g>
+
+    <!-- Glass -->
+    <g id="glass">
+      <rect x="155" y="275" width="10" height="15" fill="#9ab5c0" opacity="0.65"/>
+      <rect id="water" x="156" y="278" width="8" height="11" fill="#6090a0" opacity="0.65"/>
+      <rect x="155" y="275" width="10" height="2" fill="#aab5c0" opacity="0.55"/>
+    </g>
+
+    <!-- Lamp -->
+    <g id="lamp">
+      <rect x="200" y="270" width="4" height="20" fill="#3a2820"/>
+      <polygon points="192,270 212,270 208,260 196,260" fill="#8a7050"/>
+      <circle id="lamp-glow" cx="202" cy="278" r="18" fill="url(#lampglow)" opacity="0.7"/>
+    </g>
+
+    <!-- Book -->
+    <g id="book">
+      <rect id="book-cover" x="175" y="285" width="22" height="5" fill="#8a2820"/>
+      <rect id="book-spine" x="175" y="285" width="22" height="1" fill="#aa4030"/>
+      <line x1="186" y1="285" x2="186" y2="290" stroke="#5a1810" stroke-width="0.5"/>
+    </g>
+  </svg>
+</div>
+
+<div class="controls">
+  <button class="blackout-btn" id="blackout">Hold &middot; Dark Change</button>
+  <button class="sheet-link" id="sheet-btn">call sheet</button>
+</div>
+
+<div class="blackout-screen" id="blackout-screen"></div>
+
+<div class="sheet" id="sheet" aria-hidden="true">
+  <h2>CALL SHEET</h2>
+  <div class="meta" id="sheet-meta">hold the button to begin.</div>
+  <table class="ledger">
+    <thead><tr><th>#</th><th>held</th><th>moved in the dark</th><th class="marq">marquee</th></tr></thead>
+    <tbody id="sheet-body"></tbody>
+  </table>
+  <button class="sheet-close" id="sheet-close">close</button>
+</div>
+
+<script>
+(function(){
+  var marquee = document.getElementById('marquee');
+  var blackoutBtn = document.getElementById('blackout');
+  var blackoutScreen = document.getElementById('blackout-screen');
+  var sheetBtn = document.getElementById('sheet-btn');
+  var sheet = document.getElementById('sheet');
+  var sheetBody = document.getElementById('sheet-body');
+  var sheetMeta = document.getElementById('sheet-meta');
+  var sheetClose = document.getElementById('sheet-close');
+
+  // Marquee drift — one state per blackout. The sign quietly re-describes the house.
+  var marqueeStates = [
+    "LIVE TONIGHT",      // initial / before any blackout
+    "LIVE TONIGHT",      // after 1
+    "LIVE TONIGHT",      // after 2
+    "LIVE TONIGHT.",     // after 3
+    "LIVE TONIGHT·",// after 4 (dot)
+    "LITE TONIGHT·",// after 5
+    "LITE TONIGHT·",// after 6
+    "LITE TONIGHT",      // after 7
+    "LITE  ONIGHT",      // after 8
+    "LIKE  ONIGHT",      // after 9
+    "LIKE ONE NIGHT",    // after 10
+    "LIKE ANY NIGHT",    // after 11
+    "LIKE ANY NIGHT",    // after 12+
+  ];
+
+  var el = {
+    hat: document.getElementById('hat'),
+    glass: document.getElementById('glass'),
+    water: document.getElementById('water'),
+    lamp: document.getElementById('lamp'),
+    lampGlow: document.getElementById('lamp-glow'),
+    book: document.getElementById('book'),
+    bookCover: document.getElementById('book-cover'),
+    bookSpine: document.getElementById('book-spine'),
+    chair: document.getElementById('chair'),
+    smoke: document.getElementById('smoke'),
+    chimney: document.getElementById('chimney'),
+    door: document.getElementById('door'),
+    roof: document.getElementById('roof'),
+    wall: document.getElementById('wall'),
+    windowL: document.getElementById('window-l'),
+    windowR: document.getElementById('window-r'),
+  };
+
+  var changeQueue = [
+    { label: 'hat → floor',
+      do: function(){ el.hat.setAttribute('transform', 'translate(-14, 88)'); } },
+    { label: 'glass empty',
+      do: function(){ el.water.setAttribute('opacity', '0'); } },
+    { label: 'lamp out',
+      do: function(){ el.lampGlow.setAttribute('opacity', '0'); } },
+    { label: 'chair → stage right',
+      do: function(){ el.chair.setAttribute('transform', 'translate(148, 0)'); } },
+    { label: 'smoke gone from chimney',
+      do: function(){ el.smoke.setAttribute('opacity', '0'); } },
+    { label: 'book rebound',
+      do: function(){ el.bookCover.setAttribute('fill', '#2a3870'); el.bookSpine.setAttribute('fill', '#4a58a0'); } },
+    { label: 'hat → table',
+      do: function(){ el.hat.setAttribute('transform', 'translate(76, -2)'); } },
+    { label: 'windows unlit',
+      do: function(){ el.windowL.setAttribute('fill', '#1a1208'); el.windowR.setAttribute('fill', '#1a1208'); } },
+    { label: 'lamp relit, cooler',
+      do: function(){ el.lampGlow.setAttribute('opacity', '0.45'); el.lampGlow.setAttribute('fill', '#9ab5c0'); } },
+    { label: 'door bricked over',
+      do: function(){ el.door.setAttribute('fill', '#705040'); } },
+    { label: 'chimney shortened',
+      do: function(){ el.chimney.setAttribute('height', '12'); el.chimney.setAttribute('y', '98'); } },
+    { label: 'glass gone',
+      do: function(){ el.glass.setAttribute('opacity', '0'); } },
+    { label: 'book gone',
+      do: function(){ el.book.setAttribute('opacity', '0'); } },
+    { label: 'hat gone',
+      do: function(){ el.hat.setAttribute('opacity', '0'); } },
+    { label: 'chair gone',
+      do: function(){ el.chair.setAttribute('opacity', '0'); } },
+    { label: 'lamp gone',
+      do: function(){ el.lamp.setAttribute('opacity', '0'); } },
+    { label: 'chimney gone',
+      do: function(){ el.chimney.setAttribute('opacity', '0'); } },
+    { label: 'roof settled',
+      do: function(){ el.roof.setAttribute('points', '120,128 180,116 240,128 240,148 120,148'); } },
+    { label: 'wall repainted',
+      do: function(){ el.wall.setAttribute('fill', '#504030'); } },
+  ];
+
+  var nextChangeIdx = 0;
+  var ledger = [];
+
+  function performChanges(count) {
+    var moved = [];
+    for (var i = 0; i < count; i++) {
+      if (nextChangeIdx >= changeQueue.length) break;
+      var c = changeQueue[nextChangeIdx];
+      c.do();
+      moved.push(c.label);
+      nextChangeIdx++;
+    }
+    return moved;
+  }
+
+  function setMarquee(n) {
+    var state = marqueeStates[Math.min(n, marqueeStates.length - 1)];
+    if (marquee.textContent !== state) {
+      marquee.classList.add('flicker');
+      setTimeout(function(){ marquee.classList.remove('flicker'); }, 460);
+    }
+    marquee.textContent = state;
+  }
+
+  var pressStart = 0;
+  var isDown = false;
+
+  function startBlackout(e) {
+    if (isDown) return;
+    e.preventDefault();
+    isDown = true;
+    pressStart = Date.now();
+    try { blackoutBtn.setPointerCapture(e.pointerId); } catch (_) {}
+    blackoutBtn.classList.add('pressed');
+    blackoutScreen.classList.add('on');
+  }
+
+  function endBlackout(e) {
+    if (!isDown) return;
+    if (e && e.preventDefault) e.preventDefault();
+    isDown = false;
+    blackoutBtn.classList.remove('pressed');
+    var heldMs = Date.now() - pressStart;
+    var heldSec = heldMs / 1000;
+
+    var count;
+    if (heldMs < 350) count = 0;
+    else if (heldMs < 1200) count = 1;
+    else if (heldMs < 2800) count = 2;
+    else count = 3;
+
+    var moved = count > 0 ? performChanges(count) : [];
+
+    setTimeout(function(){ blackoutScreen.classList.remove('on'); }, count > 0 ? 160 : 60);
+
+    if (count > 0) {
+      ledger.push({
+        n: ledger.length + 1,
+        held: heldSec.toFixed(1) + 's',
+        moved: moved,
+        marquee: marquee.textContent,
+      });
+      setTimeout(function(){ setMarquee(ledger.length); }, 320);
+    }
+  }
+
+  blackoutBtn.addEventListener('pointerdown', startBlackout);
+  blackoutBtn.addEventListener('pointerup', endBlackout);
+  blackoutBtn.addEventListener('pointercancel', endBlackout);
+  blackoutBtn.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+  function openSheet() {
+    sheetBody.innerHTML = '';
+    if (ledger.length === 0) {
+      sheetMeta.textContent = 'no blackouts yet. hold the button and see.';
+    } else {
+      var totalMoved = ledger.reduce(function(a,b){ return a + b.moved.length; }, 0);
+      sheetMeta.textContent =
+        ledger.length + ' blackout' + (ledger.length === 1 ? '' : 's') + ' · ' +
+        totalMoved + ' item' + (totalMoved === 1 ? '' : 's') +
+        ' moved in the dark. the marquee drifted beside them · nobody listed it.';
+    }
+    for (var i = 0; i < ledger.length; i++) {
+      var e = ledger[i];
+      var row = document.createElement('tr');
+      var tdN = document.createElement('td'); tdN.className = 'nm'; tdN.textContent = e.n;
+      var tdH = document.createElement('td'); tdH.textContent = e.held;
+      var tdM = document.createElement('td');
+      if (e.moved.length === 0) tdM.textContent = '—';
+      else {
+        for (var j = 0; j < e.moved.length; j++) {
+          if (j > 0) tdM.appendChild(document.createElement('br'));
+          tdM.appendChild(document.createTextNode(e.moved[j]));
+        }
+      }
+      var tdQ = document.createElement('td'); tdQ.className = 'marq'; tdQ.textContent = e.marquee;
+      row.appendChild(tdN); row.appendChild(tdH); row.appendChild(tdM); row.appendChild(tdQ);
+      sheetBody.appendChild(row);
+    }
+    sheet.classList.add('open');
+    sheet.setAttribute('aria-hidden', 'false');
+  }
+
+  sheetBtn.addEventListener('click', openSheet);
+  sheetClose.addEventListener('click', function(){
+    sheet.classList.remove('open');
+    sheet.setAttribute('aria-hidden', 'true');
+  });
+})();
+</script>
+</body>
+</html>

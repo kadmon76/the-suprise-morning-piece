@@ -762,6 +762,13 @@
       "kind": "question",
       "note": "Pull the beam up as far as you like. Every watt is paid for, below. Check the sheet.",
       "path": "projects/2026-11-15-offset/index.html"
+    },
+    {
+      "date": "2026-11-16",
+      "title": "Dark Change",
+      "kind": "seed",
+      "note": "A stage set, a single button for the dark. Hold it however long you like — the crew prefers you don't watch.",
+      "path": "projects/2026-11-16-dark-change/index.html"
     }
   ]
 }
