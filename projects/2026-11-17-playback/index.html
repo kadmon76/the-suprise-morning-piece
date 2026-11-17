@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Playback</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0b0906;
+    --panel: #15110c;
+    --panel-rim: #241d14;
+    --ink: #b39a7e;
+    --ink-faint: #594a3c;
+    --ink-dim: #7e6a52;
+    --brass: #a3804a;
+    --brass-dark: #6d5230;
+    --brass-rim: #cc9f5c;
+    --tape: #231a11;
+    --tape-edge: #3d2d1b;
+    --amber: #e4a040;
+    --amber-glow: #f6c870;
+    --ice: #7ec0d8;
+    --red: #c04840;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 13px/1.45 ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .back {
+    position: fixed; top: 14px; left: 14px;
+    color: var(--ink-faint);
+    text-decoration: none;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    z-index: 20;
+  }
+  .back:active { color: var(--ink); }
+
+  .sheet-btn {
+    position: fixed; bottom: 18px; right: 18px;
+    width: 32px; height: 32px;
+    border: 1px solid var(--ink-faint);
+    background: transparent;
+    color: var(--ink-faint);
+    border-radius: 50%;
+    font: inherit; font-size: 18px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 0 4px; z-index: 20;
+    cursor: pointer;
+  }
+  .sheet-btn:active { color: var(--ink); border-color: var(--ink-dim); }
+
+  .app {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    padding: 54px 20px 26px;
+    z-index: 10;
+  }
+  .title {
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin: 0;
+    font-weight: 400;
+  }
+  .instruction {
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin: 6px 0 24px;
+    letter-spacing: 0.04em;
+  }
+
+  .deck {
+    position: relative;
+    height: 150px;
+    margin-bottom: 8px;
+  }
+  .reels {
+    position: absolute; inset: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 6px;
+  }
+  .reel {
+    width: 118px; height: 118px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 50%, #2a1f12 0%, #180f06 70%, #0a0603 100%);
+    border: 2px solid var(--brass-dark);
+    box-shadow: 0 0 0 1px #0b0906, inset 0 0 14px rgba(0,0,0,0.7);
+    position: relative;
+    will-change: transform;
+  }
+  .reel::before {
+    content: "";
+    position: absolute; inset: 42%;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--brass-rim) 0%, var(--brass) 55%, var(--brass-dark) 100%);
+    box-shadow: 0 0 0 1px #0b0906, inset 0 0 4px rgba(0,0,0,0.5);
+  }
+  .reel::after {
+    content: "";
+    position: absolute; inset: 7%;
+    border-radius: 50%;
+    background:
+      conic-gradient(from 0deg,
+        transparent 0deg 52deg,
+        rgba(177,136,74,0.26) 52deg 68deg,
+        transparent 68deg 112deg,
+        rgba(177,136,74,0.20) 112deg 128deg,
+        transparent 128deg 172deg,
+        rgba(177,136,74,0.26) 172deg 188deg,
+        transparent 188deg 232deg,
+        rgba(177,136,74,0.20) 232deg 248deg,
+        transparent 248deg 292deg,
+        rgba(177,136,74,0.26) 292deg 308deg,
+        transparent 308deg 360deg);
+  }
+  .reel.spin { animation: spin 2.2s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .tape {
+    position: absolute;
+    left: 40px; right: 40px;
+    top: 50%;
+    height: 8px;
+    transform: translateY(-4px);
+    background: linear-gradient(to bottom,
+      var(--tape-edge) 0%,
+      var(--tape) 20%,
+      var(--tape) 80%,
+      var(--tape-edge) 100%);
+    box-shadow: inset 0 0 6px rgba(0,0,0,0.4);
+    pointer-events: none;
+  }
+
+  .ab-label {
+    position: absolute;
+    top: -14px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    letter-spacing: 0.32em;
+    color: var(--ice);
+    opacity: 0;
+    transition: opacity 120ms linear;
+    pointer-events: none;
+  }
+  .ab-label.show { opacity: 0.85; }
+
+  .strip-wrap { margin: 18px 0 16px; }
+  .strip {
+    position: relative;
+    height: 44px;
+    background: linear-gradient(to bottom, #0e0a06 0%, #1a130c 50%, #0e0a06 100%);
+    border: 1px solid #221a11;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .mark {
+    position: absolute;
+    top: 6px; bottom: 6px;
+    width: 2px;
+    background: var(--amber);
+    box-shadow: 0 0 5px rgba(228,160,64,0.35);
+    transform: translateX(-1px);
+    transition: left 220ms cubic-bezier(.4,.1,.3,1);
+  }
+  .mark.active {
+    background: var(--amber-glow);
+    box-shadow: 0 0 10px rgba(246,200,112,0.8), 0 0 18px rgba(246,200,112,0.35);
+  }
+  .head {
+    position: absolute;
+    top: -4px; bottom: -4px;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--ink-faint) 20%, var(--ink-faint) 80%, transparent);
+    transform: translateX(-0.5px);
+    left: 0;
+    opacity: 0;
+  }
+  .head.show { opacity: 1; }
+
+  .grid-layer {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 320ms ease-out;
+  }
+  .grid-layer.show { opacity: 1; }
+  .grid-tick {
+    position: absolute;
+    top: 14px; bottom: 14px;
+    width: 1px;
+    background: rgba(255,255,255,0.055);
+    transform: translateX(-0.5px);
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 7px;
+    margin-top: auto;
+    margin-bottom: 14px;
+  }
+  .btn {
+    background: var(--panel);
+    color: var(--ink);
+    border: 1px solid var(--panel-rim);
+    padding: 15px 0;
+    font: inherit;
+    font-size: 10px;
+    letter-spacing: 0.26em;
+    text-align: center;
+    border-radius: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: border-color 120ms, color 120ms, background 120ms;
+  }
+  .btn:disabled { opacity: 0.3; cursor: default; }
+  .btn:not(:disabled):active {
+    background: #1e1510;
+    color: var(--amber-glow);
+    border-color: var(--brass);
+  }
+  .btn.rec-on {
+    color: var(--red); border-color: var(--red);
+    background: #1a0b09;
+  }
+
+  .status {
+    min-height: 18px;
+    font-size: 11px;
+    color: var(--ink-dim);
+    letter-spacing: 0.12em;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .status strong {
+    color: var(--ink);
+    font-weight: 400;
+  }
+  .status .j { color: var(--amber); }
+  .status .live { color: var(--red); }
+
+  .tap-hint {
+    position: fixed;
+    bottom: 110px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--ink-faint);
+    font-size: 10px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .tap-hint.show { animation: hint-in 2.4s 0.8s ease-out forwards; }
+  @keyframes hint-in {
+    0% { opacity: 0; }
+    30% { opacity: 0.5; }
+    100% { opacity: 0.18; }
+  }
+
+  .flash {
+    position: fixed;
+    inset: 0;
+    background: rgba(228,160,64,0);
+    pointer-events: none;
+    z-index: 1;
+    transition: background 90ms ease-out;
+  }
+  .flash.on {
+    background: rgba(228,160,64,0.045);
+    transition: background 20ms;
+  }
+
+  .sheet-overlay {
+    position: fixed; inset: 0;
+    background: rgba(9,7,4,0.96);
+    z-index: 30;
+    display: flex; flex-direction: column;
+    padding: 54px 26px 28px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 180ms linear;
+  }
+  .sheet-overlay.show { opacity: 1; pointer-events: auto; }
+  .sheet-overlay .close {
+    position: absolute; top: 14px; right: 18px;
+    color: var(--ink-faint);
+    background: none; border: none;
+    font: inherit;
+    cursor: pointer;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+  .sheet-overlay .close:active { color: var(--ink); }
+  .sheet-overlay h2 {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 22px;
+    font-weight: 400;
+  }
+  .sheet-overlay dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 14px 18px;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+  .sheet-overlay dt { color: var(--ink-dim); }
+  .sheet-overlay dd {
+    margin: 0;
+    color: var(--ink);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .sheet-overlay dd.confess { color: var(--ice); }
+  .sheet-overlay .note {
+    margin-top: 22px;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+    line-height: 1.6;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reel.spin { animation: none; }
+    .mark { transition: none; }
+    .tap-hint.show { animation: none; opacity: 0.3; }
+    .head { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+
+<div class="app">
+  <h1 class="title">Playback</h1>
+  <p class="instruction">Record a rhythm.</p>
+
+  <div class="deck">
+    <div class="reels">
+      <div class="reel" id="reel-l"></div>
+      <div class="reel" id="reel-r"></div>
+    </div>
+    <div class="tape"></div>
+    <div class="ab-label" id="ab-label">A</div>
+  </div>
+
+  <div class="strip-wrap">
+    <div class="strip" id="strip">
+      <div class="grid-layer" id="grid"></div>
+      <div class="head" id="head"></div>
+    </div>
+  </div>
+
+  <div class="status" id="status">press rec</div>
+
+  <div class="controls">
+    <button class="btn" id="rec" type="button">Rec</button>
+    <button class="btn" id="stop" type="button" disabled>Stop</button>
+    <button class="btn" id="play" type="button" disabled>Play</button>
+    <button class="btn" id="ab" type="button" disabled>A/B</button>
+  </div>
+</div>
+
+<div class="tap-hint" id="tap-hint">tap anywhere</div>
+<div class="flash" id="flash"></div>
+
+<button class="sheet-btn" id="sheet-btn" type="button" aria-label="call sheet">·</button>
+
+<div class="sheet-overlay" id="sheet" role="dialog" aria-label="call sheet">
+  <button class="close" id="sheet-close" type="button">close</button>
+  <h2>call sheet</h2>
+  <dl>
+    <dt>tape generations played</dt><dd id="s-gens">0</dd>
+    <dt>jitter removed</dt><dd id="s-jitter">0%</dd>
+    <dt>a/b comparisons shown</dt><dd id="s-ab">0</dd>
+    <dt>a / b comparisons where a &ne; b</dt><dd id="s-abdiff">0</dd>
+    <dt>true-original playbacks offered</dt><dd id="s-orig" class="confess">0</dd>
+  </dl>
+  <div class="note">the first play was the only unmastered pass. nothing on the tape is what you tapped.</div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var PULL = 0.35;            // per-generation snap factor toward grid
+  var REC_MAX_MS = 10000;     // cap on recording length
+  var MIN_DUR_MS = 180;       // minimum musical duration
+
+  var state = {
+    taps: [],
+    recStart: 0,
+    recording: false,
+    generation: 0,
+    abShown: 0,
+    duration: 0,
+    timeout: 0
+  };
+
+  function $(id){ return document.getElementById(id); }
+
+  var reelL = $('reel-l'), reelR = $('reel-r');
+  var strip = $('strip'), head = $('head'), grid = $('grid');
+  var abLabel = $('ab-label');
+  var recBtn = $('rec'), stopBtn = $('stop'), playBtn = $('play'), abBtn = $('ab');
+  var statusEl = $('status');
+  var flash = $('flash');
+  var sheet = $('sheet');
+  var sheetBtn = $('sheet-btn');
+  var sheetClose = $('sheet-close');
+  var tapHint = $('tap-hint');
+
+  function setStatus(html){ statusEl.innerHTML = html; }
+  function setReelsSpinning(on){
+    reelL.classList.toggle('spin', on);
+    reelR.classList.toggle('spin', on);
+  }
+
+  function clearStrip(){
+    var ms = strip.querySelectorAll('.mark');
+    for (var i = 0; i < ms.length; i++) ms[i].parentNode.removeChild(ms[i]);
+    var gs = grid.querySelectorAll('.grid-tick');
+    for (var j = 0; j < gs.length; j++) gs[j].parentNode.removeChild(gs[j]);
+    grid.classList.remove('show');
+    head.classList.remove('show');
+    head.style.transition = 'none';
+    head.style.left = '0%';
+  }
+
+  function ensureMarks(){
+    var current = strip.querySelectorAll('.mark').length;
+    if (current === state.taps.length) return;
+    // rebuild
+    var ms = strip.querySelectorAll('.mark');
+    for (var i = 0; i < ms.length; i++) ms[i].parentNode.removeChild(ms[i]);
+    for (var k = 0; k < state.taps.length; k++){
+      var m = document.createElement('div');
+      m.className = 'mark';
+      m.dataset.i = String(k);
+      strip.appendChild(m);
+    }
+  }
+
+  function placeMarks(animated){
+    ensureMarks();
+    var D = Math.max(1, state.duration);
+    var ms = strip.querySelectorAll('.mark');
+    for (var i = 0; i < ms.length; i++){
+      if (!animated) {
+        ms[i].style.transition = 'none';
+      } else {
+        ms[i].style.transition = '';
+      }
+      ms[i].style.left = (state.taps[i] / D * 100) + '%';
+    }
+    if (!animated) {
+      // force reflow before restoring transition on next frame
+      strip.offsetHeight; // eslint-disable-line no-unused-expressions
+      requestAnimationFrame(function(){
+        for (var j = 0; j < ms.length; j++) ms[j].style.transition = '';
+      });
+    }
+  }
+
+  function placeGridTicks(){
+    var existing = grid.querySelectorAll('.grid-tick');
+    for (var i = 0; i < existing.length; i++) existing[i].parentNode.removeChild(existing[i]);
+    if (state.taps.length < 2) return;
+    for (var k = 0; k < state.taps.length; k++){
+      var t = document.createElement('div');
+      t.className = 'grid-tick';
+      t.style.left = (k / (state.taps.length - 1) * 100) + '%';
+      grid.appendChild(t);
+    }
+  }
+
+  function flashOn(){
+    flash.classList.add('on');
+    setTimeout(function(){ flash.classList.remove('on'); }, 70);
+  }
+
+  function pulseMark(i){
+    var m = strip.querySelector('.mark[data-i="' + i + '"]');
+    if (!m) return;
+    m.classList.add('active');
+    setTimeout(function(){ m.classList.remove('active'); }, 150);
+  }
+
+  function jitterPctForPlayback(gen){
+    // gen 1 played the raw pattern (100%); gen 2 played the once-quantized pattern; etc.
+    if (gen < 1) return 100;
+    return Math.round(Math.pow(1 - PULL, gen - 1) * 100);
+  }
+
+  function quantizeOnce(){
+    if (state.taps.length < 2) return;
+    var D = state.duration;
+    var N = state.taps.length;
+    for (var i = 0; i < N; i++){
+      var gridT = i / (N - 1) * D;
+      state.taps[i] = state.taps[i] + PULL * (gridT - state.taps[i]);
+    }
+  }
+
+  function playPattern(cb){
+    if (state.taps.length < 2) { cb && cb(); return; }
+    var D = Math.max(1, state.duration);
+    placeMarks(true);
+    head.classList.add('show');
+    head.style.transition = 'none';
+    head.style.left = '0%';
+    // reflow
+    head.offsetWidth; // eslint-disable-line no-unused-expressions
+    head.style.transition = 'left ' + D + 'ms linear';
+    head.style.left = '100%';
+    setReelsSpinning(true);
+    var pulses = [];
+    for (var i = 0; i < state.taps.length; i++){
+      (function(idx, t){
+        pulses.push(setTimeout(function(){ pulseMark(idx); }, t));
+      })(i, Math.max(0, state.taps[i]));
+    }
+    var endTimer = setTimeout(function(){
+      head.classList.remove('show');
+      setReelsSpinning(false);
+      cb && cb();
+    }, D + 80);
+    return function cancel(){
+      for (var j = 0; j < pulses.length; j++) clearTimeout(pulses[j]);
+      clearTimeout(endTimer);
+      head.classList.remove('show');
+      setReelsSpinning(false);
+    };
+  }
+
+  function startRec(){
+    if (state.recording) return;
+    state.recording = true;
+    state.taps = [];
+    state.generation = 0;
+    state.duration = 0;
+    clearStrip();
+    setStatus('<span class="live">● listening</span>');
+    recBtn.classList.add('rec-on');
+    stopBtn.disabled = false;
+    playBtn.disabled = true;
+    abBtn.disabled = true;
+    tapHint.classList.add('show');
+    setReelsSpinning(true);
+    state.recStart = performance.now();
+    state.timeout = setTimeout(function(){
+      if (state.recording) stopRec();
+    }, REC_MAX_MS);
+  }
+
+  function stopRec(){
+    if (!state.recording) return;
+    state.recording = false;
+    clearTimeout(state.timeout);
+    recBtn.classList.remove('rec-on');
+    stopBtn.disabled = true;
+    tapHint.classList.remove('show');
+    setReelsSpinning(false);
+    if (state.taps.length === 0){
+      setStatus('nothing on the tape');
+      return;
+    }
+    if (state.taps.length === 1){
+      setStatus('one tap is a knock, not a rhythm');
+      state.taps = [];
+      return;
+    }
+    var first = state.taps[0];
+    for (var i = 0; i < state.taps.length; i++) state.taps[i] -= first;
+    state.duration = state.taps[state.taps.length - 1];
+    if (state.duration < MIN_DUR_MS){
+      setStatus('too quick');
+      state.taps = [];
+      return;
+    }
+    state.generation = 0;
+    ensureMarks();
+    placeMarks(false);
+    placeGridTicks();
+    playBtn.disabled = false;
+    abBtn.disabled = false;
+    setStatus(state.taps.length + ' taps · ' + Math.round(state.duration) + ' ms · ready');
+  }
+
+  recBtn.addEventListener('click', startRec);
+  stopBtn.addEventListener('click', stopRec);
+
+  // Tap recording — global so any touch on the piece (except controls) counts.
+  document.addEventListener('pointerdown', function(e){
+    if (!state.recording) return;
+    var t = e.target;
+    if (t && t.closest && t.closest('.btn, .back, .sheet-btn, .sheet-overlay')) return;
+    var now = performance.now() - state.recStart;
+    state.taps.push(now);
+    flashOn();
+  }, true);
+
+  playBtn.addEventListener('click', function(){
+    if (state.taps.length < 2) return;
+    if (playBtn.disabled) return;
+    playBtn.disabled = true; abBtn.disabled = true;
+    recBtn.disabled = true; stopBtn.disabled = true;
+    var isFirst = state.generation === 0;
+    if (!isFirst){
+      quantizeOnce();
+    }
+    if (state.generation >= 1) grid.classList.add('show');
+    var genForThisPlay = state.generation + 1;
+    setStatus('playing · generation ' + genForThisPlay);
+    playPattern(function(){
+      state.generation = genForThisPlay;
+      var pct = jitterPctForPlayback(state.generation);
+      setStatus('generation <strong>' + state.generation + '</strong> · jitter <span class="j">' + pct + '%</span>');
+      playBtn.disabled = false;
+      abBtn.disabled = false;
+      recBtn.disabled = false;
+    });
+  });
+
+  abBtn.addEventListener('click', function(){
+    if (state.taps.length < 2) return;
+    if (abBtn.disabled) return;
+    playBtn.disabled = true; abBtn.disabled = true;
+    recBtn.disabled = true; stopBtn.disabled = true;
+    state.abShown += 1;
+    setStatus('a / b');
+    abLabel.textContent = 'A';
+    abLabel.classList.add('show');
+    playPattern(function(){
+      abLabel.classList.remove('show');
+      setTimeout(function(){
+        abLabel.textContent = 'B';
+        abLabel.classList.add('show');
+        playPattern(function(){
+          abLabel.classList.remove('show');
+          setStatus('a matches b');
+          playBtn.disabled = false;
+          abBtn.disabled = false;
+          recBtn.disabled = false;
+        });
+      }, 420);
+    });
+  });
+
+  sheetBtn.addEventListener('click', function(){
+    var removed = state.generation < 1 ? 0 : (100 - jitterPctForPlayback(state.generation));
+    $('s-gens').textContent = String(state.generation);
+    $('s-jitter').textContent = removed + '%';
+    $('s-ab').textContent = String(state.abShown);
+    $('s-abdiff').textContent = '0';
+    $('s-orig').textContent = '0';
+    sheet.classList.add('show');
+  });
+  sheetClose.addEventListener('click', function(){ sheet.classList.remove('show'); });
+  sheet.addEventListener('click', function(e){ if (e.target === sheet) sheet.classList.remove('show'); });
+
+  document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
+
+  // Expose for headless verification.
+  window.__playback = {
+    state: state,
+    jitterPctForPlayback: jitterPctForPlayback,
+    startRec: startRec,
+    stopRec: stopRec
+  };
+})();
+</script>
+</body>
+</html>

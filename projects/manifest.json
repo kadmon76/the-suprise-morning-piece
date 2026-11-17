@@ -762,6 +762,13 @@
       "kind": "question",
       "note": "Pull the beam up as far as you like. Every watt is paid for, below. Check the sheet.",
       "path": "projects/2026-11-15-offset/index.html"
+    },
+    {
+      "date": "2026-11-17",
+      "title": "Playback",
+      "kind": "seed",
+      "note": "Tap a rhythm onto the tape. Play it back. Play it back again. It was always this clean.",
+      "path": "projects/2026-11-17-playback/index.html"
     }
   ]
 }
