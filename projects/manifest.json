@@ -776,6 +776,13 @@
       "kind": "question",
       "note": "A sign-out toggle like any other. Drag it — we just want to check one or two things first.",
       "path": "projects/2026-11-18-please-confirm/index.html"
+    },
+    {
+      "date": "2026-11-19",
+      "title": "(Between Frames.)",
+      "kind": "question",
+      "note": "Tap the shutter. Twelve frames of a stage light opening. Nothing else.",
+      "path": "projects/2026-11-19-between-frames/index.html"
     }
   ]
 }
