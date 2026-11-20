@@ -776,6 +776,13 @@
       "kind": "question",
       "note": "A sign-out toggle like any other. Drag it — we just want to check one or two things first.",
       "path": "projects/2026-11-18-please-confirm/index.html"
+    },
+    {
+      "date": "2026-11-20",
+      "title": "Haze",
+      "kind": "seed",
+      "note": "A theatrical hazer and a dark stage. Hold the pump to clear the air — see what's been pointed at you all night.",
+      "path": "projects/2026-11-20-haze/index.html"
     }
   ]
 }

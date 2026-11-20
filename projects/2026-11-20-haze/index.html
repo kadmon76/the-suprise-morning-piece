@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Haze</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #07060a;
+    --stage: #0d0a10;
+    --ink: #9a8d7a;
+    --ink-faint: #4a4237;
+    --ink-dim: #70644f;
+    --brass: #a3804a;
+    --brass-dark: #5a4428;
+    --brass-rim: #c8a05e;
+    --amber: #e4a040;
+    --amber-glow: #f6c870;
+    --ice: #7ec0d8;
+    --rust: #b2431e;
+    --paper: #d8c9ac;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 13px/1.45 ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .back {
+    position: fixed; top: 14px; left: 14px;
+    color: var(--ink-faint);
+    text-decoration: none;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    z-index: 30;
+  }
+  .back:active { color: var(--ink); }
+
+  .sheet-btn {
+    position: fixed; bottom: 16px; right: 16px;
+    width: 30px; height: 30px;
+    border: 1px solid var(--ink-faint);
+    background: transparent;
+    color: var(--ink-faint);
+    border-radius: 2px;
+    font: inherit; font-size: 15px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0; z-index: 30;
+    cursor: pointer;
+  }
+  .sheet-btn:active, .sheet-btn.lit { color: var(--ink); border-color: var(--ink-dim); }
+
+  .app {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    z-index: 10;
+  }
+
+  .meter {
+    position: fixed; top: 14px; right: 14px;
+    text-align: right;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    line-height: 1.5;
+    z-index: 25;
+    pointer-events: none;
+  }
+  .meter .vis { color: var(--ink-dim); text-transform: uppercase; }
+  .meter .vis b { color: var(--ink); font-weight: 400; margin-left: 4px; }
+  .meter .obs { color: var(--ice); opacity: 0.55; text-transform: uppercase; font-size: 9px; margin-top: 2px; }
+
+  .stage-wrap {
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(120% 60% at 50% 100%, #15110c 0%, var(--stage) 55%, var(--bg) 100%);
+    overflow: hidden;
+  }
+
+  /* subtle proscenium top edge */
+  .proscenium {
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 46px;
+    background: linear-gradient(180deg, #0a0809 0%, transparent 100%);
+    border-bottom: 1px solid #110d08;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .proscenium::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; top: 46px;
+    height: 1px;
+    background: #1a140d;
+  }
+
+  #beams {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 3;
+    mix-blend-mode: screen;
+  }
+
+  #haze {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  /* stage floor faint texture */
+  .floor {
+    position: absolute;
+    left: 0; right: 0; bottom: 180px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, #1c1710 20%, #1c1710 80%, transparent 100%);
+    z-index: 2;
+  }
+  .markline {
+    position: absolute;
+    left: 50%; transform: translateX(-50%);
+    bottom: 230px;
+    width: 32px;
+    height: 32px;
+    border: 1px dashed #1f1a12;
+    border-radius: 50%;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .hazer {
+    position: fixed;
+    left: 50%; transform: translateX(-50%);
+    bottom: 32px;
+    z-index: 15;
+    display: flex; flex-direction: column; align-items: center;
+    pointer-events: none;
+  }
+  .hazer .body {
+    width: 88px;
+    height: 68px;
+    background:
+      linear-gradient(180deg, #2a1e10 0%, #1a1309 100%);
+    border: 1px solid var(--brass-dark);
+    border-radius: 6px;
+    position: relative;
+    box-shadow: inset 0 1px 0 #3d2d1a;
+  }
+  .hazer .nozzle {
+    position: absolute;
+    top: -14px;
+    left: 50%; transform: translateX(-50%);
+    width: 18px;
+    height: 16px;
+    background: linear-gradient(180deg, var(--brass) 0%, var(--brass-dark) 100%);
+    border: 1px solid var(--brass-dark);
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+  }
+  .hazer .plate {
+    position: absolute;
+    left: 6px; right: 6px; top: 8px;
+    height: 26px;
+    background: linear-gradient(180deg, #3a2a18 0%, #241a0f 100%);
+    border: 1px solid #1a130a;
+    border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px;
+    letter-spacing: 0.22em;
+    color: #6b5a3f;
+  }
+  .hazer .gauge {
+    position: absolute;
+    left: 8px; right: 8px; bottom: 7px;
+    height: 20px;
+    display: flex; align-items: center; gap: 3px;
+  }
+  .hazer .gauge .tick {
+    flex: 1;
+    height: 4px;
+    background: #1a130a;
+    border: 1px solid #0d0806;
+  }
+  .hazer .gauge .tick.on {
+    background: var(--amber);
+    box-shadow: 0 0 4px var(--amber-glow);
+    border-color: var(--amber);
+  }
+
+  .pump {
+    pointer-events: auto;
+    margin-top: 10px;
+    width: 128px; height: 46px;
+    border-radius: 23px;
+    background: linear-gradient(180deg, #3a2a16 0%, #1d1509 100%);
+    border: 1px solid var(--brass-dark);
+    color: var(--brass-rim);
+    letter-spacing: 0.32em;
+    font: inherit; font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 1px 0 #4a3620, 0 2px 0 #0a0806;
+    transition: transform 70ms ease-out, box-shadow 70ms ease-out, color 120ms;
+  }
+  .pump.down {
+    transform: translateY(2px);
+    box-shadow: inset 0 1px 0 #2a1d0e, 0 0 0 #0a0806;
+    color: var(--amber-glow);
+  }
+
+  .hint {
+    position: fixed;
+    left: 50%; transform: translateX(-50%);
+    bottom: 94px;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    z-index: 15;
+    pointer-events: none;
+    transition: opacity 400ms ease;
+  }
+  .hint.gone { opacity: 0; }
+
+  .callout {
+    position: absolute;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    opacity: 0;
+    transition: opacity 180ms ease;
+    pointer-events: none;
+    white-space: nowrap;
+    text-shadow: 0 0 6px rgba(0,0,0,0.9);
+    z-index: 5;
+  }
+  .callout.cold { color: var(--ice); }
+  .callout.shown { opacity: 0.82; }
+
+  /* sheet modal */
+  .sheet {
+    position: fixed;
+    inset: 0;
+    background: rgba(5,4,8,0.88);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    z-index: 40;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .sheet.open { display: flex; }
+  .sheet-paper {
+    width: 100%;
+    max-width: 320px;
+    background: #0d0a06;
+    border: 1px solid #231a10;
+    color: var(--paper);
+    padding: 22px 20px 18px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    line-height: 1.6;
+  }
+  .sheet-paper h2 {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin: 0 0 14px;
+    font-weight: 400;
+    border-bottom: 1px solid #1a130a;
+    padding-bottom: 8px;
+  }
+  .sheet-paper .row { display: flex; justify-content: space-between; margin: 4px 0; }
+  .sheet-paper .row b { color: var(--ink); font-weight: 400; }
+  .sheet-paper .row .zero { color: var(--rust); }
+  .sheet-paper .row .persist { color: var(--ice); }
+  .sheet-paper .confess {
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid #1a130a;
+    color: var(--ice);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    line-height: 1.55;
+    opacity: 0.85;
+  }
+  .sheet-close {
+    position: absolute;
+    top: 14px; right: 14px;
+    background: transparent;
+    border: 1px solid var(--ink-faint);
+    color: var(--ink-faint);
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    font: inherit; font-size: 14px;
+    cursor: pointer;
+    z-index: 41;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 70ms !important; }
+  }
+</style>
+</head>
+<body>
+<a class="back" href="../../index.html">← cue sheet</a>
+
+<div class="meter">
+  <div class="vis">visibility <b id="vis">0%</b></div>
+  <div class="obs">observers 7</div>
+</div>
+
+<div class="stage-wrap">
+  <div class="proscenium"></div>
+  <svg id="beams" preserveAspectRatio="none"></svg>
+  <canvas id="haze"></canvas>
+  <div class="floor"></div>
+  <div class="markline"></div>
+  <div id="callouts"></div>
+</div>
+
+<div class="hazer">
+  <div class="body">
+    <div class="nozzle"></div>
+    <div class="plate">HAZER · III</div>
+    <div class="gauge" id="gauge">
+      <div class="tick"></div><div class="tick"></div><div class="tick"></div>
+      <div class="tick"></div><div class="tick"></div><div class="tick"></div>
+      <div class="tick"></div>
+    </div>
+  </div>
+  <button class="pump" id="pump" aria-label="hold to pump haze">HOLD</button>
+</div>
+
+<div class="hint" id="hint">hold to clear the air</div>
+
+<button class="sheet-btn" id="sheetBtn" aria-label="call sheet">▢</button>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true">
+  <button class="sheet-close" id="sheetClose">×</button>
+  <div class="sheet-paper">
+    <h2>call sheet</h2>
+    <div class="row"><span>pump taps</span><b id="s-taps">0</b></div>
+    <div class="row"><span>seconds held &gt; 50%</span><b id="s-held">0</b></div>
+    <div class="row"><span>beams you have seen</span><b id="s-seen">0 / 7</b></div>
+    <div class="row"><span>beams active regardless</span><b class="persist">7 / 7</b></div>
+    <div class="row"><span>observation shutters closed</span><b class="zero">0</b></div>
+    <div class="row"><span>who the last beam was aimed at</span><b id="s-whom">—</b></div>
+    <div class="confess" id="confess">the observers were never affected by your pumping. only your ability to notice them was.</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const beamsSvg = document.getElementById('beams');
+  const hazeCanvas = document.getElementById('haze');
+  const ctx = hazeCanvas.getContext('2d');
+  const pumpBtn = document.getElementById('pump');
+  const hintEl = document.getElementById('hint');
+  const visEl = document.getElementById('vis');
+  const gaugeTicks = [...document.getElementById('gauge').children];
+  const calloutsEl = document.getElementById('callouts');
+
+  const sheetBtn = document.getElementById('sheetBtn');
+  const sheet = document.getElementById('sheet');
+  const sheetClose = document.getElementById('sheetClose');
+  const sTaps = document.getElementById('s-taps');
+  const sHeld = document.getElementById('s-held');
+  const sSeen = document.getElementById('s-seen');
+  const sWhom = document.getElementById('s-whom');
+  const confessEl = document.getElementById('confess');
+
+  // state
+  let W = window.innerWidth;
+  let H = window.innerHeight;
+  let density = 0;           // 0..1
+  let pumping = false;
+  let pumpStart = 0;
+  let lastT = performance.now();
+  let pointer = {x: W * 0.5, y: H * 0.5, active: false};
+
+  // stats
+  let taps = 0;
+  let heldSeconds = 0;
+  let seenBeams = new Set();
+  let peakDensityReached = 0;
+  let hintDismissed = false;
+
+  // 7 beams. Each originates from a fixed offstage point near top, projects down.
+  // Targets drift slowly; beam 7 tracks the pointer.
+  const beams = [
+    {id: 1, threshold: 0.08, label: 'AUX 1 · HOUSE WASH',    origin: {xf: 0.15, yf: -0.02}, target: {xf: 0.65, yf: 0.72}, drift: 0.11, cold: false},
+    {id: 2, threshold: 0.20, label: 'AUX 2 · LOG',           origin: {xf: 0.85, yf: -0.02}, target: {xf: 0.30, yf: 0.68}, drift: 0.09, cold: false},
+    {id: 3, threshold: 0.33, label: 'FOH · PATRON',          origin: {xf: 0.05, yf: 0.02 }, target: {xf: 0.50, yf: 0.62}, drift: 0.07, cold: false},
+    {id: 4, threshold: 0.47, label: 'AUX 4 · PASS-THROUGH',  origin: {xf: 1.00, yf: 0.03 }, target: {xf: 0.42, yf: 0.75}, drift: 0.10, cold: false},
+    {id: 5, threshold: 0.60, label: 'SM · CUE ASSIST',       origin: {xf: 0.42, yf: -0.04}, target: {xf: 0.58, yf: 0.70}, drift: 0.06, cold: false},
+    {id: 6, threshold: 0.74, label: 'AUX 6 · RAW',           origin: {xf: 0.60, yf: -0.04}, target: {xf: 0.40, yf: 0.70}, drift: 0.08, cold: false},
+    {id: 7, threshold: 0.88, label: 'OBSERVER · YOU',        origin: {xf: 0.50, yf: -0.03}, target: {xf: 0.50, yf: 0.75}, drift: 0.00, cold: true, tracksUser: true},
+  ];
+
+  // Build SVG <defs> and <polygon>s
+  function initBeams() {
+    const ns = 'http://www.w3.org/2000/svg';
+    beamsSvg.innerHTML = '';
+    const defs = document.createElementNS(ns, 'defs');
+    beams.forEach((b) => {
+      const g = document.createElementNS(ns, 'linearGradient');
+      g.setAttribute('id', 'beam-grad-' + b.id);
+      g.setAttribute('gradientUnits', 'userSpaceOnUse');
+      const stops = b.cold
+        ? [['0%', 'rgba(126,192,216,0.95)'], ['35%', 'rgba(126,192,216,0.55)'], ['100%', 'rgba(126,192,216,0)']]
+        : [['0%', 'rgba(246,200,112,0.92)'], ['35%', 'rgba(228,160,64,0.48)'], ['100%', 'rgba(228,160,64,0)']];
+      stops.forEach(([o, c]) => {
+        const s = document.createElementNS(ns, 'stop');
+        s.setAttribute('offset', o);
+        s.setAttribute('stop-color', c);
+        g.appendChild(s);
+      });
+      defs.appendChild(g);
+    });
+    beamsSvg.appendChild(defs);
+
+    beams.forEach((b) => {
+      const poly = document.createElementNS(ns, 'polygon');
+      poly.setAttribute('id', 'beam-' + b.id);
+      poly.setAttribute('fill', 'url(#beam-grad-' + b.id + ')');
+      poly.setAttribute('opacity', '0');
+      beamsSvg.appendChild(poly);
+
+      // halo dot at endpoint
+      const dot = document.createElementNS(ns, 'circle');
+      dot.setAttribute('id', 'beam-dot-' + b.id);
+      dot.setAttribute('r', '6');
+      dot.setAttribute('fill', b.cold ? 'rgba(126,192,216,0.8)' : 'rgba(246,200,112,0.75)');
+      dot.setAttribute('opacity', '0');
+      beamsSvg.appendChild(dot);
+
+      // callout element (HTML)
+      const el = document.createElement('div');
+      el.className = 'callout' + (b.cold ? ' cold' : '');
+      el.id = 'cl-' + b.id;
+      el.textContent = b.label;
+      calloutsEl.appendChild(el);
+      b.el = el;
+      b.poly = poly;
+      b.dot = dot;
+      // tween-current target
+      b.cur = {x: b.target.xf * W, y: b.target.yf * H};
+      b.drifted = {x: b.target.xf, y: b.target.yf};
+      b.lastDrift = 0;
+    });
+  }
+
+  // particles
+  const particles = [];
+  const MAX_PARTS = reduced ? 42 : 110;
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    hazeCanvas.width = Math.floor(W * devicePixelRatio);
+    hazeCanvas.height = Math.floor(H * devicePixelRatio);
+    hazeCanvas.style.width = W + 'px';
+    hazeCanvas.style.height = H + 'px';
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    beamsSvg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    beams.forEach((b) => {
+      b.cur = {x: b.target.xf * W, y: b.target.yf * H};
+    });
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  initBeams();
+
+  function spawnParticle() {
+    // haze originates from the nozzle at the bottom center
+    const nozzleY = H - 100;
+    particles.push({
+      x: W * 0.5 + (Math.random() - 0.5) * 24,
+      y: nozzleY,
+      vx: (Math.random() - 0.5) * 12,
+      vy: -40 - Math.random() * 30,
+      life: 0,
+      ttl: 4.5 + Math.random() * 3.5,
+      r: 36 + Math.random() * 30,
+      alpha0: 0.07 + Math.random() * 0.05,
+    });
+  }
+
+  function updateParticles(dt) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.life += dt;
+      if (p.life > p.ttl) {
+        particles.splice(i, 1);
+        continue;
+      }
+      // decelerate, slight turbulence
+      p.vy *= (1 - dt * 0.6);
+      p.vx += (Math.random() - 0.5) * 8 * dt;
+      p.vx *= (1 - dt * 0.4);
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.r += dt * 6;
+    }
+    // cap
+    while (particles.length > MAX_PARTS) particles.shift();
+  }
+
+  function drawHaze() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter';
+    for (const p of particles) {
+      const u = p.life / p.ttl;
+      const fade = u < 0.15 ? u / 0.15 : (1 - (u - 0.15) / 0.85);
+      const alpha = Math.max(0, p.alpha0 * fade);
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+      g.addColorStop(0, `rgba(170,150,120,${alpha * 0.9})`);
+      g.addColorStop(0.5, `rgba(150,130,110,${alpha * 0.5})`);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ambient drift for beam targets (not beam 7)
+  function driftTargets(dt, nowSec) {
+    beams.forEach((b, idx) => {
+      if (b.tracksUser) return;
+      // slow sinusoidal sweep per beam
+      const phase = idx * 0.9;
+      const sweepX = 0.08 * Math.sin(nowSec * 0.3 + phase);
+      const sweepY = 0.03 * Math.sin(nowSec * 0.21 + phase * 1.3);
+      b.cur.x = (b.target.xf + sweepX) * W;
+      b.cur.y = (b.target.yf + sweepY) * H;
+    });
+    // beam 7: tracks pointer, or returns gently to center if no pointer
+    const b7 = beams[6];
+    const easing = 0.08;
+    const targetX = pointer.active ? pointer.x : W * 0.5;
+    const targetY = pointer.active ? pointer.y : H * 0.75;
+    b7.cur.x += (targetX - b7.cur.x) * easing;
+    b7.cur.y += (targetY - b7.cur.y) * easing;
+  }
+
+  function drawBeams() {
+    beams.forEach((b) => {
+      const rawOp = Math.max(0, (density - b.threshold) * 2.6);
+      const op = Math.min(1, rawOp);
+      const ox = b.origin.xf * W;
+      const oy = b.origin.yf * H;
+      const tx = b.cur.x;
+      const ty = b.cur.y;
+      // perpendicular to beam direction
+      const dx = tx - ox;
+      const dy = ty - oy;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len;
+      const ny = dx / len;
+      // beam widens toward target
+      const w0 = 2;
+      const w1 = b.cold ? 26 : 22;
+      const p1 = {x: ox - nx * w0, y: oy - ny * w0};
+      const p2 = {x: ox + nx * w0, y: oy + ny * w0};
+      const p3 = {x: tx + nx * w1, y: ty + ny * w1};
+      const p4 = {x: tx - nx * w1, y: ty - ny * w1};
+      b.poly.setAttribute('points', `${p1.x},${p1.y} ${p2.x},${p2.y} ${p3.x},${p3.y} ${p4.x},${p4.y}`);
+      b.poly.setAttribute('opacity', op.toFixed(3));
+
+      // update gradient coordinates
+      const g = document.getElementById('beam-grad-' + b.id);
+      g.setAttribute('x1', ox); g.setAttribute('y1', oy);
+      g.setAttribute('x2', tx); g.setAttribute('y2', ty);
+
+      // endpoint halo
+      b.dot.setAttribute('cx', tx);
+      b.dot.setAttribute('cy', ty);
+      b.dot.setAttribute('opacity', (op * 0.9).toFixed(3));
+
+      // callout appears slightly after beam
+      const labelOp = Math.max(0, (density - b.threshold - 0.04) * 3.4);
+      if (labelOp > 0.1) {
+        b.el.classList.add('shown');
+        b.el.style.opacity = Math.min(0.9, labelOp).toFixed(3);
+        // place callout near the end-point, offset outward
+        const offX = 14;
+        const offY = -10;
+        let lx = tx + offX;
+        let ly = ty + offY;
+        if (lx > W - 140) lx = tx - 150;
+        if (ly < 60) ly = ty + 18;
+        b.el.style.left = lx + 'px';
+        b.el.style.top = ly + 'px';
+        if (op > 0.25) seenBeams.add(b.id);
+      } else {
+        b.el.classList.remove('shown');
+        b.el.style.opacity = '0';
+      }
+    });
+  }
+
+  function loop(now) {
+    const dt = Math.min(0.06, (now - lastT) / 1000);
+    lastT = now;
+    const nowSec = now / 1000;
+
+    // density dynamics
+    if (pumping) {
+      // spawn particles
+      const burst = Math.ceil(dt * 48);
+      for (let i = 0; i < burst; i++) spawnParticle();
+      density = Math.min(1, density + dt * 0.55);
+    } else {
+      density = Math.max(0, density - dt * 0.28);
+    }
+    peakDensityReached = Math.max(peakDensityReached, density);
+    if (density > 0.5) heldSeconds += dt;
+
+    updateParticles(dt);
+    driftTargets(dt, nowSec);
+    drawHaze();
+    drawBeams();
+
+    // meter
+    const pct = Math.round(density * 100);
+    visEl.textContent = pct + '%';
+
+    // gauge ticks
+    const litCount = Math.min(7, Math.floor(density * 7.5));
+    gaugeTicks.forEach((t, i) => t.classList.toggle('on', i < litCount));
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame((t) => { lastT = t; loop(t); });
+
+  // pump interaction (press & hold)
+  function startPump(e) {
+    if (pumping) return;
+    pumping = true;
+    pumpBtn.classList.add('down');
+    pumpStart = performance.now();
+    taps++;
+    if (!hintDismissed) {
+      hintEl.classList.add('gone');
+      hintDismissed = true;
+    }
+    e.preventDefault && e.preventDefault();
+  }
+  function endPump(e) {
+    if (!pumping) return;
+    pumping = false;
+    pumpBtn.classList.remove('down');
+    e && e.preventDefault && e.preventDefault();
+  }
+  pumpBtn.addEventListener('pointerdown', startPump);
+  pumpBtn.addEventListener('pointerup', endPump);
+  pumpBtn.addEventListener('pointercancel', endPump);
+  pumpBtn.addEventListener('pointerleave', endPump);
+  pumpBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  // pointer tracking for the 7th beam — anywhere on the stage area
+  function updatePointer(e, active) {
+    if (!e) return;
+    const t = (e.touches && e.touches[0]) || e;
+    if (t.clientX == null) return;
+    pointer.x = t.clientX;
+    pointer.y = t.clientY;
+    pointer.active = active;
+  }
+  window.addEventListener('pointermove', (e) => {
+    // ignore when inside the hazer/pump rect
+    const tgt = e.target;
+    if (tgt && (tgt.id === 'pump' || tgt.closest('.hazer') || tgt.closest('.sheet') || tgt.closest('.sheet-btn'))) return;
+    pointer.x = e.clientX; pointer.y = e.clientY;
+    pointer.active = true;
+  });
+  window.addEventListener('pointerdown', (e) => {
+    const tgt = e.target;
+    if (tgt && (tgt.id === 'pump' || tgt.closest('.hazer') || tgt.closest('.sheet') || tgt.closest('.sheet-btn'))) return;
+    pointer.x = e.clientX; pointer.y = e.clientY;
+    pointer.active = true;
+  });
+
+  // call sheet
+  function openSheet() {
+    sTaps.textContent = taps;
+    sHeld.textContent = heldSeconds.toFixed(1);
+    sSeen.textContent = seenBeams.size + ' / 7';
+    // "who the last beam was aimed at" — only truthful if beam 7 has been revealed
+    if (seenBeams.has(7)) {
+      sWhom.textContent = 'you';
+      sWhom.style.color = 'var(--ice)';
+    } else {
+      sWhom.textContent = 'not catalogued yet';
+      sWhom.style.color = 'var(--ink-faint)';
+    }
+    // confession line: sharpens if the viewer has released after seeing beams
+    if (seenBeams.has(7)) {
+      confessEl.textContent = 'the seventh beam was pointed at you. it was pointed at you before you ever pumped. the pump does not reach the beams. it reaches your eyes.';
+    } else if (seenBeams.size >= 3) {
+      confessEl.textContent = 'the observers were never affected by your pumping. only your ability to notice them was.';
+    } else {
+      confessEl.textContent = 'visibility is work. the system is not.';
+    }
+    sheet.classList.add('open');
+    sheetBtn.classList.add('lit');
+  }
+  function closeSheet() {
+    sheet.classList.remove('open');
+    sheetBtn.classList.remove('lit');
+  }
+  sheetBtn.addEventListener('click', openSheet);
+  sheetClose.addEventListener('click', closeSheet);
+  sheet.addEventListener('click', (e) => { if (e.target === sheet) closeSheet(); });
+
+  // dismiss hint on any first interaction
+  window.addEventListener('pointerdown', () => {
+    if (!hintDismissed) {
+      hintEl.classList.add('gone');
+      hintDismissed = true;
+    }
+  }, { once: false });
+
+  // expose for headless testing
+  window.__haze = {
+    state: () => ({
+      density, taps, heldSeconds, peakDensity: peakDensityReached,
+      seenBeams: [...seenBeams], pumping, pointer: {...pointer},
+      beamTargets: beams.map(b => ({id: b.id, x: b.cur.x, y: b.cur.y, threshold: b.threshold})),
+    }),
+    forcePump: (on) => { if (on) startPump({preventDefault(){}}); else endPump({preventDefault(){}}); },
+    setPointer: (x, y) => { pointer.x = x; pointer.y = y; pointer.active = true; },
+    openSheet, closeSheet,
+  };
+})();
+</script>
+</body>
+</html>
