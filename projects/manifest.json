@@ -776,6 +776,13 @@
       "kind": "question",
       "note": "A sign-out toggle like any other. Drag it — we just want to check one or two things first.",
       "path": "projects/2026-11-18-please-confirm/index.html"
+    },
+    {
+      "date": "2026-11-21",
+      "title": "In Focus",
+      "kind": "seed",
+      "note": "A barn-door spot, three marks on the floor. Narrow the beam — the subject only gets clearer.",
+      "path": "projects/2026-11-21-in-focus/index.html"
     }
   ]
 }

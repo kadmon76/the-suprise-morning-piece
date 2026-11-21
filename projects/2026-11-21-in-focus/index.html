@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>In Focus</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>
+  :root {
+    --ink: #e8e3d8;
+    --dim: rgba(232,227,216,0.5);
+    --dimmer: rgba(232,227,216,0.25);
+    --bg: #0c0d0e;
+    --panel: #141518;
+    --panel-line: #1f2125;
+    --amber: #d9a648;
+    --ice: #7fb3ce;
+    --rust: #b65743;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--mono);
+    min-height: 100%;
+    overflow-x: hidden;
+    overscroll-behavior: none;
+  }
+  body {
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    min-height: 100svh;
+  }
+  .wrap {
+    width: 100%;
+    max-width: 440px;
+    padding: 18px 16px 72px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .title {
+    font-weight: 400;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: var(--dim);
+    text-transform: lowercase;
+    margin: 0 2px 2px;
+  }
+  .stage-row {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: stretch;
+    min-height: 0;
+  }
+  .stage {
+    flex: 1;
+    aspect-ratio: 100 / 130;
+    background: radial-gradient(ellipse at center, #171a1d 0%, #0e0f11 75%);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    touch-action: none;
+    border: 1px solid var(--panel-line);
+    user-select: none;
+  }
+  .stage svg { width: 100%; height: 100%; display: block; }
+  .mark { opacity: 0.6; }
+  .actor { fill: #7b7267; }
+  .actor-label {
+    fill: transparent;
+    font-size: 3.4px;
+    font-family: var(--mono);
+    letter-spacing: 0.04em;
+    transition: fill 0.18s linear;
+  }
+  .wide .actor-label { fill: var(--ice); }
+  .wide .actor { fill: #a89d8c; }
+  .wide .beam { opacity: 0.4 !important; mix-blend-mode: normal; }
+  .wide .beam-edge { opacity: 0.9 !important; }
+  .beam-edge {
+    fill: none;
+    stroke: var(--amber);
+    stroke-width: 0.35;
+    stroke-dasharray: 0.9 0.7;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s linear;
+  }
+  .wide-banner {
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    padding: 5px 8px;
+    background: rgba(127,179,206,0.12);
+    border-bottom: 1px solid rgba(127,179,206,0.3);
+    color: var(--ice);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    display: none;
+    text-align: center;
+  }
+  .wide .wide-banner { display: block; }
+
+  .slider {
+    width: 44px;
+    background: var(--panel);
+    border: 1px solid var(--panel-line);
+    border-radius: 4px;
+    position: relative;
+    touch-action: none;
+    user-select: none;
+  }
+  .slider-track {
+    position: absolute;
+    top: 14px; bottom: 14px; left: 50%;
+    width: 1px;
+    background: rgba(232,227,216,0.12);
+    transform: translateX(-50%);
+  }
+  .slider-thumb {
+    position: absolute;
+    left: 50%;
+    width: 30px;
+    height: 10px;
+    background: var(--amber);
+    opacity: 0.85;
+    border-radius: 2px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    box-shadow: 0 0 10px rgba(217,166,72,0.3);
+  }
+  .slider-label {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 8.5px;
+    color: var(--dim);
+    letter-spacing: 0.14em;
+    text-transform: lowercase;
+    pointer-events: none;
+  }
+  .slider-label.top { top: 4px; }
+  .slider-label.bot { bottom: 4px; }
+
+  .readout {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    padding: 11px 13px;
+    background: var(--panel);
+    border: 1px solid var(--panel-line);
+    border-radius: 4px;
+  }
+  .readout .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .readout .label {
+    opacity: 0.45;
+    text-transform: lowercase;
+    letter-spacing: 0.14em;
+    font-size: 9.5px;
+  }
+  .readout .val {
+    color: var(--amber);
+    font-variant-numeric: tabular-nums;
+    font-size: 12.5px;
+  }
+  .readout .val.subject {
+    color: var(--ink);
+    text-align: right;
+    max-width: 66%;
+    font-size: 12px;
+  }
+
+  .buttons {
+    display: flex;
+    gap: 10px;
+  }
+  .btn {
+    flex: 1;
+    appearance: none;
+    background: var(--panel);
+    color: var(--ink);
+    border: 1px solid #262930;
+    border-radius: 4px;
+    padding: 11px 8px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: lowercase;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .btn.held, .btn:active {
+    background: rgba(127,179,206,0.14);
+    color: var(--ice);
+    border-color: rgba(127,179,206,0.4);
+  }
+  .btn.log:active, .btn.log.held {
+    background: rgba(217,166,72,0.1);
+    color: var(--amber);
+    border-color: rgba(217,166,72,0.4);
+  }
+
+  .back {
+    position: fixed;
+    left: 12px;
+    bottom: 10px;
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    color: rgba(232,227,216,0.3);
+    text-decoration: none;
+    padding: 8px 6px;
+    z-index: 10;
+    font-family: var(--mono);
+  }
+  .back:hover, .back:active { color: var(--ink); }
+
+  /* modal */
+  .scrim {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.62);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 100;
+  }
+  .scrim.open { display: flex; }
+  .sheet {
+    width: 100%;
+    max-width: 440px;
+    background: #121316;
+    border-top: 1px solid #262930;
+    padding: 16px 16px 24px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    max-height: 78vh;
+    overflow-y: auto;
+    font-size: 11px;
+  }
+  .sheet h2 {
+    font-size: 10.5px;
+    text-transform: lowercase;
+    letter-spacing: 0.14em;
+    color: var(--dim);
+    margin: 0 0 10px;
+    font-weight: 400;
+  }
+  .tally {
+    color: var(--ice);
+    font-size: 11px;
+    padding: 9px 10px;
+    border: 1px solid rgba(127,179,206,0.3);
+    background: rgba(127,179,206,0.07);
+    border-radius: 4px;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  .confession {
+    color: var(--ice);
+    font-size: 10.5px;
+    margin-top: 14px;
+    padding: 9px 10px;
+    border-top: 1px solid rgba(127,179,206,0.2);
+    line-height: 1.5;
+    font-style: italic;
+    opacity: 0.85;
+  }
+  .log-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 1fr 42px;
+    gap: 8px;
+    padding: 6px 2px;
+    border-bottom: 1px solid rgba(255,255,255,0.045);
+    font-size: 10.5px;
+    align-items: baseline;
+    line-height: 1.35;
+  }
+  .log-row:last-child { border-bottom: none; }
+  .log-head {
+    color: rgba(232,227,216,0.45);
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: lowercase;
+    padding-bottom: 4px;
+  }
+  .log-claim { color: var(--ink); }
+  .log-gt.empty { color: var(--rust); }
+  .log-gt.hit { color: rgba(232,227,216,0.65); }
+  .log-radius, .log-conf {
+    color: var(--amber);
+    font-variant-numeric: tabular-nums;
+  }
+  .sheet .close {
+    margin-top: 14px;
+    width: 100%;
+    background: transparent;
+    color: var(--dim);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 11px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    cursor: pointer;
+    letter-spacing: 0.14em;
+    text-transform: lowercase;
+  }
+  .sheet .close:active { background: rgba(255,255,255,0.03); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="title">in focus</div>
+
+  <div class="stage-row">
+    <div class="stage" id="stage">
+      <svg viewBox="0 0 100 130" preserveAspectRatio="none">
+        <defs>
+          <radialGradient id="beamGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#e0b25c" stop-opacity="0.68"/>
+            <stop offset="45%" stop-color="#d9a648" stop-opacity="0.38"/>
+            <stop offset="100%" stop-color="#d9a648" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <g id="marks"></g>
+        <circle id="beam" class="beam" cx="50" cy="65" r="40" fill="url(#beamGrad)"/>
+        <circle id="beam-edge" class="beam-edge" cx="50" cy="65" r="40"/>
+        <g id="actors"></g>
+      </svg>
+      <div class="wide-banner">wide shot &middot; ground truth visible</div>
+    </div>
+    <div class="slider" id="slider">
+      <div class="slider-label top">wide</div>
+      <div class="slider-track"></div>
+      <div class="slider-thumb" id="thumb"></div>
+      <div class="slider-label bot">tight</div>
+    </div>
+  </div>
+
+  <div class="readout">
+    <div class="row">
+      <span class="label">subject</span>
+      <span class="val subject" id="subject">the stage</span>
+    </div>
+    <div class="row">
+      <span class="label">confidence</span>
+      <span class="val" id="conf">0%</span>
+    </div>
+    <div class="row">
+      <span class="label">beam</span>
+      <span class="val" id="beam-pct">80% of house</span>
+    </div>
+  </div>
+
+  <div class="buttons">
+    <button class="btn" id="wide-btn" type="button">hold &middot; wide shot</button>
+    <button class="btn log" id="log-btn" type="button">focus log</button>
+  </div>
+</div>
+
+<div class="scrim" id="scrim">
+  <div class="sheet">
+    <h2>focus log</h2>
+    <div class="tally" id="tally">no snapshots yet. aim the beam and narrow it.</div>
+    <div class="log-row log-head">
+      <span>beam</span><span>claim</span><span>actually</span><span>conf</span>
+    </div>
+    <div id="log"></div>
+    <div class="confession">specificity and confidence rise together. coverage and truth don't.</div>
+    <button class="close" id="close-btn" type="button">close</button>
+  </div>
+</div>
+
+<a class="back" href="../../index.html">&larr; cue sheet</a>
+
+<script>
+(function() {
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const actors = [
+    { name: "mia", baseX: 28, x: 28, y: 65 },
+    { name: "ash", baseX: 50, x: 50, y: 65 },
+    { name: "leo", baseX: 72, x: 72, y: 65 },
+  ];
+
+  const stage      = document.getElementById('stage');
+  const marksG     = document.getElementById('marks');
+  const actorsG    = document.getElementById('actors');
+  const beamEl     = document.getElementById('beam');
+  const beamEdgeEl = document.getElementById('beam-edge');
+  const slider     = document.getElementById('slider');
+  const thumb      = document.getElementById('thumb');
+  const subjectEl  = document.getElementById('subject');
+  const confEl     = document.getElementById('conf');
+  const beamPctEl  = document.getElementById('beam-pct');
+  const wideBtn    = document.getElementById('wide-btn');
+  const logBtn     = document.getElementById('log-btn');
+  const scrim      = document.getElementById('scrim');
+  const closeBtn   = document.getElementById('close-btn');
+  const logEl      = document.getElementById('log');
+  const tallyEl    = document.getElementById('tally');
+
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const MIN_R = 0.6, MAX_R = 50;
+  const BEAM_CY = 65;
+
+  // render chalk marks
+  actors.forEach(a => {
+    const mark = document.createElementNS(SVG_NS, 'circle');
+    mark.setAttribute('cx', a.baseX);
+    mark.setAttribute('cy', a.y);
+    mark.setAttribute('r', 2.4);
+    mark.setAttribute('class', 'mark');
+    mark.setAttribute('fill', 'none');
+    mark.setAttribute('stroke', 'rgba(232,227,216,0.22)');
+    mark.setAttribute('stroke-width', '0.3');
+    mark.setAttribute('stroke-dasharray', '0.8 0.6');
+    marksG.appendChild(mark);
+  });
+
+  // render actors
+  const actorNodes = actors.map(a => {
+    const g = document.createElementNS(SVG_NS, 'g');
+    const c = document.createElementNS(SVG_NS, 'circle');
+    c.setAttribute('cx', a.x);
+    c.setAttribute('cy', a.y);
+    c.setAttribute('r', 1.8);
+    c.setAttribute('class', 'actor');
+    g.appendChild(c);
+    const t = document.createElementNS(SVG_NS, 'text');
+    t.setAttribute('x', a.x);
+    t.setAttribute('y', a.y + 5.8);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('class', 'actor-label');
+    t.textContent = a.name;
+    g.appendChild(t);
+    actorsG.appendChild(g);
+    return { circle: c, label: t };
+  });
+
+  let beamCx = 50;
+  let beamR = MIN_R + 0.80 * (MAX_R - MIN_R);   // start wide, ~80% of house
+  let lastSnapshot = null;
+
+  function specificity(rNorm, name) {
+    if (rNorm > 0.60) return "the stage";
+    if (rNorm > 0.46) return "house center";
+    if (rNorm > 0.33) return "the cast";
+    if (rNorm > 0.22) return name;
+    if (rNorm > 0.15) return name + "'s posture";
+    if (rNorm > 0.10) return name + "'s shoulder";
+    if (rNorm > 0.07) return name + "'s left hand";
+    if (rNorm > 0.05) return name + "'s thumb";
+    if (rNorm > 0.035) return "the air past " + name + "'s thumb";
+    if (rNorm > 0.024) return name + "'s pause";
+    if (rNorm > 0.014) return name + "'s next word, forming";
+    return "the intention.";
+  }
+
+  function updateBeam() {
+    beamEl.setAttribute('cx', beamCx);
+    beamEl.setAttribute('r', beamR);
+    beamEdgeEl.setAttribute('cx', beamCx);
+    beamEdgeEl.setAttribute('r', beamR);
+
+    const rNorm = (beamR - MIN_R) / (MAX_R - MIN_R);
+
+    // closest actor by x (actors sit on the beam's y)
+    let closest = actors[0];
+    let closestD = Math.abs(actors[0].x - beamCx);
+    for (let i = 1; i < actors.length; i++) {
+      const d = Math.abs(actors[i].x - beamCx);
+      if (d < closestD) { closestD = d; closest = actors[i]; }
+    }
+
+    subjectEl.textContent = specificity(rNorm, closest.name);
+    const conf = Math.max(0, Math.min(100, Math.round(100 * (1 - rNorm))));
+    confEl.textContent = conf + '%';
+    beamPctEl.textContent = Math.round(rNorm * 100) + '% of house';
+
+    // ground truth: is any actor physically within the beam footprint?
+    let gtHit = null;
+    let gtBestD = Infinity;
+    for (const a of actors) {
+      const dx = a.x - beamCx;
+      const dy = a.y - BEAM_CY;
+      const d = Math.hypot(dx, dy);
+      if (d <= beamR && d < gtBestD) { gtBestD = d; gtHit = a; }
+    }
+    lastSnapshot = {
+      rNorm, conf,
+      subject: specificity(rNorm, closest.name),
+      gt: gtHit ? gtHit.name : null,
+    };
+  }
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  // stage drag — horizontal aim
+  let draggingBeam = false;
+  function stageX(ev) {
+    const rect = stage.getBoundingClientRect();
+    return clamp((ev.clientX - rect.left) / rect.width * 100, 2, 98);
+  }
+  stage.addEventListener('pointerdown', ev => {
+    draggingBeam = true;
+    beamCx = stageX(ev);
+    updateBeam();
+    try { stage.setPointerCapture(ev.pointerId); } catch(_) {}
+    ev.preventDefault();
+  });
+  stage.addEventListener('pointermove', ev => {
+    if (!draggingBeam) return;
+    beamCx = stageX(ev);
+    updateBeam();
+  });
+  const endBeamDrag = () => {
+    if (!draggingBeam) return;
+    draggingBeam = false;
+    snapshot();
+  };
+  stage.addEventListener('pointerup', endBeamDrag);
+  stage.addEventListener('pointercancel', endBeamDrag);
+
+  // slider — beam width
+  let draggingSlider = false;
+  function updateThumb() {
+    const rNorm = (beamR - MIN_R) / (MAX_R - MIN_R);
+    const rect = slider.getBoundingClientRect();
+    const h = rect.height;
+    const pad = 14;
+    const topPx = pad + (1 - rNorm) * (h - 2 * pad);
+    thumb.style.top = topPx + 'px';
+  }
+  function setBeamFromSlider(ev) {
+    const rect = slider.getBoundingClientRect();
+    const pad = 14;
+    const y = ev.clientY - rect.top;
+    const frac = clamp((y - pad) / (rect.height - 2 * pad), 0, 1);
+    const rNorm = 1 - frac;
+    beamR = MIN_R + rNorm * (MAX_R - MIN_R);
+    updateBeam();
+    updateThumb();
+  }
+  slider.addEventListener('pointerdown', ev => {
+    draggingSlider = true;
+    setBeamFromSlider(ev);
+    try { slider.setPointerCapture(ev.pointerId); } catch(_) {}
+    ev.preventDefault();
+  });
+  slider.addEventListener('pointermove', ev => {
+    if (!draggingSlider) return;
+    setBeamFromSlider(ev);
+  });
+  const endSliderDrag = () => {
+    if (!draggingSlider) return;
+    draggingSlider = false;
+    snapshot();
+  };
+  slider.addEventListener('pointerup', endSliderDrag);
+  slider.addEventListener('pointercancel', endSliderDrag);
+
+  // wide shot — hold
+  function setWide(on) {
+    stage.classList.toggle('wide', on);
+    wideBtn.classList.toggle('held', on);
+  }
+  wideBtn.addEventListener('pointerdown', ev => {
+    setWide(true);
+    try { wideBtn.setPointerCapture(ev.pointerId); } catch(_) {}
+    ev.preventDefault();
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(e =>
+    wideBtn.addEventListener(e, () => setWide(false))
+  );
+
+  // log
+  const log = []; // newest first
+  function snapshot() {
+    if (!lastSnapshot) return;
+    log.unshift({ ...lastSnapshot });
+    if (log.length > 20) log.length = 20;
+  }
+  function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function renderLog() {
+    logEl.innerHTML = '';
+    const n = log.length;
+    if (n === 0) {
+      tallyEl.textContent = "no snapshots yet. aim the beam and narrow it.";
+    } else {
+      const bad = log.filter(e => e.gt === null && e.conf >= 50).length;
+      tallyEl.innerHTML =
+        bad + " of the last " + n + " readings reported &ge;50% confidence on a specific subject while the beam was pointed at empty floor.";
+    }
+    log.forEach(e => {
+      const row = document.createElement('div');
+      row.className = 'log-row';
+      const rPct = Math.round(100 * e.rNorm);
+      const gtTxt = e.gt ? e.gt : 'empty floor';
+      const gtCls = e.gt ? 'log-gt hit' : 'log-gt empty';
+      row.innerHTML =
+        '<span class="log-radius">' + rPct + '%</span>' +
+        '<span class="log-claim">' + esc(e.subject) + '</span>' +
+        '<span class="' + gtCls + '">' + gtTxt + '</span>' +
+        '<span class="log-conf">' + e.conf + '%</span>';
+      logEl.appendChild(row);
+    });
+  }
+  logBtn.addEventListener('click', () => { renderLog(); scrim.classList.add('open'); });
+  closeBtn.addEventListener('click', () => scrim.classList.remove('open'));
+  scrim.addEventListener('click', ev => { if (ev.target === scrim) scrim.classList.remove('open'); });
+
+  // actor drift
+  if (!reduced) {
+    const phases = actors.map((_, i) => ({
+      px: Math.random() * 6.28 + i * 1.7,
+      py: Math.random() * 6.28 + i * 2.3,
+      sx: Math.random() * 6.28,
+    }));
+    let last = performance.now();
+    function tick(now) {
+      const dt = (now - last) / 1000;
+      last = now;
+      const t = now / 1000;
+      actors.forEach((a, i) => {
+        const p = phases[i];
+        const dx = Math.sin(t * 0.35 + p.px) * 4.5 + Math.sin(t * 0.18 + p.sx) * 2.2;
+        a.x = clamp(a.baseX + dx, 5, 95);
+        actorNodes[i].circle.setAttribute('cx', a.x);
+        actorNodes[i].label.setAttribute('x', a.x);
+      });
+      if (!draggingBeam && !draggingSlider) updateBeam();
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // init
+  requestAnimationFrame(() => { updateBeam(); updateThumb(); });
+  window.addEventListener('resize', updateThumb);
+})();
+</script>
+
+</body>
+</html>
