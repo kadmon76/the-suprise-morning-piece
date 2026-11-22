@@ -771,6 +771,13 @@
       "path": "projects/2026-11-17-playback/index.html"
     },
     {
+      "date": "2026-11-18",
+      "title": "(Please Confirm.)",
+      "kind": "question",
+      "note": "A sign-out toggle like any other. Drag it — we just want to check one or two things first.",
+      "path": "projects/2026-11-18-please-confirm/index.html"
+    },
+    {
       "date": "2026-11-22",
       "title": "Sold Separately",
       "kind": "seed",
