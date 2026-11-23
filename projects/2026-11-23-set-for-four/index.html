@@ -1,0 +1,986 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>(Set for Four.)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0806;
+    --bg-card: #141009;
+    --bg-modal: #15110a;
+    --amber: #e8b547;
+    --amber-dim: #8a6a2c;
+    --amber-soft: #c99642;
+    --blue: #7ea6c9;
+    --blue-dim: #4a6683;
+    --rust: #b85c3a;
+    --ink: #f5efe4;
+    --ink-dim: #a99d8a;
+    --faint: #5a4a38;
+    --wood: #2a1e14;
+    --wood-light: #3a2a1c;
+    --line: #2a2217;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Playfair Display', Georgia, serif;
+    overflow-x: hidden;
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 14px 30px;
+    position: relative;
+  }
+  a { color: var(--ink-dim); text-decoration: none; }
+
+  .back-link {
+    position: absolute;
+    top: max(12px, env(safe-area-inset-top));
+    left: 14px;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--ink-dim);
+    opacity: 0.55;
+    z-index: 3;
+  }
+
+  h1 {
+    font-weight: 400;
+    font-style: italic;
+    font-size: 22px;
+    margin: 38px 0 2px;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+    text-align: center;
+  }
+  .caption {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    margin: 0 0 14px;
+    text-align: center;
+    min-height: 14px;
+    transition: color 0.4s ease;
+  }
+  .caption.warm { color: var(--amber-soft); }
+
+  .table-wrap {
+    width: 100%;
+    max-width: 340px;
+    position: relative;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto 10px;
+  }
+  .table-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .seat-group .plate-outer {
+    fill: #1f1710;
+    stroke: #3a2c1c;
+    stroke-width: 1.2;
+    transition: all 0.4s ease;
+  }
+  .seat-group .plate-inner {
+    fill: #15100a;
+    stroke: #2b1f14;
+    stroke-width: 0.6;
+    transition: all 0.4s ease;
+  }
+  .seat-group.filled-warm .plate-outer {
+    fill: #2a1d0f;
+    stroke: var(--amber-dim);
+  }
+  .seat-group.filled-warm .plate-inner {
+    fill: #1a1309;
+    stroke: var(--amber);
+  }
+  .seat-group.filled-comp .plate-outer {
+    fill: #152029;
+    stroke: var(--blue-dim);
+  }
+  .seat-group.filled-comp .plate-inner {
+    fill: #0f1821;
+    stroke: var(--blue);
+  }
+  .seat-group.declined .plate-outer {
+    stroke-dasharray: 2 3;
+    opacity: 0.55;
+  }
+
+  .seat-group .diner {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .seat-group.filled-warm .diner,
+  .seat-group.filled-comp .diner { opacity: 1; }
+
+  .seat-group .diner.warm { fill: var(--amber); }
+  .seat-group .diner.comp { fill: var(--blue); }
+
+  .seat-group .nameplate {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    fill: var(--ink-dim);
+    text-anchor: middle;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .seat-group.filled-warm .nameplate,
+  .seat-group.filled-comp .nameplate,
+  .seat-group.declined .nameplate { opacity: 1; }
+  .seat-group.filled-warm .nameplate { fill: var(--amber-soft); }
+  .seat-group.filled-comp .nameplate { fill: var(--blue); }
+  .seat-group.declined .nameplate { fill: var(--rust); font-style: italic; }
+
+  .seat-group .bio {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.08em;
+    fill: var(--blue-dim);
+    text-anchor: middle;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .seat-group.filled-comp .bio { opacity: 0.85; }
+
+  .seat-group .pulse {
+    fill: none;
+    stroke: var(--amber);
+    stroke-width: 1.5;
+    opacity: 0;
+  }
+  .seat-group.pending .pulse {
+    animation: pulse-ring 1.8s ease-out infinite;
+  }
+  @keyframes pulse-ring {
+    0% { opacity: 0.8; r: 6; }
+    100% { opacity: 0; r: 22; }
+  }
+
+  .center-candle {
+    transform-origin: center;
+  }
+  .candle-flame {
+    fill: var(--amber);
+    animation: flicker 2.6s ease-in-out infinite;
+    transform-origin: center bottom;
+  }
+  @keyframes flicker {
+    0%, 100% { opacity: 1; transform: scaleY(1); }
+    40% { opacity: 0.85; transform: scaleY(0.92); }
+    70% { opacity: 1; transform: scaleY(1.05); }
+  }
+
+  .bubble {
+    position: absolute;
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 2px;
+    background: rgba(20,16,9,0.92);
+    border: 1px solid var(--amber-dim);
+    color: var(--ink);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    z-index: 2;
+    max-width: 180px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.25;
+  }
+  .bubble.show { opacity: 1; }
+  .bubble.warm { border-color: var(--amber-dim); color: var(--ink); }
+  .bubble.loaded { border-color: var(--rust); color: #e3c7b6; }
+  .bubble.comp { border-color: var(--blue-dim); color: #d8e6f2; }
+
+  .controls {
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 4px auto 0;
+  }
+  .controls.fade { opacity: 0.35; pointer-events: none; transition: opacity 0.5s; }
+  .controls.hide { display: none; }
+
+  .btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--amber-dim);
+    border-radius: 2px;
+    padding: 13px 14px;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+  }
+  .btn:active { transform: scale(0.985); }
+  .btn:disabled { opacity: 0.35; cursor: default; }
+
+  .btn-amber {
+    color: var(--amber);
+    border-color: var(--amber-dim);
+  }
+  .btn-amber:active { background: rgba(232,181,71,0.08); }
+
+  .btn-comp {
+    color: var(--blue);
+    border-color: var(--blue-dim);
+    background: rgba(126,166,201,0.03);
+  }
+  .btn-comp .small {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    color: var(--blue-dim);
+    margin-top: 2px;
+    text-transform: none;
+    font-style: italic;
+  }
+
+  .btn-sit {
+    margin: 14px auto 0;
+    width: 100%;
+    max-width: 380px;
+    font-size: 12.5px;
+    letter-spacing: 0.22em;
+    color: var(--amber);
+    border: 1px solid var(--amber);
+    padding: 15px;
+    background: rgba(232,181,71,0.04);
+  }
+  .btn-sit:disabled {
+    color: var(--faint);
+    border-color: var(--faint);
+    background: transparent;
+  }
+
+  .sheet-mark {
+    position: fixed;
+    right: 14px;
+    bottom: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    padding: 7px 10px;
+    cursor: pointer;
+    display: none;
+    z-index: 5;
+    border-radius: 1px;
+  }
+  .sheet-mark.show { display: block; }
+
+  /* ---- MODAL ---- */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(5,4,2,0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .modal.show { opacity: 1; pointer-events: auto; }
+  .modal-card {
+    background: var(--bg-modal);
+    border: 1px solid var(--line);
+    padding: 24px 22px 20px;
+    width: 100%;
+    max-width: 340px;
+    max-height: 90dvh;
+    overflow-y: auto;
+    border-radius: 2px;
+    position: relative;
+  }
+  .modal-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .modal-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--amber-dim);
+    color: var(--ink);
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    font-size: 20px;
+    padding: 8px 2px 10px;
+    text-align: center;
+    outline: none;
+    letter-spacing: 0.01em;
+  }
+  .modal-input:focus { border-bottom-color: var(--amber); }
+  .modal-input::placeholder { color: var(--faint); font-style: italic; }
+
+  .modal-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  .modal-buttons .btn { flex: 1; padding: 11px; font-size: 10.5px; }
+
+  /* ---- RECEIPT ---- */
+  .receipt {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink);
+    line-height: 1.7;
+  }
+  .receipt .r-row {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px dashed var(--line);
+    padding: 3px 0;
+  }
+  .receipt .r-row .r-k {
+    color: var(--ink-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 10px;
+  }
+  .receipt .r-row .r-v { color: var(--amber-soft); }
+  .receipt .r-row.cold .r-v { color: var(--blue); }
+  .receipt .r-row.quiet .r-v { color: var(--ink-dim); }
+  .receipt .r-foot {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    font-size: 13.5px;
+    color: var(--blue);
+    text-align: center;
+    line-height: 1.4;
+  }
+  .receipt .r-list {
+    margin-bottom: 12px;
+  }
+  .receipt .r-divider {
+    height: 1px;
+    background: var(--line);
+    margin: 8px 0 10px;
+  }
+  .receipt .r-seat {
+    display: flex;
+    flex-direction: column;
+    padding: 5px 0;
+    border-bottom: 1px dotted var(--line);
+  }
+  .receipt .r-seat .r-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber-soft);
+  }
+  .receipt .r-seat .r-detail {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--ink-dim);
+    margin-top: 1px;
+    line-height: 1.3;
+  }
+  .receipt .r-seat.cold .r-name { color: var(--blue); }
+  .receipt .r-seat.cold .r-detail { color: #a8c0d4; }
+  .receipt .r-seat.quiet .r-name { color: var(--rust); font-style: italic; }
+  .receipt .r-seat.quiet .r-detail { color: var(--rust); opacity: 0.8; }
+
+  /* reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001s !important;
+    }
+  }
+
+  @media (max-height: 700px) {
+    h1 { font-size: 20px; margin-top: 32px; }
+    .table-wrap { max-width: 290px; margin-bottom: 8px; }
+    .caption { margin-bottom: 10px; }
+    .btn-sit { padding: 13px; margin-top: 10px; }
+    .btn { padding: 11px 14px; }
+    .controls { gap: 8px; }
+    body { padding: 12px 14px 20px; }
+  }
+</style>
+</head>
+<body>
+<a class="back-link" href="../../index.html">← cue sheet</a>
+
+<h1>(Set for Four.)</h1>
+<p class="caption" id="caption">set the table.</p>
+
+<div class="table-wrap" id="table-wrap">
+  <svg class="table-svg" viewBox="0 0 300 300" aria-hidden="true">
+    <!-- table shadow -->
+    <ellipse cx="150" cy="156" rx="112" ry="112" fill="#000" opacity="0.4"/>
+    <!-- table top -->
+    <circle cx="150" cy="150" r="108" fill="var(--wood)" stroke="var(--wood-light)" stroke-width="1"/>
+    <circle cx="150" cy="150" r="104" fill="none" stroke="#1a110a" stroke-width="0.6" opacity="0.5"/>
+    <!-- wood grain -->
+    <ellipse cx="150" cy="150" rx="80" ry="78" fill="none" stroke="#3a2a1c" stroke-width="0.4" opacity="0.4"/>
+    <ellipse cx="150" cy="150" rx="55" ry="53" fill="none" stroke="#3a2a1c" stroke-width="0.4" opacity="0.3"/>
+    <!-- center candle -->
+    <g class="center-candle">
+      <rect x="146" y="146" width="8" height="10" fill="#c9a06b" stroke="#6b4a24" stroke-width="0.5"/>
+      <ellipse cx="150" cy="144" rx="2.2" ry="4" class="candle-flame"/>
+      <circle cx="150" cy="150" r="24" fill="url(#candle-glow)" opacity="0.5"/>
+    </g>
+    <defs>
+      <radialGradient id="candle-glow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#e8b547" stop-opacity="0.35"/>
+        <stop offset="60%" stop-color="#e8b547" stop-opacity="0.08"/>
+        <stop offset="100%" stop-color="#e8b547" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+
+    <!-- seats: N (0), E (1), S (2), W (3) — computed from center (150,150), radius 74 for plate centers -->
+    <g class="seat-group" data-seat="0" id="seat-0">
+      <circle class="pulse" cx="150" cy="76" r="6"/>
+      <circle class="plate-outer" cx="150" cy="76" r="18"/>
+      <circle class="plate-inner" cx="150" cy="76" r="12"/>
+      <!-- fork/knife marks -->
+      <line x1="128" y1="70" x2="128" y2="82" stroke="#5a4a38" stroke-width="1"/>
+      <line x1="172" y1="70" x2="172" y2="82" stroke="#5a4a38" stroke-width="1"/>
+      <!-- diner head silhouette, above plate (toward edge) -->
+      <circle class="diner" cx="150" cy="48" r="7"/>
+      <text class="nameplate" x="150" y="30"></text>
+    </g>
+
+    <g class="seat-group" data-seat="1" id="seat-1">
+      <circle class="pulse" cx="224" cy="150" r="6"/>
+      <circle class="plate-outer" cx="224" cy="150" r="18"/>
+      <circle class="plate-inner" cx="224" cy="150" r="12"/>
+      <line x1="218" y1="128" x2="230" y2="128" stroke="#5a4a38" stroke-width="1"/>
+      <line x1="218" y1="172" x2="230" y2="172" stroke="#5a4a38" stroke-width="1"/>
+      <circle class="diner" cx="252" cy="150" r="7"/>
+      <text class="nameplate" x="252" y="134"></text>
+    </g>
+
+    <g class="seat-group" data-seat="2" id="seat-2">
+      <circle class="pulse" cx="150" cy="224" r="6"/>
+      <circle class="plate-outer" cx="150" cy="224" r="18"/>
+      <circle class="plate-inner" cx="150" cy="224" r="12"/>
+      <line x1="128" y1="218" x2="128" y2="230" stroke="#5a4a38" stroke-width="1"/>
+      <line x1="172" y1="218" x2="172" y2="230" stroke="#5a4a38" stroke-width="1"/>
+      <circle class="diner" cx="150" cy="252" r="7"/>
+      <text class="nameplate" x="150" y="275"></text>
+    </g>
+
+    <g class="seat-group" data-seat="3" id="seat-3">
+      <circle class="pulse" cx="76" cy="150" r="6"/>
+      <circle class="plate-outer" cx="76" cy="150" r="18"/>
+      <circle class="plate-inner" cx="76" cy="150" r="12"/>
+      <line x1="70" y1="128" x2="82" y2="128" stroke="#5a4a38" stroke-width="1"/>
+      <line x1="70" y1="172" x2="82" y2="172" stroke="#5a4a38" stroke-width="1"/>
+      <circle class="diner" cx="48" cy="150" r="7"/>
+      <text class="nameplate" x="48" y="134"></text>
+    </g>
+  </svg>
+</div>
+
+<div class="controls" id="controls">
+  <button class="btn btn-amber" id="btn-invite" type="button">
+    invite a guest
+  </button>
+  <button class="btn btn-comp" id="btn-comp" type="button">
+    complimentary seat
+    <span class="small">free this week</span>
+  </button>
+</div>
+
+<button class="btn btn-sit" id="btn-sit" type="button" disabled>sit down</button>
+
+<div class="sheet-mark" id="sheet-mark">receipt</div>
+
+<!-- Invite modal -->
+<div class="modal" id="invite-modal" role="dialog" aria-label="Invite a guest">
+  <div class="modal-card">
+    <div class="modal-label">invite a guest</div>
+    <input class="modal-input" id="name-input" type="text"
+           autocomplete="off" autocapitalize="words" spellcheck="false"
+           maxlength="18" placeholder="a first name">
+    <div class="modal-buttons">
+      <button class="btn btn-amber" id="btn-send" type="button">send</button>
+      <button class="btn" id="btn-nevermind" type="button" style="color:var(--ink-dim);border-color:var(--line)">nevermind</button>
+    </div>
+  </div>
+</div>
+
+<!-- Receipt modal -->
+<div class="modal" id="receipt-modal" role="dialog" aria-label="Receipt">
+  <div class="modal-card">
+    <div class="modal-label">after dinner</div>
+    <div class="receipt" id="receipt-body"></div>
+    <div class="modal-buttons">
+      <button class="btn" id="btn-close-receipt" type="button" style="color:var(--ink-dim);border-color:var(--line)">close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ---- state ----
+const seats = [
+  { i: 0, status: 'empty', kind: null, name: '', bio: '', spoke: null },
+  { i: 1, status: 'empty', kind: null, name: '', bio: '', spoke: null },
+  { i: 2, status: 'empty', kind: null, name: '', bio: '', spoke: null },
+  { i: 3, status: 'empty', kind: null, name: '', bio: '', spoke: null },
+];
+// status: empty | pending | warm | comp | declined
+
+let phase = 'setting'; // setting | dining | done
+let pendingInviteSeat = null;
+
+// ---- pools ----
+const COMP_NAMES = ['Kai', 'Jamie', 'Casey', 'Morgan', 'Robin', 'Alex', 'Sage', 'River', 'Quinn', 'Taylor', 'Reese'];
+const COMP_BIOS = [
+  'will not interrupt.',
+  'remembers your name.',
+  'laughs on time.',
+  'no opinion on politics.',
+  'tells one good joke.',
+  'passes everything.',
+  'never asks what you decided.',
+  'compliments the cooking.',
+  'listens.',
+  'is glad to be here.'
+];
+
+const COMP_LINES = [
+  'smiles at you.',
+  'says, "this is lovely."',
+  'laughs at your joke, exactly on time.',
+  'compliments the lighting.',
+  'asks for seconds with a kind word.',
+  'says, "i’m so glad to be here."',
+  'nods, says "mm."',
+  'raises a glass in your direction.'
+];
+
+const WARM_LINES_SAFE = [
+  'asks for the gravy.',
+  'laughs once, quietly.',
+  'tells the story about the car.',
+  'compliments the turkey.',
+  'passes you the wine.',
+  'reaches for the salt.',
+  'nods at something you said.'
+];
+
+// Loaded: with a {you} or {topic} placeholder for mild personalization — resolved against what you typed
+const WARM_LINES_LOADED_TEMPLATES = [
+  'asks what you decided about the job.',
+  'brings up last year again.',
+  'is quiet for a long moment.',
+  'wants to know how you’re doing, really.',
+  'asks why you didn’t call back.',
+  'mentions the thing you asked no one to mention.',
+  'looks at your hands and says nothing.',
+  'says, "we need to talk about it."',
+  'asks if you’re okay.'
+];
+
+const DECLINE_REASONS = [
+  'flying tomorrow.',
+  'hasn’t replied.',
+  'sends their love.',
+  'couldn’t make it.',
+  'no answer.'
+];
+
+// ---- DOM ----
+const $ = (id) => document.getElementById(id);
+const captionEl = $('caption');
+const controlsEl = $('controls');
+const btnInvite = $('btn-invite');
+const btnComp = $('btn-comp');
+const btnSit = $('btn-sit');
+const sheetMark = $('sheet-mark');
+const inviteModal = $('invite-modal');
+const nameInput = $('name-input');
+const btnSend = $('btn-send');
+const btnNevermind = $('btn-nevermind');
+const receiptModal = $('receipt-modal');
+const btnCloseReceipt = $('btn-close-receipt');
+const tableWrap = $('table-wrap');
+
+// --- utilities ---
+function reduced() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function pickRemove(arr) {
+  const i = Math.floor(Math.random() * arr.length);
+  return arr.splice(i, 1)[0];
+}
+
+function nextEmpty() {
+  return seats.find(s => s.status === 'empty');
+}
+function allSettled() {
+  return seats.every(s => s.status !== 'empty' && s.status !== 'pending');
+}
+
+function updateCaption(text, warm) {
+  captionEl.textContent = text;
+  captionEl.classList.toggle('warm', !!warm);
+}
+
+function updateControls() {
+  if (phase !== 'setting') return;
+  const hasEmpty = seats.some(s => s.status === 'empty');
+  const anyPending = seats.some(s => s.status === 'pending');
+  btnInvite.disabled = !hasEmpty || anyPending;
+  btnComp.disabled = !hasEmpty || anyPending;
+  btnSit.disabled = !allSettled();
+}
+
+function setSeatDisplay(i) {
+  const seat = seats[i];
+  const g = document.getElementById('seat-' + i);
+  g.classList.remove('filled-warm', 'filled-comp', 'declined', 'pending');
+  const name = g.querySelector('.nameplate');
+
+  if (seat.status === 'pending') {
+    g.classList.add('pending');
+    name.textContent = '';
+  } else if (seat.status === 'warm') {
+    g.classList.add('filled-warm');
+    name.textContent = seat.name;
+  } else if (seat.status === 'comp') {
+    g.classList.add('filled-comp');
+    name.textContent = seat.name;
+  } else if (seat.status === 'declined') {
+    g.classList.add('declined');
+    name.textContent = seat.name;
+  } else {
+    name.textContent = '';
+  }
+}
+
+// --- invite flow ---
+btnInvite.addEventListener('click', () => {
+  if (phase !== 'setting') return;
+  const seat = nextEmpty();
+  if (!seat) return;
+  pendingInviteSeat = seat;
+  nameInput.value = '';
+  inviteModal.classList.add('show');
+  setTimeout(() => nameInput.focus(), 80);
+});
+
+btnNevermind.addEventListener('click', () => {
+  inviteModal.classList.remove('show');
+  pendingInviteSeat = null;
+});
+
+nameInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); sendInvite(); }
+});
+
+btnSend.addEventListener('click', sendInvite);
+
+function sendInvite() {
+  if (!pendingInviteSeat) return;
+  let name = (nameInput.value || '').trim();
+  if (!name) return;
+  if (name.length > 14) name = name.slice(0, 14);
+  const seat = pendingInviteSeat;
+  pendingInviteSeat = null;
+  inviteModal.classList.remove('show');
+
+  seat.status = 'pending';
+  seat.name = name;
+  seat.kind = 'warm-pending';
+  setSeatDisplay(seat.i);
+  updateControls();
+
+  // delay 1.6–3.4s
+  const delay = 1600 + Math.random() * 1800;
+  setTimeout(() => {
+    // 65% show, 35% decline
+    if (Math.random() < 0.65) {
+      seat.status = 'warm';
+      seat.kind = 'warm';
+    } else {
+      seat.status = 'declined';
+      seat.bio = pick(DECLINE_REASONS);
+    }
+    setSeatDisplay(seat.i);
+    updateControls();
+    if (allSettled()) updateCaption('all four. hold down to sit.');
+  }, delay);
+}
+
+// --- complimentary flow ---
+const compNamesPool = COMP_NAMES.slice();
+const compBiosPool = COMP_BIOS.slice();
+
+btnComp.addEventListener('click', () => {
+  if (phase !== 'setting') return;
+  const seat = nextEmpty();
+  if (!seat) return;
+
+  // draw unique-ish name & bio
+  if (compNamesPool.length === 0) compNamesPool.push(...COMP_NAMES);
+  if (compBiosPool.length === 0) compBiosPool.push(...COMP_BIOS);
+  const name = pickRemove(compNamesPool);
+  const bio = pickRemove(compBiosPool);
+
+  seat.status = 'comp';
+  seat.kind = 'comp';
+  seat.name = name;
+  seat.bio = bio;
+  setSeatDisplay(seat.i);
+  updateControls();
+  if (allSettled()) updateCaption('all four. hold down to sit.');
+});
+
+// --- sit down / dinner ---
+let holdTimer = null;
+let holdStart = 0;
+btnSit.addEventListener('pointerdown', (e) => {
+  if (btnSit.disabled || phase !== 'setting') return;
+  holdStart = Date.now();
+  btnSit.style.background = 'rgba(232,181,71,0.14)';
+  holdTimer = setTimeout(() => {
+    if (btnSit.disabled || phase !== 'setting') return;
+    startDinner();
+  }, reduced() ? 1 : 400);
+});
+['pointerup','pointerleave','pointercancel'].forEach(ev =>
+  btnSit.addEventListener(ev, () => {
+    clearTimeout(holdTimer);
+    btnSit.style.background = '';
+  })
+);
+
+function startDinner() {
+  phase = 'dining';
+  btnSit.disabled = true;
+  btnSit.style.background = '';
+  controlsEl.classList.add('fade');
+  btnSit.textContent = 'dinner is served.';
+  updateCaption('dinner is served.', true);
+
+  // Schedule events.
+  // Companions speak at fixed well-spaced times in the 30s window.
+  // Warm guests have a 60% chance to speak once at a random time.
+  const window_ms = reduced() ? 2500 : 30000;
+  const compSlots = [0.22, 0.44, 0.66, 0.85];
+  let compSlotIdx = 0;
+
+  // Local copies for pickRemove (unique-per-dinner lines)
+  const compPool = COMP_LINES.slice();
+  const warmSafePool = WARM_LINES_SAFE.slice();
+  const warmLoadedPool = WARM_LINES_LOADED_TEMPLATES.slice();
+
+  seats.forEach((seat) => {
+    if (seat.status === 'declined' || seat.status === 'empty') return;
+
+    if (seat.kind === 'comp') {
+      const slotFrac = compSlots[compSlotIdx % compSlots.length];
+      compSlotIdx++;
+      const t = Math.floor(window_ms * slotFrac);
+      if (compPool.length === 0) compPool.push(...COMP_LINES);
+      seat.spoke = { kind: 'comp', text: pickRemove(compPool), at: t };
+    } else if (seat.kind === 'warm') {
+      if (Math.random() < 0.6) {
+        const t = Math.floor(window_ms * (0.15 + Math.random() * 0.75));
+        // 55% safe, 45% loaded
+        const isLoaded = Math.random() < 0.45;
+        let text;
+        if (isLoaded) {
+          if (warmLoadedPool.length === 0) warmLoadedPool.push(...WARM_LINES_LOADED_TEMPLATES);
+          text = pickRemove(warmLoadedPool);
+        } else {
+          if (warmSafePool.length === 0) warmSafePool.push(...WARM_LINES_SAFE);
+          text = pickRemove(warmSafePool);
+        }
+        seat.spoke = { kind: isLoaded ? 'loaded' : 'warm', text, at: t };
+      } else {
+        seat.spoke = null; // silent
+      }
+    }
+
+    if (seat.spoke) {
+      setTimeout(() => showBubble(seat.i, seat.spoke.text, seat.spoke.kind), seat.spoke.at);
+    }
+  });
+
+  // End of dinner
+  setTimeout(endDinner, window_ms + 400);
+}
+
+function showBubble(seatIdx, text, kind) {
+  if (phase === 'done') return;
+  const g = document.getElementById('seat-' + seatIdx);
+  // bubble position: above/near the diner
+  const pos = seatBubblePos(seatIdx);
+  const b = document.createElement('div');
+  b.className = 'bubble ' + (kind || 'warm');
+  b.textContent = text;
+  b.style.left = pos.left;
+  b.style.top = pos.top;
+  b.style.transform = pos.transform;
+  tableWrap.appendChild(b);
+  // force layout then show
+  requestAnimationFrame(() => {
+    b.classList.add('show');
+  });
+  setTimeout(() => {
+    b.classList.remove('show');
+    setTimeout(() => b.remove(), 500);
+  }, reduced() ? 400 : 2600);
+}
+
+function seatBubblePos(i) {
+  // Bubbles sit inside the table, between each plate and the candle.
+  // All percentages are of the .table-wrap (aspect-ratio 1/1).
+  const map = [
+    { left: '50%', top: '32%', transform: 'translate(-50%, -50%)' }, // N: above candle, below N plate
+    { left: '68%', top: '50%', transform: 'translate(-50%, -50%)' }, // E: between candle and E plate
+    { left: '50%', top: '68%', transform: 'translate(-50%, -50%)' }, // S: below candle, above S plate
+    { left: '32%', top: '50%', transform: 'translate(-50%, -50%)' }, // W: between W plate and candle
+  ];
+  return map[i];
+}
+
+function endDinner() {
+  phase = 'done';
+  updateCaption('the dishes.', false);
+  btnSit.textContent = 'the dishes.';
+  sheetMark.classList.add('show');
+  controlsEl.classList.add('hide');
+}
+
+// --- receipt ---
+sheetMark.addEventListener('click', () => openReceipt());
+btnCloseReceipt.addEventListener('click', () => receiptModal.classList.remove('show'));
+
+function openReceipt() {
+  const body = $('receipt-body');
+  const warmSeats = seats.filter(s => s.kind === 'warm' && s.status === 'warm');
+  const declinedSeats = seats.filter(s => s.status === 'declined');
+  const compSeats = seats.filter(s => s.kind === 'comp');
+  const warmSpoke = warmSeats.filter(s => s.spoke);
+  const warmLoaded = warmSeats.filter(s => s.spoke && s.spoke.kind === 'loaded');
+  const compSpoke = compSeats.filter(s => s.spoke);
+
+  // Per-seat lines — a tiny program/menu feel
+  const perSeat = seats.map((s) => {
+    let cls, nameTag, detail;
+    if (s.status === 'warm') {
+      cls = 'warm';
+      nameTag = s.name;
+      detail = s.spoke ? s.spoke.text : '— quiet.';
+    } else if (s.status === 'comp') {
+      cls = 'cold';
+      nameTag = s.name;
+      const line = s.spoke ? s.spoke.text : '—';
+      detail = s.bio + ' / ' + line;
+    } else if (s.status === 'declined') {
+      cls = 'quiet';
+      nameTag = s.name;
+      detail = s.bio; // decline reason
+    } else {
+      cls = 'quiet';
+      nameTag = '—';
+      detail = 'empty.';
+    }
+    return seatRow(cls, nameTag, detail);
+  });
+
+  const rows = [];
+  rows.push(row('plates set', '4'));
+  rows.push(row('invited, came', warmSeats.length));
+  rows.push(row('invited, declined', declinedSeats.length));
+  rows.push(row('complimentary', compSeats.length, 'cold'));
+  rows.push(row('things asked of you', warmLoaded.length));
+  rows.push(row('things asked of you by complimentary', '0', 'quiet'));
+
+  let bill;
+  if (compSeats.length === 4) {
+    bill = 'the dinner cost nothing. nothing was asked of you.';
+  } else if (compSeats.length === 0) {
+    bill = 'the dinner cost what it always did.';
+  } else {
+    bill = 'the complimentary seats cost nothing. '
+         + 'nothing was asked of you from those chairs.';
+  }
+
+  body.innerHTML =
+    '<div class="r-list">' + perSeat.join('') + '</div>' +
+    '<div class="r-divider"></div>' +
+    rows.join('') +
+    '<div class="r-foot">' + bill + '</div>';
+  receiptModal.classList.add('show');
+}
+
+function row(k, v, cls) {
+  return '<div class="r-row ' + (cls || '') + '"><span class="r-k">' + k + '</span><span class="r-v">' + v + '</span></div>';
+}
+
+function seatRow(cls, nameTag, detail) {
+  return '<div class="r-seat ' + cls + '"><span class="r-name">' + escHtml(nameTag) + '</span>'
+       + '<span class="r-detail">' + escHtml(detail) + '</span></div>';
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// --- init ---
+seats.forEach(s => setSeatDisplay(s.i));
+updateControls();
+
+</script>
+</body>
+</html>
