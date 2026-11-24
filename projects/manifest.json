@@ -790,6 +790,13 @@
       "kind": "question",
       "note": "Four plates to set. The service is complimentary tonight.",
       "path": "projects/2026-11-23-set-for-four/index.html"
+    },
+    {
+      "date": "2026-11-24",
+      "title": "Latent",
+      "kind": "seed",
+      "note": "A still, barely developed. Tap whatever caught your eye — the solution is hot.",
+      "path": "projects/2026-11-24-latent/index.html"
     }
   ]
 }
