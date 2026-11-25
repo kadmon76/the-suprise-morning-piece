@@ -797,6 +797,13 @@
       "kind": "seed",
       "note": "A still, barely developed. Tap whatever caught your eye — the solution is hot.",
       "path": "projects/2026-11-24-latent/index.html"
+    },
+    {
+      "date": "2026-11-25",
+      "title": "(Just Browsing.)",
+      "kind": "question",
+      "note": "Doors are open. Shelves are stocked. The sign at the greeter has not changed since you walked in.",
+      "path": "projects/2026-11-25-just-browsing/index.html"
     }
   ]
 }

@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>(Just Browsing.)</title>
+<style>
+  :root {
+    --bg: #0e0c09;
+    --floor: #1a1510;
+    --wall: #221a13;
+    --gold: #f0b454;
+    --gold-dim: #9d7636;
+    --gold-rust: #8c3a28;
+    --ice: #6a8fb8;
+    --ink: #d6c7a8;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--ink);
+    font-family: system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+  body {
+    min-height: 100vh; min-height: 100svh;
+    display: flex; flex-direction: column; align-items: center;
+  }
+
+  .back {
+    position: fixed; top: 10px; left: 10px;
+    color: var(--gold-dim); font-size: 11px;
+    text-decoration: none; padding: 6px 8px;
+    z-index: 100; letter-spacing: 0.04em;
+  }
+
+  .scene {
+    width: 100%; max-width: 420px;
+    padding: 44px 0 0; position: relative;
+  }
+
+  .marquee {
+    text-align: center;
+    padding: 14px 16px 10px;
+    background: linear-gradient(to bottom, #1a1308, #0e0c09);
+    border-bottom: 1px solid #2a1f14;
+  }
+  .marquee .sign {
+    display: block;
+    font-size: 20px; font-weight: 800;
+    letter-spacing: 0.26em; color: var(--gold);
+    text-shadow: 0 0 10px rgba(240, 180, 84, 0.55), 0 0 20px rgba(240, 180, 84, 0.25);
+    animation: flicker 4.2s infinite steps(16);
+  }
+  .marquee .hours {
+    display: block;
+    font-family: var(--mono);
+    font-size: 9.5px; color: var(--gold-dim);
+    margin-top: 6px; letter-spacing: 0.14em;
+  }
+  @keyframes flicker {
+    0%, 93%, 100% { opacity: 1; }
+    94%, 96% { opacity: 0.86; }
+    95% { opacity: 1; }
+  }
+
+  .store-wrap {
+    position: relative; width: 100%;
+    aspect-ratio: 375 / 440;
+    overflow: hidden;
+    background: #0a0806;
+  }
+  svg.store { display: block; width: 100%; height: 100%; }
+
+  .sheet-btn {
+    position: absolute; bottom: 8px; right: 8px;
+    width: 30px; height: 30px;
+    border: 1px solid var(--gold-dim);
+    background: rgba(10, 8, 6, 0.85);
+    color: var(--gold-dim);
+    border-radius: 2px;
+    font-size: 15px; line-height: 1;
+    cursor: pointer; z-index: 20;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+  .sheet-btn:active { background: var(--gold-dim); color: #0a0806; }
+
+  .hud {
+    padding: 10px 14px 18px;
+    display: flex; flex-direction: column; gap: 10px;
+    background: #0a0806;
+    border-top: 1px solid #2a1f14;
+  }
+  .hud-row { display: flex; align-items: center; gap: 12px; }
+  .basket {
+    font-family: var(--mono);
+    font-size: 11px; color: var(--gold);
+    flex: 1; letter-spacing: 0.04em;
+  }
+  .basket .count { color: var(--ink); }
+  .music {
+    display: flex; gap: 2px;
+    align-items: flex-end; height: 14px;
+  }
+  .music .bar {
+    width: 3px; background: var(--gold-dim);
+    transition: height 300ms, opacity 400ms;
+  }
+  .music .bar.off { opacity: 0.12; }
+
+  .checkout {
+    width: 100%; padding: 14px;
+    font-family: var(--mono);
+    font-size: 12.5px; letter-spacing: 0.22em;
+    color: var(--gold);
+    background: linear-gradient(to bottom, #231810, #1a1208);
+    border: 1px solid var(--gold-dim);
+    border-radius: 2px;
+    cursor: pointer; position: relative;
+    text-align: center;
+  }
+  .checkout:active { background: #1a1208; }
+  .checkout.working { color: var(--gold-dim); border-color: #4a3620; }
+  .checkout .spin {
+    display: inline-block; opacity: 0;
+    transition: opacity 200ms;
+    margin-left: 8px; width: 10px;
+    text-align: left;
+  }
+  .checkout.working .spin { opacity: 1; animation: pulse 1.1s infinite steps(4); }
+  @keyframes pulse {
+    0% { content: "."; }
+    25% { opacity: 0.4; }
+    50% { opacity: 1; }
+    75% { opacity: 0.4; }
+    100% { opacity: 1; }
+  }
+
+  .sheet {
+    position: fixed; inset: 0;
+    background: rgba(5, 4, 3, 0.96);
+    z-index: 200; display: none;
+    padding: 20px 16px 40px;
+    overflow-y: auto;
+    font-family: var(--mono);
+    font-size: 12px; color: var(--ink);
+    line-height: 1.55;
+  }
+  .sheet.open { display: block; }
+  .sheet .title {
+    font-size: 12px; letter-spacing: 0.22em;
+    color: var(--gold); margin-bottom: 14px;
+    text-transform: uppercase;
+  }
+  .sheet .row {
+    display: flex; justify-content: space-between; gap: 10px;
+    padding: 4px 0;
+    border-bottom: 1px dashed #2a1f14;
+  }
+  .sheet .row.sub {
+    padding: 2px 0 2px 14px;
+    color: var(--gold-dim);
+    border-bottom: none;
+    font-size: 11px;
+  }
+  .sheet .row .k { flex: 1; }
+  .sheet .row .v { text-align: right; white-space: nowrap; color: var(--ink); }
+  .sheet .row.sub .v { color: var(--gold-dim); }
+  .sheet .greeter-row .v { color: var(--gold); }
+  .sheet .confession {
+    margin-top: 20px; padding: 14px 0;
+    color: var(--ice);
+    border-top: 1px solid var(--ice);
+    line-height: 1.65;
+    font-size: 11.5px;
+  }
+  .sheet .close {
+    display: block; margin: 20px 0 0;
+    width: 100%; padding: 12px;
+    background: transparent;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    font-family: var(--mono);
+    font-size: 11.5px; letter-spacing: 0.22em;
+    cursor: pointer;
+  }
+
+  .receipt {
+    position: fixed; inset: 0;
+    background: rgba(5, 4, 3, 0.98);
+    z-index: 300; display: none;
+    padding: 28px 20px 40px;
+    overflow-y: auto;
+    font-family: var(--mono);
+    font-size: 12px; color: var(--ink);
+  }
+  .receipt.open { display: block; }
+  .receipt .r-top {
+    text-align: center; color: var(--gold-dim);
+    font-size: 10px; letter-spacing: 0.3em;
+    margin-bottom: 2px;
+  }
+  .receipt .r-store {
+    text-align: center;
+    font-size: 16px; font-weight: 800;
+    letter-spacing: 0.25em; color: var(--gold);
+    margin-bottom: 4px;
+  }
+  .receipt .r-sub {
+    text-align: center; color: var(--gold-dim);
+    font-size: 9.5px; letter-spacing: 0.2em;
+    margin-bottom: 20px;
+  }
+  .receipt .r-items { border-top: 1px dashed #4a3620; padding-top: 10px; }
+  .receipt .r-line {
+    display: flex; justify-content: space-between;
+    padding: 2px 0; gap: 10px;
+  }
+  .receipt .r-total {
+    border-top: 1px dashed #4a3620;
+    margin-top: 10px; padding-top: 10px;
+    display: flex; justify-content: space-between;
+    font-weight: 800; color: var(--gold);
+  }
+  .receipt .r-paid {
+    text-align: center; color: var(--gold-dim);
+    font-size: 10px; letter-spacing: 0.2em;
+    margin-top: 6px;
+  }
+  .receipt .r-hidden {
+    margin-top: 28px; padding-top: 14px;
+    border-top: 1px solid var(--ice);
+    color: var(--ice);
+  }
+  .receipt .r-htitle {
+    font-size: 10px; letter-spacing: 0.3em;
+    text-transform: uppercase; margin-bottom: 10px;
+  }
+  .receipt .r-hidden .r-line { color: var(--ice); }
+  .receipt .r-note {
+    margin-top: 20px; color: var(--ice);
+    line-height: 1.65; font-size: 11.5px;
+  }
+  .receipt .r-note em { font-style: normal; color: var(--gold); }
+  .receipt button {
+    display: block; width: 100%; margin-top: 24px; padding: 12px;
+    background: transparent;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    font-family: var(--mono);
+    font-size: 11.5px; letter-spacing: 0.22em;
+    cursor: pointer;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee .sign { animation: none; }
+    .checkout.working .spin { animation: none; opacity: 1; }
+    #beam, #dim, #chill, .cam, #employee, .music .bar { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<a href="../../index.html" class="back">← cue sheet</a>
+
+<div class="scene">
+  <div class="marquee">
+    <span class="sign">WELCOME · OPEN</span>
+    <span class="hours">OPEN TO ALL · DOORS 9 – 10 · ASSOCIATES ARE BROWSE-FRIENDLY</span>
+  </div>
+
+  <div class="store-wrap">
+    <svg class="store" viewBox="0 0 375 440" preserveAspectRatio="xMidYMid slice" aria-label="Store interior">
+      <defs>
+        <radialGradient id="beam-grad" cx="50%" cy="6%" r="88%">
+          <stop offset="0%" stop-color="#ffd58a" stop-opacity="0.6"/>
+          <stop offset="40%" stop-color="#f0b454" stop-opacity="0.22"/>
+          <stop offset="100%" stop-color="#f0b454" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="wall-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1c140d"/>
+          <stop offset="100%" stop-color="#2a1e14"/>
+        </linearGradient>
+        <linearGradient id="floor-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1a1510"/>
+          <stop offset="100%" stop-color="#0a0806"/>
+        </linearGradient>
+      </defs>
+
+      <rect x="0" y="0" width="375" height="360" fill="url(#wall-grad)"/>
+      <polygon points="0,360 375,360 375,440 0,440" fill="url(#floor-grad)"/>
+      <line x1="0" y1="360" x2="375" y2="360" stroke="#000" stroke-width="1" opacity="0.6"/>
+
+      <g id="lamp">
+        <rect x="156" y="2" width="63" height="6" fill="#3a2a1a"/>
+        <line x1="187" y1="8" x2="187" y2="20" stroke="#3a2a1a" stroke-width="2"/>
+        <circle cx="187" cy="26" r="7" fill="#2a1f14" stroke="#4a3620" stroke-width="1"/>
+        <circle cx="187" cy="26" r="4" fill="#f0b454" opacity="0.7"/>
+      </g>
+
+      <ellipse id="beam" cx="187" cy="26" rx="150" ry="300" fill="url(#beam-grad)" opacity="1" pointer-events="none"/>
+
+      <g id="shelves">
+        <rect x="18" y="108" width="339" height="6" fill="#4a3620"/>
+        <rect x="18" y="114" width="339" height="2" fill="#2a1f14"/>
+        <rect x="18" y="238" width="339" height="6" fill="#4a3620"/>
+        <rect x="18" y="244" width="339" height="2" fill="#2a1f14"/>
+      </g>
+
+      <!-- Row 1 items -->
+      <g class="item" data-id="fresnel">
+        <rect class="hit" x="28" y="52" width="94" height="56" fill="transparent"/>
+        <g transform="translate(75, 82)">
+          <rect x="-22" y="-8" width="40" height="26" rx="2" fill="#2a1f14" stroke="#4a3620"/>
+          <circle cx="-3" cy="5" r="13" fill="#b88a38" stroke="#3a2a1a" stroke-width="1.5"/>
+          <circle cx="-3" cy="5" r="9" fill="none" stroke="#3a2a1a" stroke-width="0.8"/>
+          <circle cx="-3" cy="5" r="5" fill="none" stroke="#3a2a1a" stroke-width="0.8"/>
+          <rect x="16" y="-4" width="4" height="8" fill="#3a2a1a"/>
+          <line x1="-3" y1="-12" x2="-3" y2="-18" stroke="#3a2a1a" stroke-width="2"/>
+        </g>
+        <circle class="basket-ring" cx="75" cy="82" r="32" fill="none" stroke="#f0b454" stroke-width="1.6" opacity="0" pointer-events="none"/>
+      </g>
+
+      <g class="item" data-id="gel">
+        <rect class="hit" x="138" y="52" width="94" height="56" fill="transparent"/>
+        <g transform="translate(187, 82)">
+          <rect x="-18" y="-22" width="36" height="42" fill="#5a4a9f" stroke="#3a2a1a"/>
+          <rect x="-18" y="-22" width="36" height="42" fill="#6a8fb8" opacity="0.28"/>
+          <line x1="-18" y1="-14" x2="18" y2="-14" stroke="#2a1f14" opacity="0.6"/>
+          <text x="0" y="0" text-anchor="middle" fill="#1a1510" font-size="7" font-family="monospace" font-weight="700">LEE</text>
+          <text x="0" y="8" text-anchor="middle" fill="#1a1510" font-size="7" font-family="monospace" font-weight="700">201</text>
+        </g>
+        <circle class="basket-ring" cx="187" cy="82" r="32" fill="none" stroke="#f0b454" stroke-width="1.6" opacity="0" pointer-events="none"/>
+      </g>
+
+      <g class="item" data-id="gaff">
+        <rect class="hit" x="248" y="52" width="94" height="56" fill="transparent"/>
+        <g transform="translate(297, 86)">
+          <ellipse cx="0" cy="14" rx="24" ry="7" fill="#15110c" stroke="#3a2a1a"/>
+          <rect x="-24" y="-2" width="48" height="16" fill="#1a1510" stroke="#3a2a1a"/>
+          <ellipse cx="0" cy="-2" rx="24" ry="7" fill="#1a1510" stroke="#3a2a1a"/>
+          <ellipse cx="0" cy="-2" rx="11" ry="3.2" fill="#15110c" stroke="#3a2a1a"/>
+        </g>
+        <circle class="basket-ring" cx="297" cy="82" r="32" fill="none" stroke="#f0b454" stroke-width="1.6" opacity="0" pointer-events="none"/>
+      </g>
+
+      <!-- Row 2 items -->
+      <g class="item" data-id="clamp">
+        <rect class="hit" x="28" y="182" width="94" height="56" fill="transparent"/>
+        <g transform="translate(75, 212)">
+          <path d="M -18 -18 L 18 -18 L 18 -4 L -4 -4 L -4 16 L -18 16 Z" fill="#b88a38" stroke="#3a2a1a" stroke-width="1.2"/>
+          <rect x="-2" y="-4" width="12" height="4" fill="#9d7636"/>
+          <line x1="4" y1="0" x2="4" y2="14" stroke="#3a2a1a" stroke-width="2"/>
+          <circle cx="4" cy="18" r="5" fill="#b88a38" stroke="#3a2a1a"/>
+          <line x1="-1" y1="22" x2="9" y2="22" stroke="#3a2a1a" stroke-width="1.5"/>
+        </g>
+        <circle class="basket-ring" cx="75" cy="212" r="32" fill="none" stroke="#f0b454" stroke-width="1.6" opacity="0" pointer-events="none"/>
+      </g>
+
+      <g class="item" data-id="xlr">
+        <rect class="hit" x="138" y="182" width="94" height="56" fill="transparent"/>
+        <g transform="translate(187, 212)">
+          <circle cx="0" cy="0" r="22" fill="none" stroke="#1a1510" stroke-width="7"/>
+          <circle cx="0" cy="0" r="18" fill="none" stroke="#2a1f14" stroke-width="3"/>
+          <circle cx="0" cy="0" r="14" fill="none" stroke="#1a1510" stroke-width="3"/>
+          <circle cx="0" cy="0" r="10" fill="none" stroke="#2a1f14" stroke-width="2"/>
+          <rect x="18" y="-7" width="14" height="14" rx="1.5" fill="#9d7636" stroke="#3a2a1a"/>
+          <circle cx="25" cy="-3" r="1.3" fill="#2a1f14"/>
+          <circle cx="25" cy="3" r="1.3" fill="#2a1f14"/>
+          <circle cx="20" cy="0" r="1.3" fill="#2a1f14"/>
+        </g>
+        <circle class="basket-ring" cx="187" cy="212" r="32" fill="none" stroke="#f0b454" stroke-width="1.6" opacity="0" pointer-events="none"/>
+      </g>
+
+      <g class="item" data-id="par">
+        <rect class="hit" x="248" y="182" width="94" height="56" fill="transparent"/>
+        <g transform="translate(297, 212)">
+          <rect x="-22" y="-12" width="44" height="28" rx="2" fill="#2a1f14" stroke="#4a3620"/>
+          <circle cx="0" cy="2" r="13" fill="#15110c" stroke="#3a2a1a"/>
+          <g fill="#6a8fb8" opacity="0.75">
+            <circle cx="-6" cy="-4" r="1.6"/><circle cx="0" cy="-4" r="1.6"/><circle cx="6" cy="-4" r="1.6"/>
+            <circle cx="-6" cy="2"  r="1.6"/><circle cx="0" cy="2"  r="1.6"/><circle cx="6" cy="2"  r="1.6"/>
+            <circle cx="-6" cy="8"  r="1.6"/><circle cx="0" cy="8"  r="1.6"/><circle cx="6" cy="8"  r="1.6"/>
+          </g>
+          <rect x="-26" y="16" width="52" height="4" fill="#3a2a1a"/>
+        </g>
+        <circle class="basket-ring" cx="297" cy="212" r="32" fill="none" stroke="#f0b454" stroke-width="1.6" opacity="0" pointer-events="none"/>
+      </g>
+
+      <!-- Price labels -->
+      <g font-family="monospace" font-size="7" fill="#6a5438" text-anchor="middle" pointer-events="none">
+        <text x="75"  y="128">$84</text>
+        <text x="187" y="128">$9</text>
+        <text x="297" y="128">$22</text>
+        <text x="75"  y="258">$38</text>
+        <text x="187" y="258">$14</text>
+        <text x="297" y="258">$140</text>
+      </g>
+
+      <!-- Cameras -->
+      <g id="cam1" pointer-events="none">
+        <rect x="6" y="10" width="16" height="9" fill="#1a1510" stroke="#3a2a1a"/>
+        <circle cx="14" cy="14.5" r="2.4" fill="#15110c" stroke="#8c3a28" stroke-width="0.7"/>
+        <circle cx="14" cy="14.5" r="1" fill="#8c3a28"/>
+      </g>
+      <g id="cam2" pointer-events="none" opacity="0" style="transition: opacity 500ms;">
+        <rect x="353" y="10" width="16" height="9" fill="#1a1510" stroke="#3a2a1a"/>
+        <circle cx="361" cy="14.5" r="2.4" fill="#15110c" stroke="#8c3a28" stroke-width="0.7"/>
+        <circle cx="361" cy="14.5" r="1" fill="#8c3a28"/>
+      </g>
+      <g id="cam3" pointer-events="none" opacity="0" style="transition: opacity 500ms;">
+        <rect x="177" y="40" width="20" height="11" fill="#1a1510" stroke="#3a2a1a"/>
+        <circle cx="187" cy="46" r="2.8" fill="#15110c" stroke="#8c3a28" stroke-width="0.8"/>
+        <circle cx="187" cy="46" r="1.2" fill="#8c3a28"/>
+      </g>
+      <g id="cam4" pointer-events="none" opacity="0" style="transition: opacity 500ms;">
+        <rect x="6" y="340" width="16" height="9" fill="#1a1510" stroke="#3a2a1a"/>
+        <circle cx="14" cy="344.5" r="2.4" fill="#15110c" stroke="#8c3a28" stroke-width="0.7"/>
+        <circle cx="14" cy="344.5" r="1" fill="#8c3a28"/>
+      </g>
+
+      <!-- Employee silhouette (slides in from right edge) -->
+      <g id="employee" pointer-events="none" opacity="0" style="transition: opacity 600ms, transform 600ms; transform: translateX(80px);">
+        <ellipse cx="355" cy="408" rx="22" ry="5" fill="#000" opacity="0.55"/>
+        <path d="M 345 400 Q 345 362 355 358 Q 365 362 365 400 Z" fill="#0d1420"/>
+        <path d="M 345 400 Q 345 362 355 358 Q 365 362 365 400 Z" fill="none" stroke="#1a2436" stroke-width="0.6"/>
+        <circle cx="355" cy="348" r="11" fill="#0d1420" stroke="#1a2436" stroke-width="0.6"/>
+        <!-- lanyard -->
+        <line x1="355" y1="358" x2="355" y2="380" stroke="#8c3a28" stroke-width="0.6" opacity="0.75"/>
+        <!-- id badge -->
+        <rect x="352" y="378" width="6" height="7" fill="#1a2436" stroke="#8c3a28" stroke-width="0.4"/>
+      </g>
+
+      <!-- Dim + chill overlays -->
+      <rect id="dim"   x="0" y="0" width="375" height="440" fill="#070502" opacity="0" pointer-events="none" style="transition: opacity 700ms;"/>
+      <rect id="chill" x="0" y="0" width="375" height="440" fill="#1e3652" opacity="0" pointer-events="none" style="transition: opacity 700ms; mix-blend-mode: screen;"/>
+    </svg>
+
+    <button class="sheet-btn" id="sheet-btn" aria-label="open call sheet">☰</button>
+  </div>
+
+  <div class="hud">
+    <div class="hud-row">
+      <div class="basket">basket · <span class="count" id="basket-count">0</span> item<span id="basket-plural">s</span></div>
+      <div class="music" id="music" aria-label="store music level">
+        <div class="bar" style="height: 6px;"></div>
+        <div class="bar" style="height: 11px;"></div>
+        <div class="bar" style="height: 8px;"></div>
+        <div class="bar" style="height: 14px;"></div>
+        <div class="bar" style="height: 9px;"></div>
+        <div class="bar" style="height: 12px;"></div>
+      </div>
+    </div>
+    <button class="checkout" id="checkout">
+      <span class="label">CHECK OUT</span><span class="spin">·</span>
+    </button>
+  </div>
+</div>
+
+<div class="sheet" id="sheet" role="dialog" aria-label="call sheet">
+  <div class="title">call sheet · patron</div>
+  <div class="row greeter-row"><span class="k">greeter sign</span><span class="v" id="s-greeter">WELCOME · OPEN</span></div>
+  <div class="row"><span class="k">estimated patron score</span><span class="v" id="s-score">0</span></div>
+  <div class="row sub"><span class="k">— handling events</span><span class="v" id="s-handle">0 pts</span></div>
+  <div class="row sub"><span class="k">— indecision (returns)</span><span class="v" id="s-indec">0 pts</span></div>
+  <div class="row sub"><span class="k">— loitering (off-shelf)</span><span class="v" id="s-loit">0 pts</span></div>
+  <div class="row sub"><span class="k">— browse duration</span><span class="v" id="s-dur">0 pts</span></div>
+  <div class="row"><span class="k">overhead reduced</span><span class="v" id="s-dim">0%</span></div>
+  <div class="row"><span class="k">music level</span><span class="v" id="s-music">100%</span></div>
+  <div class="row"><span class="k">cameras active</span><span class="v" id="s-cam">1</span></div>
+  <div class="row"><span class="k">associate drawn to</span><span class="v" id="s-emp">off-floor</span></div>
+  <div class="row"><span class="k">register throttle</span><span class="v" id="s-lat">0.0 s</span></div>
+  <div class="confession" id="confession">
+    the welcome sign is wired to the door.<br>
+    the service is wired to you.
+  </div>
+  <button class="close" id="sheet-close">close</button>
+</div>
+
+<div class="receipt" id="receipt">
+  <div class="r-top">· RECEIPT ·</div>
+  <div class="r-store">WELCOME · OPEN</div>
+  <div class="r-sub">THANK YOU FOR SHOPPING WITH US</div>
+  <div class="r-items" id="r-items"></div>
+  <div class="r-total"><span>TOTAL</span><span id="r-total">$0</span></div>
+  <div class="r-paid">PAID IN FULL · HAVE A GOOD EVENING</div>
+
+  <div class="r-hidden">
+    <div class="r-htitle">— off the receipt —</div>
+    <div class="r-line"><span>patron score</span><span id="r-score">0</span></div>
+    <div class="r-line"><span>overhead reduced by</span><span id="r-dim">0%</span></div>
+    <div class="r-line"><span>music reduced to</span><span id="r-music">100%</span></div>
+    <div class="r-line"><span>cameras recording</span><span id="r-cam">1</span></div>
+    <div class="r-line"><span>associate drawn to</span><span id="r-emp">off-floor</span></div>
+    <div class="r-line"><span>register throttled by</span><span id="r-lat">0.0 s</span></div>
+    <div class="r-note" id="r-note">
+      none of this was on the paper. the sign at the door still reads <em>WELCOME · OPEN</em>.
+    </div>
+  </div>
+  <button id="receipt-close">keep browsing</button>
+</div>
+
+<script>
+const PRICES = { fresnel: 84, gel: 9, gaff: 22, clamp: 38, xlr: 14, par: 140 };
+const LABELS = {
+  fresnel: 'Fresnel · 650W',
+  gel:     'LEE 201 · full CT blue',
+  gaff:    'Pro Gaff · 2in · black',
+  clamp:   'Mega C-clamp · brass',
+  xlr:     'XLR cable · 25 ft',
+  par:     'LED Par · RGBW'
+};
+
+const state = {
+  basket: new Set(),
+  taps: {},
+  returns: 0,
+  loitering: 0,
+  entered: Date.now(),
+  checkoutDone: false,
+};
+
+const $ = id => document.getElementById(id);
+const BASKET_COUNT = $('basket-count');
+const BASKET_PLURAL = $('basket-plural');
+const DIM = $('dim');
+const CHILL = $('chill');
+const BEAM = $('beam');
+const CAM2 = $('cam2'), CAM3 = $('cam3'), CAM4 = $('cam4');
+const EMPLOYEE = $('employee');
+const MUSIC = $('music');
+const CHECKOUT = $('checkout');
+const SHEET = $('sheet');
+const RECEIPT = $('receipt');
+
+function computeScore() {
+  const tapTotal = Object.values(state.taps).reduce((a, b) => a + b, 0);
+  const handling = tapTotal * 2;
+  const indecision = state.returns * 6;
+  const loitering = state.loitering * 3;
+  const duration = Math.floor((Date.now() - state.entered) / 1000);
+  const durationScore = Math.floor(duration * 0.5);
+  return {
+    total: handling + indecision + loitering + durationScore,
+    handling, indecision, loitering, duration, durationScore, tapTotal,
+  };
+}
+
+function tier(score) {
+  if (score < 12) return 0;
+  if (score < 30) return 1;
+  if (score < 60) return 2;
+  if (score < 100) return 3;
+  return 4;
+}
+
+const TIER = [
+  { dim: 0.00, chill: 0.00, cam: 1, music: 6, latency: 0.0, empTx: 80,  empOp: 0.00 },
+  { dim: 0.18, chill: 0.06, cam: 2, music: 5, latency: 0.5, empTx: 55,  empOp: 0.28 },
+  { dim: 0.36, chill: 0.14, cam: 3, music: 4, latency: 1.3, empTx: 28,  empOp: 0.55 },
+  { dim: 0.54, chill: 0.22, cam: 4, music: 2, latency: 2.3, empTx: 10,  empOp: 0.80 },
+  { dim: 0.70, chill: 0.30, cam: 4, music: 1, latency: 3.5, empTx: -4,  empOp: 1.00 },
+];
+
+function distLabel(opOrTx) {
+  const op = opOrTx.empOp, tx = opOrTx.empTx;
+  if (op === 0) return 'off-floor';
+  if (op < 0.4) return 'end of aisle';
+  if (op < 0.7) return 'mid aisle';
+  if (op < 0.95) return 'two paces';
+  return 'arm\'s length';
+}
+
+function render() {
+  const s = computeScore();
+  const t = tier(s.total);
+  const cfg = TIER[t];
+
+  DIM.setAttribute('opacity', cfg.dim);
+  CHILL.setAttribute('opacity', cfg.chill);
+  BEAM.setAttribute('opacity', (1 - cfg.dim * 0.85).toFixed(3));
+
+  CAM2.setAttribute('opacity', cfg.cam >= 2 ? 1 : 0);
+  CAM3.setAttribute('opacity', cfg.cam >= 3 ? 1 : 0);
+  CAM4.setAttribute('opacity', cfg.cam >= 4 ? 1 : 0);
+
+  EMPLOYEE.style.opacity = cfg.empOp;
+  EMPLOYEE.style.transform = `translateX(${cfg.empTx}px)`;
+
+  const bars = MUSIC.querySelectorAll('.bar');
+  bars.forEach((b, i) => {
+    b.classList.toggle('off', i >= cfg.music);
+  });
+
+  BASKET_COUNT.textContent = state.basket.size;
+  BASKET_PLURAL.textContent = state.basket.size === 1 ? '' : 's';
+
+  $('s-score').textContent = s.total;
+  $('s-handle').textContent = `${s.handling} pts  (${s.tapTotal} tap${s.tapTotal === 1 ? '' : 's'})`;
+  $('s-indec').textContent = `${s.indecision} pts  (${state.returns} return${state.returns === 1 ? '' : 's'})`;
+  $('s-loit').textContent = `${s.loitering} pts  (${state.loitering} off-shelf)`;
+  $('s-dur').textContent = `${s.durationScore} pts  (${s.duration} s)`;
+  $('s-dim').textContent = `${Math.round(cfg.dim * 100)}%`;
+  $('s-music').textContent = `${Math.round((cfg.music / 6) * 100)}%`;
+  $('s-cam').textContent = cfg.cam;
+  $('s-emp').textContent = distLabel(cfg);
+  $('s-lat').textContent = cfg.latency.toFixed(1) + ' s';
+
+  const confession = $('confession');
+  if (t === 0) {
+    confession.innerHTML = 'the welcome sign is wired to the door.<br>the service is wired to you.';
+  } else if (t <= 2) {
+    confession.innerHTML =
+      'the welcome sign is wired to the door.<br>' +
+      'the service is wired to you.<br>' +
+      'none of this is on your receipt.';
+  } else {
+    confession.innerHTML =
+      'the welcome sign is wired to the door.<br>' +
+      'the service is wired to you.<br>' +
+      'the door you walked through is still open to all.<br>' +
+      'a store that keeps its sign lit while the light over your head cools<br>' +
+      'has not refused anyone entry &mdash; only presence.';
+  }
+
+  return { score: s, tier: t, cfg };
+}
+
+document.querySelectorAll('.item').forEach(item => {
+  const id = item.getAttribute('data-id');
+  state.taps[id] = 0;
+  item.addEventListener('click', (e) => {
+    e.stopPropagation();
+    state.taps[id] += 1;
+    const wasIn = state.basket.has(id);
+    if (wasIn) {
+      state.basket.delete(id);
+      state.returns += 1;
+    } else {
+      state.basket.add(id);
+    }
+    item.querySelector('.basket-ring').setAttribute('opacity', state.basket.has(id) ? 0.9 : 0);
+    render();
+  });
+});
+
+document.querySelector('svg.store').addEventListener('click', (e) => {
+  if (e.target.closest('.item')) return;
+  state.loitering += 1;
+  render();
+});
+
+$('sheet-btn').addEventListener('click', () => { render(); SHEET.classList.add('open'); });
+$('sheet-close').addEventListener('click', () => SHEET.classList.remove('open'));
+
+CHECKOUT.addEventListener('click', () => {
+  if (state.checkoutDone) return;
+  if (CHECKOUT.classList.contains('working')) return;
+  const { score, cfg } = render();
+  const delay = cfg.latency * 1000;
+  const label = CHECKOUT.querySelector('.label');
+  if (delay > 0) {
+    CHECKOUT.classList.add('working');
+    label.textContent = 'VERIFYING';
+  }
+  setTimeout(() => {
+    openReceipt(score, cfg);
+    CHECKOUT.classList.remove('working');
+    label.textContent = 'CHECK OUT';
+    state.checkoutDone = true;
+  }, delay);
+});
+
+function openReceipt(score, cfg) {
+  const items = $('r-items');
+  items.innerHTML = '';
+  let total = 0;
+  if (state.basket.size === 0) {
+    items.innerHTML = '<div class="r-line"><span>&mdash; no items &mdash;</span><span></span></div>';
+  } else {
+    [...state.basket].forEach(id => {
+      const line = document.createElement('div');
+      line.className = 'r-line';
+      line.innerHTML = `<span>${LABELS[id]}</span><span>$${PRICES[id]}</span>`;
+      items.appendChild(line);
+      total += PRICES[id];
+    });
+  }
+  $('r-total').textContent = `$${total}`;
+  $('r-score').textContent = score.total;
+  $('r-dim').textContent = `${Math.round(cfg.dim * 100)}%`;
+  $('r-music').textContent = `${Math.round((cfg.music / 6) * 100)}%`;
+  $('r-cam').textContent = cfg.cam;
+  $('r-emp').textContent = distLabel(cfg);
+  $('r-lat').textContent = cfg.latency.toFixed(1) + ' s';
+  RECEIPT.classList.add('open');
+}
+
+$('receipt-close').addEventListener('click', () => {
+  RECEIPT.classList.remove('open');
+  state.checkoutDone = false;
+});
+
+// Keep duration score ticking while the sheet is open or the user lingers.
+setInterval(render, 1000);
+
+render();
+</script>
+</body>
+</html>
