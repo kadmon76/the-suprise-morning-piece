@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0d14">
+<title>The Pardon</title>
+<style>
+  :root {
+    --bg: #0a0d14;
+    --bg-soft: #141822;
+    --bg-panel: #0e1420;
+    --wood: #6a4a28;
+    --gold: #e8b45a;
+    --gold-soft: #f3d08a;
+    --ice: #7faee0;
+    --rust: #a35840;
+    --red: #b8392c;
+    --red-shadow: #7f1d12;
+    --fg: #d6cfc0;
+    --fg-dim: #867f72;
+    --fg-faint: #4f4a42;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: contain;
+  }
+
+  main {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 46px 20px 28px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .back {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    color: var(--fg-faint);
+    text-decoration: none;
+    font-size: 11px;
+    padding: 6px 4px;
+    letter-spacing: 0.04em;
+  }
+
+  .ledger-mark {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--fg-faint);
+    border-radius: 3px;
+    display: grid;
+    place-items: center;
+    color: var(--fg-dim);
+    font-size: 15px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s ease;
+  }
+  .ledger-mark:active { background: var(--bg-soft); }
+
+  .title {
+    text-align: center;
+    color: var(--fg-dim);
+    font-size: 11px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--fg-faint);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    margin-bottom: 18px;
+  }
+
+  .stage {
+    position: relative;
+    height: 320px;
+    border-radius: 6px;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse at 50% 100%, #181d28 0%, var(--bg) 70%);
+    margin-bottom: 22px;
+    border: 1px solid #141822;
+  }
+
+  .cone {
+    position: absolute;
+    left: 50%;
+    top: -10px;
+    width: 200px;
+    height: 300px;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at 50% 0%,
+      rgba(243, 208, 138, 0.06) 0%,
+      rgba(243, 208, 138, 0.04) 40%,
+      transparent 70%);
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+    opacity: 0.6;
+  }
+  .stage.lit .cone { opacity: 1.4; }
+
+  .name-tag {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--gold);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    font-weight: 500;
+    opacity: 0.9;
+    text-transform: uppercase;
+    transition: opacity 0.4s ease;
+  }
+
+  .proclamation {
+    position: absolute;
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--gold-soft);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-align: center;
+    white-space: nowrap;
+    opacity: 0;
+    text-transform: uppercase;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+  .proclamation.visible { opacity: 1; }
+
+  .pen-wrap {
+    position: absolute;
+    left: 50%;
+    bottom: 10px;
+    transform: translateX(-50%);
+    width: 260px;
+    height: 200px;
+    pointer-events: none;
+  }
+  .pen-wrap svg { display: block; width: 100%; height: 100%; }
+
+  .turkey {
+    transition: opacity 0.5s ease;
+  }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  button.action {
+    flex: 1;
+    padding: 18px 10px;
+    font-family: inherit;
+    border: none;
+    border-radius: 4px;
+    letter-spacing: 0.24em;
+    font-size: 12px;
+    text-transform: uppercase;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.2s ease;
+    touch-action: manipulation;
+  }
+  button.action:disabled { opacity: 0.32; cursor: not-allowed; }
+
+  button.pardon {
+    flex: 1.6;
+    background: var(--red);
+    color: #fff5e6;
+    box-shadow: 0 2px 0 var(--red-shadow), 0 6px 14px rgba(184, 57, 44, 0.3);
+  }
+  button.pardon:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 0 0 var(--red-shadow), 0 2px 6px rgba(184, 57, 44, 0.2);
+  }
+  button.proceed {
+    background: #1e2330;
+    color: var(--fg-dim);
+    border: 1px solid #2a3040;
+  }
+  button.proceed:active:not(:disabled) { background: #252b3a; }
+
+  .counters {
+    display: flex;
+    justify-content: space-around;
+    padding: 12px 4px;
+    color: var(--fg-dim);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border-top: 1px solid #1a1f2a;
+    border-bottom: 1px solid #1a1f2a;
+  }
+  .counter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .counter-val {
+    color: var(--fg);
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
+  }
+  .counter.pardoned .counter-val { color: var(--gold); }
+  .counter.proceeded .counter-val { color: var(--fg-dim); }
+
+  .confetti {
+    position: absolute;
+    width: 5px;
+    height: 10px;
+    pointer-events: none;
+    will-change: transform, opacity;
+  }
+
+  .ledger {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 13, 20, 0.92);
+    z-index: 10;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+  }
+  .ledger.open { opacity: 1; pointer-events: auto; }
+
+  .ledger-panel {
+    width: 100%;
+    max-width: 480px;
+    max-height: 86vh;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--fg-faint);
+    padding: 20px 20px 32px;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(.2,.6,.2,1);
+    -webkit-overflow-scrolling: touch;
+  }
+  .ledger.open .ledger-panel { transform: translateY(0); }
+
+  .ledger-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 18px;
+  }
+  .ledger-head h2 {
+    color: var(--ice);
+    font-size: 11px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .ledger-close {
+    color: var(--fg-dim);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    font-family: inherit;
+  }
+
+  .ledger-tally {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 20px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    margin-bottom: 22px;
+  }
+  .tally-row {
+    display: flex;
+    justify-content: space-between;
+    color: var(--fg-dim);
+    border-bottom: 1px dotted #2a303a;
+    padding-bottom: 4px;
+    gap: 6px;
+  }
+  .tally-row b {
+    color: var(--fg);
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+  .tally-row.alive b { color: var(--gold); }
+  .tally-row.deceased b { color: var(--rust); }
+
+  .wall-head {
+    color: var(--fg-dim);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .wall {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 22px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .wall-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 3px 0;
+    color: var(--gold);
+    transition: color 0.8s ease;
+  }
+  .wall-row.deceased {
+    color: var(--rust);
+    text-decoration: line-through;
+    text-decoration-color: rgba(163, 88, 64, 0.45);
+  }
+  .wall-row .status {
+    color: inherit;
+    opacity: 0.72;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+  .wall-empty {
+    color: var(--fg-faint);
+    font-style: italic;
+    font-size: 11px;
+  }
+
+  .confession {
+    color: var(--ice);
+    font-size: 11px;
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+    border-top: 1px solid #1f2634;
+    padding-top: 14px;
+  }
+  .confession em {
+    opacity: 0.6;
+    font-style: normal;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 8px;
+  }
+  .confession p { margin-bottom: 7px; }
+
+  @media (max-width: 360px) {
+    main { padding: 44px 14px 24px; }
+    .stage { height: 280px; }
+    button.action { padding: 16px 6px; font-size: 11px; letter-spacing: 0.18em; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+<main>
+  <a href="../../index.html" class="back">← cue sheet</a>
+  <div class="ledger-mark" id="ledgerMark" role="button" aria-label="open the record">◫</div>
+
+  <div class="title">The Pardoning of a Turkey</div>
+  <div class="subtitle">· an annual ceremony ·</div>
+
+  <div class="stage" id="stage">
+    <div class="cone"></div>
+    <div class="name-tag" id="nameTag">PEAS</div>
+    <div class="proclamation" id="proclamation">pardoned by presidential proclamation</div>
+    <div class="pen-wrap">
+      <svg viewBox="0 0 260 200" aria-hidden="true">
+        <!-- ground shadow -->
+        <ellipse cx="130" cy="168" rx="80" ry="6" fill="#000" opacity="0.5"/>
+        <!-- pen fence back rail -->
+        <g stroke="#6a4a28" stroke-width="2.2" fill="none" stroke-linecap="round">
+          <line x1="22" y1="128" x2="238" y2="128"/>
+          <line x1="22" y1="150" x2="238" y2="150"/>
+        </g>
+        <!-- fence posts (left side: closed) -->
+        <g stroke="#6a4a28" stroke-width="2.2" stroke-linecap="round">
+          <line x1="30" y1="115" x2="30" y2="170"/>
+          <line x1="68" y1="115" x2="68" y2="170"/>
+          <line x1="106" y1="115" x2="106" y2="170"/>
+          <line x1="144" y1="115" x2="144" y2="170"/>
+        </g>
+        <!-- sanctuary gate (right side) - posts a bit apart -->
+        <g stroke="#6a4a28" stroke-width="2.2" stroke-linecap="round" opacity="0.85">
+          <line x1="188" y1="115" x2="188" y2="170"/>
+          <line x1="226" y1="115" x2="226" y2="170"/>
+        </g>
+        <!-- ground line -->
+        <line x1="20" y1="174" x2="240" y2="174" stroke="#2a2018" stroke-width="1"/>
+
+        <!-- turkey -->
+        <g class="turkey" id="turkey" transform="translate(130 140)">
+          <g id="turkeyInner">
+            <!-- tail fan -->
+            <g opacity="0.92">
+              <path d="M -9 -10 Q -42 -46 -32 -4 Z" fill="#7a3a22" stroke="#4a2615" stroke-width="0.6"/>
+              <path d="M -4 -14 Q -24 -56 -14 -2 Z" fill="#8c4a30" stroke="#4a2615" stroke-width="0.6"/>
+              <path d="M 0 -16 Q 0 -60 6 -2 Z" fill="#a05a38" stroke="#4a2615" stroke-width="0.6"/>
+              <path d="M 4 -14 Q 24 -56 14 -2 Z" fill="#8c4a30" stroke="#4a2615" stroke-width="0.6"/>
+              <path d="M 9 -10 Q 42 -46 32 -4 Z" fill="#7a3a22" stroke="#4a2615" stroke-width="0.6"/>
+            </g>
+            <!-- body -->
+            <ellipse cx="0" cy="2" rx="20" ry="16" fill="#6b3a24"/>
+            <!-- wing -->
+            <path d="M -10 -2 Q -4 14 12 8 Q 8 0 -10 -2 Z" fill="#48230f" opacity="0.55"/>
+            <!-- neck -->
+            <path d="M 12 -4 Q 22 -14 20 -22" fill="none" stroke="#6b3a24" stroke-width="7" stroke-linecap="round"/>
+            <!-- head -->
+            <circle cx="20" cy="-23" r="6" fill="#6b3a24"/>
+            <!-- beak -->
+            <path d="M 25.5 -23.5 L 31 -22 L 25.5 -20.5 Z" fill="#e8b45a"/>
+            <!-- eye -->
+            <circle cx="21.5" cy="-25.5" r="0.9" fill="#0a0d14"/>
+            <!-- wattle -->
+            <path d="M 22 -20 Q 25 -14 21 -13 Q 20 -16 22 -20 Z" fill="#b8392c"/>
+            <!-- legs -->
+            <line x1="-6" y1="16" x2="-6" y2="24" stroke="#d9a04a" stroke-width="2"/>
+            <line x1="6" y1="16" x2="6" y2="24" stroke="#d9a04a" stroke-width="2"/>
+            <path d="M -10 24 L -2 24 M 2 24 L 10 24" stroke="#d9a04a" stroke-width="1.5" fill="none"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="action pardon" id="pardonBtn">Pardon</button>
+    <button class="action proceed" id="proceedBtn">Proceed</button>
+  </div>
+
+  <div class="counters">
+    <div class="counter pardoned">
+      <div class="counter-val" id="pardonedVal">0</div>
+      <div>pardoned tonight</div>
+    </div>
+    <div class="counter proceeded">
+      <div class="counter-val" id="proceededVal">0</div>
+      <div>proceeded</div>
+    </div>
+  </div>
+</main>
+
+<div class="ledger" id="ledger" aria-hidden="true">
+  <div class="ledger-panel">
+    <div class="ledger-head">
+      <h2>The Record</h2>
+      <button class="ledger-close" id="ledgerClose">close</button>
+    </div>
+    <div class="ledger-tally">
+      <div class="tally-row"><span>tonight · pardoned</span><b id="tPardTonight">0</b></div>
+      <div class="tally-row"><span>tonight · proceeded</span><b id="tProcTonight">0</b></div>
+      <div class="tally-row"><span>all-time · pardoned</span><b id="tPardAll">0</b></div>
+      <div class="tally-row alive"><span>still in sanctuary</span><b id="tAlive">0</b></div>
+    </div>
+    <div class="wall-head">— the sanctuary wall —</div>
+    <div class="wall" id="wall"></div>
+    <div class="confession">
+      <em>the record notes</em>
+      <p>The pardon was signed in a moment. The recipient must live for years.</p>
+      <p>Of the turkeys ceremonially pardoned since 1989, roughly seven in ten have died within a year of the ceremony. Every pardon remains on file as granted.</p>
+      <p id="confessionLast">None of them were visited after.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const NAMES = [
+    'Peas','Carrots','Bread','Butter','Honest','Abe',
+    'Liberty','Freedom','Peanut','Jelly','Mac','Cheese',
+    'Corn','Cob','Caramel','Popcorn','Marshmallow','Yam',
+    'Drumstick','Wishbone','Flyer','Fryer','Gobbler','Pecan',
+    'Cornbread','Mashed','Clucky','Lucky','Stuffing','Hominy',
+    'Biscuit','Cranberry','Nutmeg','Sage','Thyme','Clove'
+  ];
+
+  // 1 real minute of elapsed time = 1 "year" on the record.
+  // Exponential lifespan with P(survive 60s) ≈ 0.30: τ = 60 / ln(1/0.3) ≈ 49.8s
+  const YEAR_MS = 60000;
+  const TAU_MS  = 49800;
+
+  const KEY = 'pardon.v1';
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) {
+        const o = JSON.parse(raw);
+        if (o && Array.isArray(o.pardons)) {
+          o.proceededAll = o.proceededAll|0;
+          return o;
+        }
+      }
+    } catch (e) {}
+    return { pardons: [], proceededAll: 0 };
+  }
+  function saveState() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  const state = loadState();
+  const session = { pardonedTonight: 0, proceededTonight: 0 };
+
+  const $ = id => document.getElementById(id);
+  const stage       = $('stage');
+  const turkey      = $('turkey');
+  const nameTag     = $('nameTag');
+  const proclamation= $('proclamation');
+  const pardonBtn   = $('pardonBtn');
+  const proceedBtn  = $('proceedBtn');
+  const ledger      = $('ledger');
+  const ledgerMark  = $('ledgerMark');
+  const ledgerClose = $('ledgerClose');
+  const wall        = $('wall');
+
+  let busy = false;
+  let currentName = pickName();
+  nameTag.textContent = currentName.toUpperCase();
+
+  function pickName() {
+    return NAMES[Math.floor(Math.random() * NAMES.length)];
+  }
+
+  function randomLifespanMs() {
+    const u = Math.max(1e-6, Math.random());
+    return -TAU_MS * Math.log(u);
+  }
+
+  function liveCount() {
+    const now = Date.now();
+    let n = 0;
+    for (const p of state.pardons) if (now - p.t < p.life) n++;
+    return n;
+  }
+
+  function updateCounters() {
+    $('pardonedVal').textContent = session.pardonedTonight;
+    $('proceededVal').textContent = session.proceededTonight;
+    $('tPardTonight').textContent = session.pardonedTonight;
+    $('tProcTonight').textContent = session.proceededTonight;
+    $('tPardAll').textContent = state.pardons.length;
+    $('tAlive').textContent = liveCount();
+  }
+
+  function fmtYears(ms) {
+    const y = Math.floor(ms / YEAR_MS);
+    if (y === 0) {
+      const months = Math.max(1, Math.floor(ms / (YEAR_MS/12)));
+      return months === 1 ? 'month 1' : 'month ' + months;
+    }
+    if (y === 1) return 'year 1';
+    return 'year ' + y;
+  }
+
+  function renderWall() {
+    wall.innerHTML = '';
+    if (state.pardons.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'wall-empty';
+      empty.textContent = 'no names on the wall yet';
+      wall.appendChild(empty);
+      $('confessionLast').textContent = 'None of them were visited after.';
+      return;
+    }
+    const now = Date.now();
+    const sorted = [...state.pardons].sort((a, b) => b.t - a.t);
+    let deceasedAny = false;
+    for (const p of sorted) {
+      const row = document.createElement('div');
+      row.className = 'wall-row';
+      const left = document.createElement('span');
+      const right = document.createElement('span');
+      right.className = 'status';
+      left.textContent = p.name.toLowerCase();
+      const elapsed = now - p.t;
+      if (elapsed >= p.life) {
+        row.classList.add('deceased');
+        deceasedAny = true;
+        const diedAt = fmtYears(p.life);
+        right.textContent = 'deceased · ' + diedAt;
+      } else {
+        right.textContent = 'alive · ' + fmtYears(elapsed);
+      }
+      row.appendChild(left);
+      row.appendChild(right);
+      wall.appendChild(row);
+    }
+    $('confessionLast').textContent = deceasedAny
+      ? 'Those crossed through were not called back.'
+      : 'They have not been called back.';
+  }
+
+  function lightStage() {
+    stage.classList.add('lit');
+    setTimeout(() => stage.classList.remove('lit'), 1700);
+  }
+
+  function showProclamation() {
+    proclamation.classList.add('visible');
+    setTimeout(() => proclamation.classList.remove('visible'), 1800);
+  }
+
+  function confettiBurst() {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) return;
+    const colors = ['#e8b45a','#f3d08a','#b8392c','#d4e6f1','#9a5a3e','#fff5e6'];
+    for (let i = 0; i < 26; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.background = colors[i % colors.length];
+      c.style.left = (50 + (Math.random() - 0.5) * 36) + '%';
+      c.style.top = '44%';
+      c.style.borderRadius = (Math.random() > 0.5) ? '1px' : '50%';
+      stage.appendChild(c);
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 70 + Math.random() * 110;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist * 0.7 + Math.random() * 70;
+      const rot = (Math.random() - 0.5) * 900;
+      try {
+        c.animate([
+          { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+          { transform: `translate(${dx}px,${dy}px) rotate(${rot}deg)`, opacity: 0 }
+        ], { duration: 1300 + Math.random()*500, easing: 'cubic-bezier(.2,.5,.2,1)', fill: 'forwards' });
+      } catch (e) {
+        c.style.opacity = '0';
+      }
+      setTimeout(() => c.remove(), 2100);
+    }
+  }
+
+  function fadeTurkey(out, duration) {
+    try {
+      turkey.animate(
+        out ? [{ opacity: 1 }, { opacity: 0 }] : [{ opacity: 0 }, { opacity: 1 }],
+        { duration, fill: 'forwards' }
+      );
+    } catch (e) {
+      turkey.style.opacity = out ? '0' : '1';
+    }
+  }
+  function fadeName(out, duration) {
+    try {
+      nameTag.animate(
+        out ? [{ opacity: 0.9 }, { opacity: 0 }] : [{ opacity: 0 }, { opacity: 0.9 }],
+        { duration, fill: 'forwards' }
+      );
+    } catch (e) {
+      nameTag.style.opacity = out ? '0' : '0.9';
+    }
+  }
+
+  function resetTurkey() {
+    currentName = pickName();
+    nameTag.textContent = currentName.toUpperCase();
+    fadeTurkey(false, 500);
+    fadeName(false, 500);
+    pardonBtn.disabled = false;
+    proceedBtn.disabled = false;
+    busy = false;
+  }
+
+  function pardon() {
+    if (busy) return;
+    busy = true;
+    pardonBtn.disabled = true;
+    proceedBtn.disabled = true;
+
+    const now = Date.now();
+    const life = randomLifespanMs();
+    state.pardons.push({ name: currentName, t: now, life });
+    saveState();
+    session.pardonedTonight++;
+
+    lightStage();
+    showProclamation();
+    confettiBurst();
+    setTimeout(() => fadeTurkey(true, 900), 400);
+    setTimeout(() => fadeName(true, 700), 600);
+
+    updateCounters();
+    renderWall();
+
+    setTimeout(resetTurkey, 2000);
+  }
+
+  function proceed() {
+    if (busy) return;
+    busy = true;
+    pardonBtn.disabled = true;
+    proceedBtn.disabled = true;
+
+    state.proceededAll++;
+    saveState();
+    session.proceededTonight++;
+
+    fadeTurkey(true, 700);
+    fadeName(true, 500);
+
+    updateCounters();
+    setTimeout(resetTurkey, 1200);
+  }
+
+  function openLedger() {
+    renderWall();
+    updateCounters();
+    ledger.classList.add('open');
+    ledger.setAttribute('aria-hidden', 'false');
+  }
+  function closeLedger() {
+    ledger.classList.remove('open');
+    ledger.setAttribute('aria-hidden', 'true');
+  }
+
+  pardonBtn.addEventListener('click', pardon);
+  proceedBtn.addEventListener('click', proceed);
+  ledgerMark.addEventListener('click', openLedger);
+  ledgerClose.addEventListener('click', closeLedger);
+  ledger.addEventListener('click', e => { if (e.target === ledger) closeLedger(); });
+
+  // The wall itself is where the deaths surface over time — refresh while it's open.
+  setInterval(() => {
+    if (ledger.classList.contains('open')) {
+      renderWall();
+      updateCounters();
+    }
+  }, 1500);
+
+  updateCounters();
+})();
+</script>
+</body>
+</html>

@@ -804,6 +804,13 @@
       "kind": "question",
       "note": "Doors are open. Shelves are stocked. The sign at the greeter has not changed since you walked in.",
       "path": "projects/2026-11-25-just-browsing/index.html"
+    },
+    {
+      "date": "2026-11-26",
+      "title": "The Pardon",
+      "kind": "seed",
+      "note": "A pen, a turkey, a very red button. Press it with whatever ceremony feels right — the record will remember.",
+      "path": "projects/2026-11-26-the-pardon/index.html"
     }
   ]
 }
