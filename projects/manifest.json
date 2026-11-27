@@ -811,6 +811,13 @@
       "kind": "seed",
       "note": "A pen, a turkey, a very red button. Press it with whatever ceremony feels right — the record will remember.",
       "path": "projects/2026-11-26-the-pardon/index.html"
+    },
+    {
+      "date": "2026-11-27",
+      "title": "(On Record.)",
+      "kind": "question",
+      "note": "One ticket, one window. We're sorry — please try again.",
+      "path": "projects/2026-11-27-on-record/index.html"
     }
   ]
 }
