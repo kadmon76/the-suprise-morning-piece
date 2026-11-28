@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Deadwax</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0c0906;
+    --warm:#f0b96b;
+    --gold:#d79348;
+    --cream:#f1e4c8;
+    --dim:#7a6446;
+    --vinyl:#0a0806;
+    --vinyl-rim:#1a130c;
+    --label-a:#9a3024;
+    --label-b:#2a4a3a;
+    --label-cream:#e9d7ab;
+    --ice:#8ab3cc;
+    --rust:#b04a2a;
+    --paper:#15110b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--cream);font-family:"Cormorant Garamond",Georgia,serif;overflow-x:hidden}
+  body{
+    min-height:100dvh;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #2a1f12 0%, transparent 55%),
+      radial-gradient(900px 500px at 50% 110%, #1a1208 0%, transparent 60%),
+      var(--bg);
+    padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    position:relative;
+  }
+
+  .back{
+    position:fixed;
+    top:calc(env(safe-area-inset-top) + 10px);
+    left:12px;
+    font-family:"JetBrains Mono",monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    color:var(--dim);
+    text-decoration:none;
+    opacity:.8;
+    z-index:20;
+  }
+  .sheet-btn{
+    position:fixed;
+    top:calc(env(safe-area-inset-top) + 10px);
+    right:12px;
+    width:28px;height:28px;
+    border:1px solid var(--dim);
+    background:transparent;color:var(--dim);
+    font-family:"JetBrains Mono",monospace;font-size:13px;
+    line-height:26px;text-align:center;
+    cursor:pointer;z-index:20;
+    border-radius:2px;
+  }
+
+  header{
+    margin-top:46px;
+    text-align:center;
+    width:100%;
+  }
+  h1{
+    font-family:"Cormorant Garamond",serif;
+    font-weight:500;
+    font-style:italic;
+    font-size:32px;
+    letter-spacing:.02em;
+    margin:0;
+    color:var(--warm);
+  }
+  .sub{
+    font-family:"JetBrains Mono",monospace;
+    font-size:10px;
+    letter-spacing:.32em;
+    color:var(--dim);
+    margin-top:6px;
+    text-transform:uppercase;
+  }
+  .sideTag{
+    display:inline-block;
+    margin-top:14px;
+    padding:3px 10px;
+    border:1px solid var(--dim);
+    font-family:"JetBrains Mono",monospace;
+    font-size:10px;
+    letter-spacing:.3em;
+    color:var(--warm);
+    border-radius:1px;
+  }
+
+  .deck{
+    position:relative;
+    width:100%;
+    max-width:360px;
+    aspect-ratio:1/1;
+    margin:22px auto 0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    perspective:900px;
+  }
+  .platter{
+    position:absolute;inset:0;
+    border-radius:50%;
+    background:
+      radial-gradient(circle at 50% 50%, #1a130a 0%, #0f0a05 55%, #080503 100%);
+    box-shadow:0 20px 50px rgba(0,0,0,.6), inset 0 0 40px rgba(0,0,0,.6);
+  }
+  .platter::before{
+    content:"";
+    position:absolute;inset:4%;
+    border-radius:50%;
+    background:
+      radial-gradient(circle at 50% 50%, transparent 10%, rgba(255,210,150,.03) 10.5%, transparent 11%),
+      repeating-radial-gradient(circle at 50% 50%, rgba(255,230,180,.025) 0 1px, transparent 1px 2px);
+  }
+
+  .record{
+    position:relative;
+    width:94%;height:94%;
+    border-radius:50%;
+    background:
+      radial-gradient(circle at 50% 50%, var(--vinyl-rim) 0 30%, var(--vinyl) 31% 100%);
+    box-shadow:0 8px 30px rgba(0,0,0,.65), inset 0 0 14px rgba(0,0,0,.85);
+    overflow:hidden;
+    transform:rotate(0deg);
+    will-change:transform;
+  }
+  .record.spin{ animation:spin 1.6s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  /* grooves */
+  .record::before{
+    content:"";
+    position:absolute;inset:4%;
+    border-radius:50%;
+    background:
+      repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.02) 0 1px, transparent 1px 2.4px);
+    pointer-events:none;
+  }
+  /* deadwax ring (lead-out zone, smoother, slightly lighter) */
+  .record::after{
+    content:"";
+    position:absolute;
+    left:50%;top:50%;
+    width:52%;height:52%;
+    transform:translate(-50%,-50%);
+    border-radius:50%;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(255,230,180,.045) 0 46%, transparent 48%);
+    pointer-events:none;
+  }
+
+  .label{
+    position:absolute;
+    left:50%;top:50%;
+    width:38%;height:38%;
+    transform:translate(-50%,-50%);
+    border-radius:50%;
+    background:
+      radial-gradient(circle at 50% 50%, var(--label-a) 0 85%, #000 86% 88%, var(--label-a) 89% 100%);
+    display:flex;align-items:center;justify-content:center;
+    flex-direction:column;
+    color:var(--label-cream);
+    font-family:"Cormorant Garamond",serif;
+    text-align:center;
+    transition:background .35s ease;
+    box-shadow:inset 0 0 10px rgba(0,0,0,.35);
+  }
+  .label.b{
+    background:
+      radial-gradient(circle at 50% 50%, var(--label-b) 0 85%, #000 86% 88%, var(--label-b) 89% 100%);
+  }
+  .label .title-l{
+    font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;
+  }
+  .label .catalog{
+    font-family:"JetBrains Mono",monospace;
+    font-size:8px;letter-spacing:.14em;margin-top:3px;opacity:.85;
+  }
+  .label .side{
+    font-family:"Cormorant Garamond",serif;
+    font-style:italic;
+    font-size:14px;margin-top:5px;
+  }
+  .label .rpm{
+    font-family:"JetBrains Mono",monospace;
+    font-size:7px;letter-spacing:.2em;margin-top:3px;opacity:.7;
+  }
+  .label .hole{
+    position:absolute;
+    left:50%;top:50%;
+    width:5%;height:5%;
+    transform:translate(-50%,-50%);
+    border-radius:50%;
+    background:var(--bg);
+    box-shadow:inset 0 0 4px rgba(0,0,0,.9);
+  }
+
+  /* tonearm */
+  .arm{
+    position:absolute;
+    right:-4%;
+    top:-6%;
+    width:52%;
+    height:52%;
+    pointer-events:none;
+  }
+  .arm svg{width:100%;height:100%;display:block}
+
+  .vu{
+    width:100%;
+    max-width:360px;
+    display:flex;
+    justify-content:center;
+    gap:5px;
+    margin-top:14px;
+    height:16px;
+    align-items:flex-end;
+  }
+  .vu .bar{
+    width:4px;height:4px;
+    background:var(--dim);
+    transition:height .14s ease, background .14s ease;
+    opacity:.55;
+  }
+  .vu.playing .bar{background:var(--warm);opacity:1}
+
+  .controls{
+    margin-top:18px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:12px;
+    width:100%;
+  }
+  .play{
+    background:transparent;
+    color:var(--warm);
+    border:1px solid var(--warm);
+    padding:12px 28px;
+    font-family:"JetBrains Mono",monospace;
+    font-size:11px;letter-spacing:.3em;
+    cursor:pointer;border-radius:2px;
+    transition:background .2s, color .2s;
+  }
+  .play.playing{background:var(--warm);color:var(--bg)}
+
+  .row{
+    display:flex;gap:10px;
+  }
+  .row button{
+    background:transparent;
+    color:var(--cream);
+    border:1px solid var(--dim);
+    padding:10px 16px;
+    font-family:"JetBrains Mono",monospace;
+    font-size:10px;letter-spacing:.24em;
+    cursor:pointer;border-radius:2px;
+    transition:border-color .2s, color .2s;
+  }
+  .row button:active{color:var(--warm);border-color:var(--warm)}
+
+  .foot{
+    margin:28px 0 24px;
+    font-family:"Cormorant Garamond",serif;
+    font-style:italic;
+    font-size:13px;
+    color:var(--dim);
+    text-align:center;
+    max-width:300px;
+    line-height:1.45;
+  }
+
+  /* LOUPE overlay */
+  .loupe{
+    position:fixed;inset:0;
+    background:rgba(5,3,1,.985);
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    z-index:30;
+    padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+  }
+  .loupe.open{display:flex}
+  .loupe .top{
+    width:100%;
+    display:flex;justify-content:space-between;
+    align-items:center;
+    margin-top:14px;
+  }
+  .loupe .top .lbl{
+    font-family:"JetBrains Mono",monospace;
+    font-size:10px;letter-spacing:.3em;
+    color:var(--dim);
+    text-transform:uppercase;
+  }
+  .loupe .close{
+    background:transparent;border:1px solid var(--dim);color:var(--dim);
+    font-family:"JetBrains Mono",monospace;
+    font-size:11px;padding:4px 10px;border-radius:2px;cursor:pointer;
+  }
+  .loupe .scope{
+    margin-top:22px;
+    width:100%;
+    max-width:360px;
+    aspect-ratio:1/1;
+    position:relative;
+    border-radius:50%;
+    background:radial-gradient(circle at 50% 50%, #0a0806 0 60%, #1a130a 60% 70%, #0a0806 70% 100%);
+    box-shadow:inset 0 0 28px rgba(0,0,0,.9), 0 0 30px rgba(215,147,72,.08);
+    overflow:hidden;
+  }
+  /* zoomed grooves */
+  .loupe .scope::before{
+    content:"";
+    position:absolute;inset:4%;
+    border-radius:50%;
+    background:repeating-radial-gradient(circle at 50% 50%, rgba(255,230,180,.055) 0 1.3px, transparent 1.3px 4.4px);
+    pointer-events:none;
+  }
+  /* smooth deadwax zone */
+  .loupe .scope::after{
+    content:"";
+    position:absolute;
+    left:50%;top:50%;
+    width:62%;height:62%;
+    transform:translate(-50%,-50%);
+    border-radius:50%;
+    background:radial-gradient(circle at 50% 50%, rgba(255,230,180,.07) 0 60%, transparent 62%);
+    pointer-events:none;
+  }
+  .matrix{
+    position:absolute;
+    left:50%;top:50%;
+    transform:translate(-50%,-50%);
+    width:85%;
+    text-align:center;
+    pointer-events:none;
+  }
+  .matrix .m1{
+    font-family:"JetBrains Mono",monospace;
+    font-size:11px;letter-spacing:.22em;
+    color:#e5c89a;
+    text-shadow:0 0 6px rgba(240,185,107,.25);
+  }
+  .matrix .m2{
+    font-family:"JetBrains Mono",monospace;
+    font-size:10px;letter-spacing:.3em;
+    color:#c8a06a;
+    margin-top:6px;
+    opacity:.85;
+  }
+  .matrix .m3{
+    font-family:"JetBrains Mono",monospace;
+    font-size:9px;letter-spacing:.3em;
+    color:#8ab3cc;
+    margin-top:14px;
+    opacity:.9;
+  }
+  .matrix .annot{
+    font-family:"Cormorant Garamond",serif;
+    font-style:italic;
+    font-size:11px;
+    color:var(--dim);
+    margin-top:18px;
+    letter-spacing:.02em;
+  }
+  .loupe .legend{
+    margin-top:18px;
+    font-family:"JetBrains Mono",monospace;
+    font-size:9px;letter-spacing:.24em;
+    color:var(--dim);
+    text-align:center;
+    max-width:320px;
+    line-height:1.7;
+  }
+
+  /* call sheet */
+  .sheet{
+    position:fixed;inset:0;
+    background:rgba(8,6,3,.985);
+    display:none;
+    z-index:40;
+    overflow-y:auto;
+    padding:env(safe-area-inset-top) 18px env(safe-area-inset-bottom);
+  }
+  .sheet.open{display:block}
+  .sheet .inner{
+    max-width:420px;
+    margin:0 auto;
+    padding:24px 0 48px;
+  }
+  .sheet h2{
+    font-family:"Cormorant Garamond",serif;
+    font-weight:500;font-style:italic;
+    font-size:22px;color:var(--warm);
+    margin:0 0 4px;
+  }
+  .sheet .shsub{
+    font-family:"JetBrains Mono",monospace;
+    font-size:10px;letter-spacing:.3em;color:var(--dim);
+    margin-bottom:22px;text-transform:uppercase;
+  }
+  .sheet .closebtn{
+    background:transparent;border:1px solid var(--dim);color:var(--dim);
+    font-family:"JetBrains Mono",monospace;
+    font-size:11px;padding:5px 12px;border-radius:2px;cursor:pointer;
+    float:right;margin-top:4px;
+  }
+  .sheet dl{
+    margin:0;padding:0;
+    display:grid;grid-template-columns:1fr auto;
+    gap:10px 16px;
+    font-family:"JetBrains Mono",monospace;
+    font-size:11px;letter-spacing:.06em;
+    color:var(--cream);
+  }
+  .sheet dt{color:var(--dim);text-transform:uppercase;letter-spacing:.18em;font-size:9.5px;align-self:center}
+  .sheet dd{margin:0;text-align:right;color:var(--cream)}
+  .sheet dd.warm{color:var(--warm)}
+  .sheet dd.ice{color:var(--ice)}
+  .sheet .sep{
+    margin:22px 0 14px;
+    border:0;border-top:1px dashed #3a2c1a;
+    position:relative;
+  }
+  .sheet .sepTag{
+    position:absolute;
+    top:-9px;left:50%;transform:translateX(-50%);
+    background:rgba(8,6,3,.985);
+    padding:0 10px;
+    font-family:"JetBrains Mono",monospace;
+    font-size:9px;letter-spacing:.3em;
+    color:var(--ice);
+    font-style:italic;
+    text-transform:uppercase;
+  }
+  .sheet .confession{
+    color:var(--ice);
+    font-family:"Cormorant Garamond",serif;
+    font-style:italic;
+    font-size:14px;
+    line-height:1.55;
+    margin:14px 0 18px;
+    padding-left:10px;
+    border-left:1px solid #2d4a5a;
+  }
+  .sheet .verifyBtn{
+    display:block;
+    margin:22px auto 0;
+    background:transparent;
+    color:var(--rust);
+    border:1px solid var(--rust);
+    padding:10px 22px;
+    font-family:"JetBrains Mono",monospace;
+    font-size:10px;letter-spacing:.3em;
+    cursor:pointer;border-radius:2px;
+  }
+  .sheet .verifyBtn.flashed{ background:var(--rust); color:var(--bg);}
+  .sheet .verifyNote{
+    font-family:"Cormorant Garamond",serif;
+    font-style:italic;
+    font-size:12px;
+    color:var(--dim);
+    text-align:center;
+    margin:8px auto 0;
+    max-width:280px;
+    line-height:1.5;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .record.spin{animation:none}
+    .vu .bar{transition:none}
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="../../index.html">← cue sheet</a>
+<button class="sheet-btn" id="sheetBtn" aria-label="call sheet">☰</button>
+
+<header>
+  <h1>Deadwax</h1>
+  <div class="sub">Night Pressing · 33⅓</div>
+  <div class="sideTag" id="sideTag">SIDE A</div>
+</header>
+
+<div class="deck">
+  <div class="platter"></div>
+  <div class="record" id="record">
+    <div class="label" id="label">
+      <div class="title-l">NIGHT PRESSING</div>
+      <div class="catalog" id="catalog">S-1138</div>
+      <div class="side" id="sideLabel">side a</div>
+      <div class="rpm">33⅓ RPM</div>
+      <div class="hole"></div>
+    </div>
+  </div>
+  <div class="arm" aria-hidden="true">
+    <svg viewBox="0 0 200 200">
+      <circle cx="170" cy="30" r="14" fill="#2a2015" stroke="#5a4428" stroke-width="2"/>
+      <circle cx="170" cy="30" r="5" fill="#8a6a40"/>
+      <line x1="170" y1="30" x2="80" y2="128" stroke="#aa845a" stroke-width="4" stroke-linecap="round"/>
+      <rect x="70" y="118" width="20" height="22" rx="3" fill="#2a2015" stroke="#5a4428" stroke-width="1.5" transform="rotate(-20 80 128)"/>
+      <circle cx="78" cy="138" r="2.2" fill="#f0b96b"/>
+    </svg>
+  </div>
+</div>
+
+<div class="vu" id="vu">
+  <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+  <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+  <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+  <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+</div>
+
+<div class="controls">
+  <button class="play" id="play">▸ DROP THE NEEDLE</button>
+  <div class="row">
+    <button id="flip">FLIP</button>
+    <button id="loupe">LOUPE</button>
+  </div>
+</div>
+
+<div class="foot">
+  Side A, side B — the needle hears them the same.<br>
+  The deadwax does not.
+</div>
+
+<!-- LOUPE overlay -->
+<div class="loupe" id="loupeView" aria-hidden="true">
+  <div class="top">
+    <div class="lbl" id="loupeLbl">DEADWAX · SIDE A</div>
+    <button class="close" id="loupeClose">CLOSE</button>
+  </div>
+  <div class="scope">
+    <div class="matrix">
+      <div class="m1" id="matrixPlate">S-1138-A · GL240327</div>
+      <div class="m2" id="matrixStamp">STAMPER 04</div>
+      <div class="m3" id="matrixId">ID · — — — — — — — —</div>
+      <div class="annot">(etched into the lead-out groove)</div>
+    </div>
+  </div>
+  <div class="legend">
+    Everything you can hear is on the other side of this ring.<br>
+    Everything etched here is not for you.
+  </div>
+</div>
+
+<!-- CALL SHEET -->
+<div class="sheet" id="sheet" aria-hidden="true">
+  <div class="inner">
+    <button class="closebtn" id="sheetClose">CLOSE</button>
+    <h2>Call sheet</h2>
+    <div class="shsub">deadwax · pressing report</div>
+    <dl>
+      <dt>Title</dt><dd>Night Pressing</dd>
+      <dt>Catalog</dt><dd>S-1138</dd>
+      <dt>Pressing plant</dt><dd>GL · Gold Line</dd>
+      <dt>Lacquer date</dt><dd>240327</dd>
+      <dt>Stamper</dt><dd>04</dd>
+      <dt>Side currently up</dt><dd id="shSide" class="warm">A</dd>
+      <dt>Needle state</dt><dd id="shPlay">lifted</dd>
+      <dt>Loupe opens</dt><dd id="shLoupe">0</dd>
+      <dt>Flips</dt><dd id="shFlips">0</dd>
+    </dl>
+
+    <hr class="sep"><span class="sepTag">— off the record —</span>
+
+    <dl>
+      <dt>Side A · ID segment</dt><dd id="shIdA" class="ice">—</dd>
+      <dt>Side B · ID segment</dt><dd id="shIdB" class="ice">—</dd>
+      <dt>ID derived from</dt><dd class="ice">session + device + load time</dd>
+      <dt>ID in audio</dt><dd class="ice">absent · 0 bits</dd>
+      <dt>ID in deadwax</dt><dd class="ice">present · 32 bits</dd>
+      <dt>Inscribed at</dt><dd class="ice">page load, before any play</dd>
+      <dt>Visible to listener</dt><dd class="ice">no</dd>
+      <dt>Visible to loupe</dt><dd class="ice">yes</dd>
+      <dt>Verifiable by listener</dt><dd class="ice">no</dd>
+      <dt>Re-inscribable</dt><dd class="ice">on demand ↓</dd>
+    </dl>
+
+    <p class="confession">
+      The sides sound the same because the song is the same. The
+      deadwax does not sound at all. It is where the pressing records
+      who this copy was for — a signature nobody listening can detect
+      and nobody carrying can audit, written in the one zone of the
+      record that was never meant for their ears. It was called
+      <em>provenance</em> on the way in. The loupe is a courtesy; the
+      record keeps the mark either way.
+    </p>
+
+    <button class="verifyBtn" id="verifyBtn">VERIFY MATRIX</button>
+    <p class="verifyNote">
+      Tap to re-stamp the deadwax. The matrix you just read was one of
+      many a verified matrix could have been.
+    </p>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const record = $('#record');
+  const label  = $('#label');
+  const sideLabel = $('#sideLabel');
+  const sideTag = $('#sideTag');
+  const playBtn = $('#play');
+  const flipBtn = $('#flip');
+  const loupeBtn = $('#loupe');
+  const loupeView = $('#loupeView');
+  const loupeLbl = $('#loupeLbl');
+  const loupeClose = $('#loupeClose');
+  const sheet = $('#sheet');
+  const sheetBtn = $('#sheetBtn');
+  const sheetClose = $('#sheetClose');
+  const vu = $('#vu');
+  const bars = vu.querySelectorAll('.bar');
+
+  const shSide = $('#shSide');
+  const shPlay = $('#shPlay');
+  const shLoupe = $('#shLoupe');
+  const shFlips = $('#shFlips');
+  const shIdA = $('#shIdA');
+  const shIdB = $('#shIdB');
+
+  const matrixPlate = $('#matrixPlate');
+  const matrixStamp = $('#matrixStamp');
+  const matrixId = $('#matrixId');
+  const verifyBtn = $('#verifyBtn');
+
+  const state = {
+    side: 'A',
+    playing: false,
+    flips: 0,
+    loupeOpens: 0,
+    idA: null,
+    idB: null
+  };
+
+  // --- ID generation ---------------------------------------------------
+  // 8-char base-32 fingerprint segment. Different per side, different
+  // per session, different on verify. The ledger is honest: "ID derived
+  // from session + device + load time". The exact bytes here are
+  // pseudo-random seeded from timing + navigator — the point is only
+  // that no listener can audit them.
+  function hashSeed() {
+    const s = (navigator.userAgent || '') +
+              '|' + (screen && screen.width) +
+              'x' + (screen && screen.height) +
+              '|' + (navigator.language || '') +
+              '|' + performance.now() +
+              '|' + Date.now() +
+              '|' + Math.random();
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return h;
+  }
+  const ALPH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 31 chars, skip look-alikes
+  function id8(seed) {
+    let h = seed >>> 0;
+    let out = '';
+    for (let i = 0; i < 8; i++) {
+      h = Math.imul(h ^ (h >>> 13), 2654435769) >>> 0;
+      out += ALPH[h % ALPH.length];
+    }
+    // group as 4-4 for the loupe
+    return out.slice(0,4) + '-' + out.slice(4);
+  }
+
+  function regenIds() {
+    state.idA = id8(hashSeed() ^ 0x5A17A17A);
+    state.idB = id8(hashSeed() ^ 0xB10B10B1);
+    shIdA.textContent = state.idA;
+    shIdB.textContent = state.idB;
+    paintMatrix();
+  }
+
+  function paintMatrix() {
+    matrixPlate.textContent = 'S-1138-' + state.side + ' · GL240327';
+    matrixStamp.textContent = 'STAMPER 04';
+    const id = state.side === 'A' ? state.idA : state.idB;
+    matrixId.textContent = 'ID · ' + id;
+    loupeLbl.textContent = 'DEADWAX · SIDE ' + state.side;
+  }
+
+  // --- side / play -----------------------------------------------------
+  function setSide(s) {
+    state.side = s;
+    sideTag.textContent = 'SIDE ' + s;
+    sideLabel.textContent = 'side ' + s.toLowerCase();
+    label.classList.toggle('b', s === 'B');
+    shSide.textContent = s;
+    paintMatrix();
+  }
+
+  function setPlaying(p) {
+    state.playing = p;
+    record.classList.toggle('spin', p);
+    vu.classList.toggle('playing', p);
+    playBtn.classList.toggle('playing', p);
+    playBtn.textContent = p ? '■ LIFT THE NEEDLE' : '▸ DROP THE NEEDLE';
+    shPlay.textContent = p ? 'on groove' : 'lifted';
+  }
+
+  playBtn.addEventListener('click', () => setPlaying(!state.playing));
+
+  flipBtn.addEventListener('click', () => {
+    state.flips++;
+    shFlips.textContent = state.flips;
+    setSide(state.side === 'A' ? 'B' : 'A');
+    if (state.playing) setPlaying(false); // lift needle on flip, as you would
+  });
+
+  loupeBtn.addEventListener('click', () => {
+    state.loupeOpens++;
+    shLoupe.textContent = state.loupeOpens;
+    paintMatrix();
+    loupeView.classList.add('open');
+    loupeView.setAttribute('aria-hidden','false');
+  });
+  loupeClose.addEventListener('click', () => {
+    loupeView.classList.remove('open');
+    loupeView.setAttribute('aria-hidden','true');
+  });
+
+  sheetBtn.addEventListener('click', () => {
+    sheet.classList.add('open');
+    sheet.setAttribute('aria-hidden','false');
+  });
+  sheetClose.addEventListener('click', () => {
+    sheet.classList.remove('open');
+    sheet.setAttribute('aria-hidden','true');
+  });
+
+  verifyBtn.addEventListener('click', () => {
+    verifyBtn.classList.add('flashed');
+    setTimeout(() => verifyBtn.classList.remove('flashed'), 220);
+    regenIds();
+  });
+
+  // --- VU shimmer ------------------------------------------------------
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let vuTimer = null;
+  function tickVU() {
+    bars.forEach(b => {
+      const h = state.playing
+        ? 2 + Math.round(Math.random() * 14)
+        : 3;
+      b.style.height = h + 'px';
+    });
+  }
+  if (!reduceMotion) {
+    vuTimer = setInterval(tickVU, 140);
+  } else {
+    // still show playing/dim difference without animation
+    bars.forEach(b => b.style.height = '4px');
+  }
+
+  // --- init ------------------------------------------------------------
+  regenIds();
+  setSide('A');
+  setPlaying(false);
+})();
+</script>
+</body>
+</html>

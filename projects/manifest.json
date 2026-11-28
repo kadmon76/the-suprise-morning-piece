@@ -818,6 +818,13 @@
       "kind": "question",
       "note": "One ticket, one window. We're sorry — please try again.",
       "path": "projects/2026-11-27-on-record/index.html"
+    },
+    {
+      "date": "2026-11-28",
+      "title": "Deadwax",
+      "kind": "seed",
+      "note": "Side A, side B — the needle hears them the same. Something else doesn't.",
+      "path": "projects/2026-11-28-deadwax/index.html"
     }
   ]
 }
